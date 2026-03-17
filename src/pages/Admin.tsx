@@ -199,8 +199,16 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        alert('Erro ao enviar mensagem: ' + (errorData.error || 'Erro desconhecido'));
+        let errorMessage = 'Erro desconhecido';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          // Se não for JSON (ex: erro 500 do Vercel), pega o texto
+          const errorText = await response.text();
+          errorMessage = errorText || `Erro HTTP: ${response.status}`;
+        }
+        alert('Erro ao enviar mensagem: ' + errorMessage);
       }
     } catch (error) {
       console.error('Erro ao enviar mensagem:', error);
