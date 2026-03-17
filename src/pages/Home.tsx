@@ -81,8 +81,15 @@ const Home: React.FC = () => {
           });
         }, 5000);
       } else {
-        const data = await response.json();
-        alert(`Erro: ${data.error || 'Falha ao enviar o formulário.'}`);
+        let errorMessage = 'Falha ao enviar o formulário.';
+        try {
+          const data = await response.json();
+          errorMessage = data.error || errorMessage;
+        } catch (e) {
+          // Se não for JSON (ex: erro 500 da Vercel)
+          errorMessage = `Erro no servidor (${response.status}). Verifique se as variáveis de ambiente estão configuradas na Vercel.`;
+        }
+        alert(`Erro: ${errorMessage}`);
         setFormStatus('idle');
       }
     } catch (error) {
