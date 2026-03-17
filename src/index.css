@@ -22,3 +22,7 @@ body {
 h1, h2, h3, h4, h5, h6, .font-serif {
   font-family: var(--font-serif);
 }
+
+.admin-panel h1, .admin-panel h2, .admin-panel h3, .admin-panel h4, .admin-panel h5, .admin-panel h6 {
+  font-family: var(--font-sans) !important;
+}

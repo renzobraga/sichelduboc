@@ -1,6 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { db } from "./firebase-client.js";
-import { collection, query, where, orderBy, limit, getDocs, addDoc, updateDoc, doc, getDoc } from "firebase/firestore";
+import { dbAdmin } from "./firebase-admin.js";
 
 export default async function handler(req: VercelRequest | any, res: VercelResponse | any) {
   if (req.method !== "POST") {
@@ -11,22 +10,18 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
     const data = req.body;
     
     // Z-API sends events like 'onMessage'
-    // Format: { isGroup: false, phone: '5511999999999', text: { message: 'Hello' }, ... }
-    
     if (data && data.phone && data.text && data.text.message && !data.isGroup) {
       const phone = data.phone;
       const messageText = data.text.message;
       
       console.log(`Mensagem recebida de ${phone}: ${messageText}`);
 
-      // 1. Encontrar o Lead pelo telefone
-      const leadsQuery = query(
-        collection(db, 'leads'),
-        where('telefone', '==', phone),
-        orderBy('createdAt', 'desc'),
-        limit(1)
-      );
-      const leadsSnapshot = await getDocs(leadsQuery);
+      // 1. Encontrar o Lead pelo telefone usando dbAdmin (bypassa regras de segurança)
+      const leadsSnapshot = await dbAdmin.collection('leads')
+        .where('telefone', '==', phone)
+        .orderBy('createdAt', 'desc')
+        .limit(1)
+        .get();
 
       if (!leadsSnapshot.empty) {
         const leadDoc = leadsSnapshot.docs[0];
@@ -34,7 +29,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
         const leadData = leadDoc.data();
 
         // 2. Salvar a mensagem recebida
-        await addDoc(collection(db, 'messages'), {
+        await dbAdmin.collection('messages').add({
           leadId,
           text: messageText,
           sender: 'user',
@@ -43,7 +38,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
 
         // 3. Atualizar o status do lead se for 'novo'
         if (leadData.status === 'novo') {
-          await updateDoc(doc(db, 'leads', leadId), {
+          await dbAdmin.collection('leads').doc(leadId).update({
             status: 'em_atendimento',
             updatedAt: new Date().toISOString()
           });
@@ -64,21 +59,19 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
               const ai = new GoogleGenAI({ apiKey });
               
               // Buscar histórico recente de mensagens do lead
-              const historyQuery = query(
-                collection(db, 'messages'),
-                where('leadId', '==', leadId),
-                orderBy('createdAt', 'desc'),
-                limit(15)
-              );
-              const historySnapshot = await getDocs(historyQuery);
+              const historySnapshot = await dbAdmin.collection('messages')
+                .where('leadId', '==', leadId)
+                .orderBy('createdAt', 'desc')
+                .limit(15)
+                .get();
                 
               const history = historySnapshot.docs.map(d => d.data()).reverse();
               
               // Buscar prompt de chat customizado
               let customChatPrompt = "";
               try {
-                const promptDoc = await getDoc(doc(db, 'settings', 'ai_chat_prompt'));
-                if (promptDoc.exists()) {
+                const promptDoc = await dbAdmin.collection('settings').doc('ai_chat_prompt').get();
+                if (promptDoc.exists) {
                   customChatPrompt = promptDoc.data()?.text || "";
                 }
               } catch (e) {
@@ -130,7 +123,7 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
                 });
                 
                 // Salvar a resposta da IA no Firestore
-                await addDoc(collection(db, 'messages'), {
+                await dbAdmin.collection('messages').add({
                   leadId,
                   text: aiResponseText,
                   sender: 'bot',
