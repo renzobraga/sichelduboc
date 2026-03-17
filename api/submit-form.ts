@@ -1,7 +1,8 @@
 import nodemailer from "nodemailer";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { GoogleGenAI } from "@google/genai";
-import { dbAdmin } from "./firebase-admin.js";
+import { db } from "./firebase-client.js";
+import { collection, doc, setDoc, addDoc, getDoc } from "firebase/firestore";
 
 export default async function handler(req: VercelRequest | any, res: VercelResponse | any) {
   // Allow CORS for local development if needed, though Vercel handles it via vercel.json usually
@@ -30,7 +31,8 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
 
   try {
     // Gera o ID do lead sincronamente
-    const leadRef = dbAdmin.collection('leads').doc();
+    const leadsCollection = collection(db, 'leads');
+    const leadRef = doc(leadsCollection);
     const leadId = leadRef.id;
     
     let formattedPhone = telefone.replace(/\D/g, "");
@@ -39,7 +41,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
     }
 
     // TAREFA 1: Salvar no Banco de Dados
-    const dbPromise = leadRef.set({
+    const dbPromise = setDoc(leadRef, {
       nome,
       telefone: formattedPhone,
       email: email || "",
@@ -133,8 +135,8 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
           // Buscar prompt customizado do banco de dados
           let customPrompt = "";
           try {
-            const promptDoc = await dbAdmin.collection('settings').doc('ai_prompt').get();
-            if (promptDoc.exists) {
+            const promptDoc = await getDoc(doc(db, 'settings', 'ai_prompt'));
+            if (promptDoc.exists()) {
               customPrompt = promptDoc.data()?.text || "";
             }
           } catch (e) {
@@ -183,7 +185,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
         
         // 3.3 Salvar mensagem no banco
         try {
-          await dbAdmin.collection('messages').add({
+          await addDoc(collection(db, 'messages'), {
             leadId,
             text: mensagemWhatsApp,
             sender: 'bot',
