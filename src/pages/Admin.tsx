@@ -22,16 +22,27 @@ export default function Admin() {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
-        // Verifica se é admin
-        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-        if (userDoc.exists() && userDoc.data().role === 'admin') {
-          setIsAdmin(true);
-        } else if (currentUser.email === 'ia.resguarde@gmail.com' || currentUser.email === 'contato@sichelduboc.com.br') {
-          // Default admin
+        let isUserAdmin = false;
+        
+        // Verifica se é admin no banco de dados
+        try {
+          const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+          if (userDoc.exists() && userDoc.data().role === 'admin') {
+            isUserAdmin = true;
+          }
+        } catch (error) {
+          console.warn("Aviso: Não foi possível ler o documento do usuário (pode não ter permissão ainda).", error);
+        }
+
+        // Verifica se é o admin padrão (hardcoded) ou se está no banco
+        if (isUserAdmin || 
+            currentUser.email === 'contato@sichelduboc.com.br') {
           setIsAdmin(true);
         } else {
           setIsAdmin(false);
         }
+      } else {
+        setIsAdmin(false);
       }
       setLoading(false);
     });

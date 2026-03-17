@@ -29,205 +29,170 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
   }
 
   try {
-    // --- 0. SALVAR LEAD NO BANCO DE DADOS (FIRESTORE) ---
-    let leadId = "";
+    // Gera o ID do lead sincronamente
+    const leadRef = dbAdmin.collection('leads').doc();
+    const leadId = leadRef.id;
+    
     let formattedPhone = telefone.replace(/\D/g, "");
     if (formattedPhone.length >= 10 && !formattedPhone.startsWith("55")) {
       formattedPhone = "55" + formattedPhone;
     }
 
-    try {
-      const leadRef = dbAdmin.collection('leads').doc();
-      leadId = leadRef.id;
-      
-      await leadRef.set({
-        nome,
-        telefone: formattedPhone,
-        email: email || "",
-        cidade: cidade || "",
-        estado: estado || "",
-        aposentadoriaComplementar: aposentadoriaComplementar || "",
-        contribuicao89a95: contribuicao89a95 || "",
-        pagaIrAtualmente: pagaIrAtualmente || "",
-        status: "novo",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      });
+    // TAREFA 1: Salvar no Banco de Dados
+    const dbPromise = leadRef.set({
+      nome,
+      telefone: formattedPhone,
+      email: email || "",
+      cidade: cidade || "",
+      estado: estado || "",
+      aposentadoriaComplementar: aposentadoriaComplementar || "",
+      contribuicao89a95: contribuicao89a95 || "",
+      pagaIrAtualmente: pagaIrAtualmente || "",
+      status: "novo",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }).then(() => {
       console.log(`Lead salvo no Firestore com ID: ${leadId}`);
-    } catch (dbError) {
-      console.error("Erro ao salvar lead no Firestore:", dbError);
-      // Continuamos o fluxo mesmo se o banco falhar
-    }
+      return true;
+    }).catch(e => {
+      console.error("Erro ao salvar lead no Firestore:", e);
+      return false;
+    });
 
-    let emailEnviado = false;
-    let erroEmail: any = null;
-    
-    // --- 1. TENTATIVA DE ENVIO DE E-MAIL ---
-    try {
-      if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-        throw new Error("Credenciais de e-mail (EMAIL_USER/EMAIL_PASS) não configuradas.");
-      }
-      
-      const port = parseInt(process.env.EMAIL_PORT || "465");
-      const isSecure = port === 465;
-
-      const transporter = nodemailer.createTransport({
-        host: process.env.EMAIL_HOST || "smtp.hostinger.com",
-        port: port,
-        secure: isSecure, 
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
-        },
-        tls: { rejectUnauthorized: false },
-        connectionTimeout: 5000, // 5 segundos de timeout
-        greetingTimeout: 5000,
-        socketTimeout: 5000,
-      });
-
-      const mailOptions = {
-        from: `"Sichel & Duboc Leads" <${process.env.EMAIL_USER}>`,
-        to: process.env.EMAIL_TO || process.env.EMAIL_USER,
-        subject: `Novo Lead: ${nome} - Restituição IR`,
-        text: `
-          Novo formulário recebido:
-
-          Nome: ${nome}
-          Telefone: ${telefone}
-          Email: ${email}
-          Cidade/Estado: ${cidade} / ${estado}
-
-          Respostas de Triagem:
-          - Aposentadoria Complementar: ${aposentadoriaComplementar}
-          - Contribuição 89-95: ${contribuicao89a95}
-          - Paga IR Atualmente: ${pagaIrAtualmente}
-        `,
-        html: `
-          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
-            <h2 style="color: #38383a; border-bottom: 2px solid #dcb366; padding-bottom: 10px;">Novo Lead Recebido</h2>
-            <p><strong>Nome:</strong> ${nome}</p>
-            <p><strong>Telefone:</strong> ${telefone}</p>
-            <p><strong>Email:</strong> ${email}</p>
-            <p><strong>Cidade/Estado:</strong> ${cidade} / ${estado}</p>
-            
-            <div style="background: #f9f9f9; padding: 15px; border-radius: 5px; margin-top: 20px;">
-              <h3 style="margin-top: 0; color: #38383a;">Triagem Inicial:</h3>
-              <ul style="list-style: none; padding: 0;">
-                <li><strong>Aposentadoria Complementar:</strong> ${aposentadoriaComplementar}</li>
-                <li><strong>Contribuição 89-95:</strong> ${contribuicao89a95}</li>
-                <li><strong>Paga IR Atualmente:</strong> ${pagaIrAtualmente}</li>
-              </ul>
-            </div>
-            
-            <p style="font-size: 12px; color: #999; margin-top: 30px; text-align: center;">
-              Este é um e-mail automático enviado pelo seu site.
-            </p>
-          </div>
-        `,
-      };
-
-      await transporter.sendMail(mailOptions);
-      emailEnviado = true;
-      console.log("E-mail enviado com sucesso para:", mailOptions.to);
-    } catch (emailError: any) {
-      console.error("Erro ao enviar e-mail:", emailError);
-      erroEmail = emailError.message || String(emailError);
-    }
-
-    // --- 2. INTEGRAÇÃO Z-API E GEMINI IA ---
-    let whatsappEnviado = false;
-    let erroWhatsapp: any = null;
-    let erroIA: any = null;
-    
-    try {
-      let formattedPhone = telefone.replace(/\D/g, "");
-      if (formattedPhone.length >= 10 && !formattedPhone.startsWith("55")) {
-        formattedPhone = "55" + formattedPhone;
-      }
-
-      let mensagemWhatsApp = "";
+    // TAREFA 2: Enviar E-mail
+    const emailPromise = (async () => {
       try {
-        // Fallback to empty string if undefined to avoid passing undefined directly
-        let apiKey = process.env.CHAVE_IA_GEMINI || process.env.GEMINI_API_KEY || "";
-        apiKey = apiKey.replace(/['"]/g, '').trim(); // Remove aspas acidentais e espaços
-        
-        if (!apiKey || apiKey === "AI Studio Free Tier") {
-          throw new Error("Chave da IA não configurada ou inválida.");
+        if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+          throw new Error("Credenciais de e-mail não configuradas.");
         }
         
-        const ai = new GoogleGenAI({ apiKey: apiKey });
-        const prompt = `Você é um assistente do escritório Sichel & Duboc. Lead: ${nome}. Aposentadoria: ${aposentadoriaComplementar}. Contribuiu 89-95: ${contribuicao89a95}. Paga IR: ${pagaIrAtualmente}. Crie uma mensagem curta de WhatsApp agradecendo, dizendo se é promissor e fazendo uma pergunta aberta. Assine Equipe Sichel & Duboc.`;
-        
-        const response = await ai.models.generateContent({
-          model: "gemini-3-flash-preview",
-          contents: prompt,
+        const port = parseInt(process.env.EMAIL_PORT || "465");
+        const isSecure = port === 465;
+
+        const transporter = nodemailer.createTransport({
+          host: process.env.EMAIL_HOST || "smtp.hostinger.com",
+          port: port,
+          secure: isSecure, 
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS,
+          },
+          tls: { rejectUnauthorized: false },
+          connectionTimeout: 5000,
+          greetingTimeout: 5000,
+          socketTimeout: 5000,
         });
-        mensagemWhatsApp = response.text || "Olá! Recebemos seu contato no site da Sichel & Duboc. Um de nossos advogados falará com você em breve!";
-      } catch (aiError: any) {
-        console.error("Erro na geração de IA, usando mensagem padrão:", aiError);
-        erroIA = aiError.message || String(aiError);
-        mensagemWhatsApp = `Olá, ${nome}! Recebemos seu contato no site da Sichel & Duboc. Um de nossos especialistas vai analisar seu caso e entrará em contato. Qual o melhor horário para falarmos?`;
+
+        const mailOptions = {
+          from: `"Sichel & Duboc Leads" <${process.env.EMAIL_USER}>`,
+          to: process.env.EMAIL_TO || process.env.EMAIL_USER,
+          subject: `Novo Lead: ${nome} - Restituição IR`,
+          text: `Novo formulário recebido:\nNome: ${nome}\nTelefone: ${telefone}\nEmail: ${email}\nCidade/Estado: ${cidade} / ${estado}\n\nTriagem:\n- Aposentadoria Complementar: ${aposentadoriaComplementar}\n- Contribuição 89-95: ${contribuicao89a95}\n- Paga IR Atualmente: ${pagaIrAtualmente}`,
+          html: `
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
+              <h2 style="color: #38383a; border-bottom: 2px solid #dcb366; padding-bottom: 10px;">Novo Lead Recebido</h2>
+              <p><strong>Nome:</strong> ${nome}</p>
+              <p><strong>Telefone:</strong> ${telefone}</p>
+              <p><strong>Email:</strong> ${email}</p>
+              <p><strong>Cidade/Estado:</strong> ${cidade} / ${estado}</p>
+              <div style="background: #f9f9f9; padding: 15px; border-radius: 5px; margin-top: 20px;">
+                <h3 style="margin-top: 0; color: #38383a;">Triagem Inicial:</h3>
+                <ul style="list-style: none; padding: 0;">
+                  <li><strong>Aposentadoria Complementar:</strong> ${aposentadoriaComplementar}</li>
+                  <li><strong>Contribuição 89-95:</strong> ${contribuicao89a95}</li>
+                  <li><strong>Paga IR Atualmente:</strong> ${pagaIrAtualmente}</li>
+                </ul>
+              </div>
+            </div>
+          `,
+        };
+
+        await transporter.sendMail(mailOptions);
+        console.log("E-mail enviado com sucesso.");
+        return { success: true, error: null };
+      } catch (e: any) {
+        console.error("Erro ao enviar e-mail:", e);
+        return { success: false, error: e.message || String(e) };
       }
+    })();
 
-      const zApiUrl = "https://api.z-api.io/instances/3F04463B905D722D1841026B50D22DF4/token/DA7B3B0DBC0D106EAB56DF63/send-text";
-      
-      const zApiHeaders: Record<string, string> = { 
-        "Content-Type": "application/json" 
-      };
-      
-      // Adiciona o Client-Token se estiver configurado nas variáveis de ambiente
-      if (process.env.ZAPI_CLIENT_TOKEN) {
-        zApiHeaders["Client-Token"] = process.env.ZAPI_CLIENT_TOKEN;
-      }
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 segundos de timeout
-
-      const zApiResponse = await fetch(zApiUrl, {
-        method: "POST",
-        headers: zApiHeaders,
-        body: JSON.stringify({ phone: formattedPhone, message: mensagemWhatsApp }),
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-      
-      const zApiText = await zApiResponse.text();
-      
-      if (!zApiResponse.ok) {
-        console.error("Z-API respondeu com erro:", zApiResponse.status, zApiText);
-        erroWhatsapp = `Z-API Status ${zApiResponse.status}: ${zApiText}`;
-      } else {
-        console.log("Mensagem de WhatsApp enviada com sucesso para:", formattedPhone, "Resposta Z-API:", zApiText);
-        whatsappEnviado = true;
+    // TAREFA 3: Enviar WhatsApp (Gemini + Z-API)
+    const whatsappPromise = (async () => {
+      try {
+        let mensagemWhatsApp = "";
+        let erroIA = null;
         
-        // Salvar a mensagem no banco de dados
-        if (leadId) {
-          try {
-            await dbAdmin.collection('messages').add({
-              leadId,
-              text: mensagemWhatsApp,
-              sender: 'bot',
-              createdAt: new Date().toISOString()
-            });
-          } catch (msgError) {
-            console.error("Erro ao salvar mensagem no Firestore:", msgError);
-          }
+        // 3.1 Gerar mensagem com IA
+        try {
+          let apiKey = process.env.CHAVE_IA_GEMINI || process.env.GEMINI_API_KEY || "";
+          apiKey = apiKey.replace(/['"]/g, '').trim();
+          
+          if (!apiKey || apiKey === "AI Studio Free Tier") throw new Error("Chave da IA inválida.");
+          
+          const ai = new GoogleGenAI({ apiKey: apiKey });
+          const prompt = `Você é um assistente do escritório Sichel & Duboc. Lead: ${nome}. Aposentadoria: ${aposentadoriaComplementar}. Contribuiu 89-95: ${contribuicao89a95}. Paga IR: ${pagaIrAtualmente}. Crie uma mensagem curta de WhatsApp agradecendo, dizendo se é promissor e fazendo uma pergunta aberta. Assine Equipe Sichel & Duboc.`;
+          
+          const response = await ai.models.generateContent({
+            model: "gemini-3-flash-preview",
+            contents: prompt,
+          });
+          mensagemWhatsApp = response.text || "Olá! Recebemos seu contato no site da Sichel & Duboc. Um de nossos advogados falará com você em breve!";
+        } catch (aiError: any) {
+          console.error("Erro na IA:", aiError);
+          erroIA = aiError.message;
+          mensagemWhatsApp = `Olá, ${nome}! Recebemos seu contato no site da Sichel & Duboc. Um de nossos especialistas vai analisar seu caso e entrará em contato. Qual o melhor horário para falarmos?`;
         }
-      }
-    } catch (whatsappError: any) {
-      console.error("Erro ao enviar WhatsApp via Z-API:", whatsappError);
-      erroWhatsapp = whatsappError.message || String(whatsappError);
-    }
 
-    if (!emailEnviado && !whatsappEnviado) {
+        // 3.2 Enviar via Z-API
+        const zApiUrl = "https://api.z-api.io/instances/3F04463B905D722D1841026B50D22DF4/token/DA7B3B0DBC0D106EAB56DF63/send-text";
+        const zApiHeaders: Record<string, string> = { "Content-Type": "application/json" };
+        if (process.env.ZAPI_CLIENT_TOKEN) zApiHeaders["Client-Token"] = process.env.ZAPI_CLIENT_TOKEN;
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        const zApiResponse = await fetch(zApiUrl, {
+          method: "POST",
+          headers: zApiHeaders,
+          body: JSON.stringify({ phone: formattedPhone, message: mensagemWhatsApp }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        
+        const zApiText = await zApiResponse.text();
+        
+        if (!zApiResponse.ok) throw new Error(`Z-API Status ${zApiResponse.status}: ${zApiText}`);
+        
+        // 3.3 Salvar mensagem no banco
+        try {
+          await dbAdmin.collection('messages').add({
+            leadId,
+            text: mensagemWhatsApp,
+            sender: 'bot',
+            createdAt: new Date().toISOString()
+          });
+        } catch (msgError) {
+          console.error("Erro ao salvar mensagem:", msgError);
+        }
+
+        return { success: true, error: null, erroIA };
+      } catch (e: any) {
+        console.error("Erro no WhatsApp:", e);
+        return { success: false, error: e.message || String(e), erroIA: null };
+      }
+    })();
+
+    // EXECUTAR TUDO AO MESMO TEMPO (PARALELO)
+    const [dbResult, emailResult, whatsappResult] = await Promise.all([
+      dbPromise,
+      emailPromise,
+      whatsappPromise
+    ]);
+
+    if (!emailResult.success && !whatsappResult.success) {
       return res.status(500).json({ 
         error: "Falha ao enviar e-mail e WhatsApp.",
-        detalhes: {
-          email: erroEmail,
-          whatsapp: erroWhatsapp,
-          ia: erroIA
-        }
+        detalhes: { email: emailResult.error, whatsapp: whatsappResult.error }
       });
     }
 
@@ -235,9 +200,9 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
       success: true, 
       message: "Processado com sucesso!",
       avisos: {
-        email: emailEnviado ? "Enviado" : erroEmail,
-        whatsapp: whatsappEnviado ? "Enviado" : erroWhatsapp,
-        ia: erroIA ? erroIA : "Sucesso"
+        email: emailResult.success ? "Enviado" : emailResult.error,
+        whatsapp: whatsappResult.success ? "Enviado" : whatsappResult.error,
+        ia: whatsappResult.erroIA ? whatsappResult.erroIA : "Sucesso"
       }
     });
   } catch (error) {
