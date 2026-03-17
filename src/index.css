@@ -84,3 +84,8 @@ h1, h2, h3, h4, h5, h6, .font-serif {
 .admin-panel.dark .bg-indigo-100 { background-color: rgba(99, 102, 241, 0.2) !important; }
 .admin-panel.dark .text-indigo-700 { color: #a5b4fc !important; }
 .admin-panel.dark .text-indigo-500 { color: #818cf8 !important; }
+.admin-panel.dark .border-indigo-200 { border-color: rgba(99, 102, 241, 0.3) !important; }
+
+.admin-panel.dark .bg-purple-100 { background-color: rgba(168, 85, 247, 0.2) !important; }
+.admin-panel.dark .text-purple-700 { color: #d8b4fe !important; }
+.admin-panel.dark .border-purple-200 { border-color: rgba(168, 85, 247, 0.3) !important; }
