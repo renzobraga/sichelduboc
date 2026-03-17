@@ -129,9 +129,26 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
           
           if (!apiKey || apiKey === "AI Studio Free Tier") throw new Error("Chave da IA inválida.");
           
-          const ai = new GoogleGenAI({ apiKey: apiKey });
-          const prompt = `Você é um assistente do escritório Sichel & Duboc. Lead: ${nome}. Aposentadoria: ${aposentadoriaComplementar}. Contribuiu 89-95: ${contribuicao89a95}. Paga IR: ${pagaIrAtualmente}. Crie uma mensagem curta de WhatsApp agradecendo, dizendo se é promissor e fazendo uma pergunta aberta. Assine Equipe Sichel & Duboc.`;
+          // Buscar prompt customizado do banco de dados
+          let customPrompt = "";
+          try {
+            const promptDoc = await dbAdmin.collection('settings').doc('ai_prompt').get();
+            if (promptDoc.exists) {
+              customPrompt = promptDoc.data()?.text || "";
+            }
+          } catch (e) {
+            console.error("Erro ao buscar prompt customizado, usando padrão:", e);
+          }
+
+          let promptTemplate = customPrompt || `Você é um assistente do escritório Sichel & Duboc. Lead: {nome}. Aposentadoria: {aposentadoriaComplementar}. Contribuiu 89-95: {contribuicao89a95}. Paga IR: {pagaIrAtualmente}. Crie uma mensagem curta de WhatsApp agradecendo, dizendo se é promissor e fazendo uma pergunta aberta. Assine Equipe Sichel & Duboc.`;
           
+          const prompt = promptTemplate
+            .replace(/{nome}/g, nome)
+            .replace(/{aposentadoriaComplementar}/g, aposentadoriaComplementar || 'Não informado')
+            .replace(/{contribuicao89a95}/g, contribuicao89a95 || 'Não informado')
+            .replace(/{pagaIrAtualmente}/g, pagaIrAtualmente || 'Não informado');
+          
+          const ai = new GoogleGenAI({ apiKey: apiKey });
           const response = await ai.models.generateContent({
             model: "gemini-3-flash-preview",
             contents: prompt,

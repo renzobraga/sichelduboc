@@ -49,6 +49,10 @@ service cloud.firestore {
     // Rules
     // ===============================================================
 
+    match /settings/{document=**} {
+      allow read, write: if isAdmin();
+    }
+
     match /users/{userId} {
       // Only admins can read/write users
       allow read, write: if isAdmin();
