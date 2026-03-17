@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
-import { LogOut, MessageCircle, LayoutDashboard, Workflow, Save, Bot, User, Kanban, List, BarChart3, Users, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { LogOut, MessageCircle, LayoutDashboard, Workflow, Save, Bot, User, Kanban, List, BarChart3, Users, CheckCircle, XCircle, Clock, Moon, Sun } from 'lucide-react';
 
 export default function Admin() {
   const [user, setUser] = useState<any>(null);
@@ -16,6 +16,10 @@ export default function Admin() {
   // Layout states
   const [activeTab, setActiveTab] = useState<'dashboard' | 'chat' | 'fluxos'>('dashboard');
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const saved = localStorage.getItem('adminDarkMode');
+    return saved === 'true';
+  });
   
   // Fluxos states
   const [aiPrompt, setAiPrompt] = useState('');
@@ -68,6 +72,21 @@ export default function Admin() {
       return () => unsubscribe();
     }
   }, [user, isAdmin]);
+
+  // Sync selectedLead with leads array updates
+  useEffect(() => {
+    if (selectedLead) {
+      const updatedLead = leads.find(l => l.id === selectedLead.id);
+      if (updatedLead && JSON.stringify(updatedLead) !== JSON.stringify(selectedLead)) {
+        setSelectedLead(updatedLead);
+      }
+    }
+  }, [leads, selectedLead]);
+
+  // Handle Dark Mode
+  useEffect(() => {
+    localStorage.setItem('adminDarkMode', isDarkMode.toString());
+  }, [isDarkMode]);
 
   // Fetch Messages for selected lead (Real-time)
   useEffect(() => {
@@ -163,6 +182,9 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
   };
 
   const updateLeadStatus = async (leadId: string, newStatus: string) => {
+    // Optimistic update
+    setSelectedLead(prev => prev && prev.id === leadId ? { ...prev, status: newStatus } : prev);
+    
     try {
       await updateDoc(doc(db, 'leads', leadId), {
         status: newStatus,
@@ -174,13 +196,20 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
   };
 
   const toggleAI = async (leadId: string, currentStatus: boolean) => {
+    const newStatus = currentStatus === false ? true : false;
+    
+    // Optimistic update
+    setSelectedLead(prev => prev && prev.id === leadId ? { ...prev, aiEnabled: newStatus } : prev);
+    
     try {
       await updateDoc(doc(db, 'leads', leadId), {
-        aiEnabled: currentStatus === false ? true : false,
+        aiEnabled: newStatus,
         updatedAt: new Date().toISOString()
       });
     } catch (error) {
       console.error('Erro ao alternar IA:', error);
+      // Revert on error
+      setSelectedLead(prev => prev && prev.id === leadId ? { ...prev, aiEnabled: currentStatus } : prev);
     }
   };
 
@@ -217,12 +246,16 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-slate-50">Carregando...</div>;
+    return (
+      <div className={`admin-panel min-h-screen flex items-center justify-center ${isDarkMode ? 'dark bg-[#121212]' : 'bg-slate-50'}`}>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#dcb366]"></div>
+      </div>
+    );
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+      <div className={`admin-panel min-h-screen flex flex-col items-center justify-center p-4 ${isDarkMode ? 'dark bg-[#121212]' : 'bg-slate-50'}`}>
         <div className="bg-white p-8 rounded-xl shadow-md max-w-md w-full">
           <h1 className="text-2xl font-bold text-[#38383a] mb-2 text-center">Painel Administrativo</h1>
           <p className="text-slate-600 mb-6 text-center">Faça login para acessar os leads e gerenciar os atendimentos.</p>
@@ -287,7 +320,7 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+      <div className={`admin-panel min-h-screen flex flex-col items-center justify-center p-4 ${isDarkMode ? 'dark bg-[#121212]' : 'bg-slate-50'}`}>
         <div className="bg-white p-8 rounded-xl shadow-md max-w-md w-full text-center">
           <h1 className="text-2xl font-bold text-red-600 mb-4">Acesso Negado</h1>
           <p className="text-slate-600 mb-8">Sua conta não tem permissão de administrador.</p>
@@ -303,7 +336,7 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
   }
 
   return (
-    <div className="admin-panel min-h-screen bg-slate-50 flex h-screen overflow-hidden">
+    <div className={`admin-panel min-h-screen flex h-screen overflow-hidden ${isDarkMode ? 'dark bg-[#121212]' : 'bg-slate-50'}`}>
       
       {/* Sidebar Navigation */}
       <aside className="w-64 bg-[#1a1a1a] text-white flex flex-col shrink-0">
@@ -340,8 +373,15 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
           </button>
         </nav>
 
-        <div className="p-4 border-t border-white/10">
-          <div className="text-xs text-slate-400 mb-3 px-4 truncate">{user.email}</div>
+        <div className="p-4 border-t border-white/10 flex flex-col gap-2">
+          <div className="text-xs text-slate-400 mb-1 px-4 truncate">{user.email}</div>
+          <button 
+            onClick={() => setIsDarkMode(!isDarkMode)}
+            className="flex items-center gap-3 px-4 py-2 w-full rounded-lg text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
+          >
+            {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+            {isDarkMode ? 'Modo Claro' : 'Modo Escuro'}
+          </button>
           <button 
             onClick={handleLogout}
             className="flex items-center gap-3 px-4 py-2 w-full rounded-lg text-sm font-medium text-red-400 hover:bg-red-400/10 transition-colors"
