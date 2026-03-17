@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
-import { LogOut, MessageCircle, LayoutDashboard, Workflow, Save } from 'lucide-react';
+import { LogOut, MessageCircle, LayoutDashboard, Workflow, Save, Bot, User } from 'lucide-react';
 
 export default function Admin() {
   const [user, setUser] = useState<any>(null);
@@ -18,6 +18,7 @@ export default function Admin() {
   
   // Fluxos states
   const [aiPrompt, setAiPrompt] = useState('');
+  const [aiChatPrompt, setAiChatPrompt] = useState('');
   const [savingPrompt, setSavingPrompt] = useState(false);
   const [promptSaved, setPromptSaved] = useState(false);
 
@@ -93,6 +94,18 @@ export default function Admin() {
           } else {
             setAiPrompt(`Você é um assistente do escritório Sichel & Duboc. Lead: {nome}. Aposentadoria: {aposentadoriaComplementar}. Contribuiu 89-95: {contribuicao89a95}. Paga IR: {pagaIrAtualmente}. Crie uma mensagem curta de WhatsApp agradecendo, dizendo se é promissor e fazendo uma pergunta aberta. Assine Equipe Sichel & Duboc.`);
           }
+
+          const chatDocRef = doc(db, 'settings', 'ai_chat_prompt');
+          const chatDocSnap = await getDoc(chatDocRef);
+          if (chatDocSnap.exists()) {
+            setAiChatPrompt(chatDocSnap.data().text || '');
+          } else {
+            setAiChatPrompt(`Você é um assistente virtual de um escritório de advocacia previdenciária (Sichel & Duboc).
+O nome do cliente é {nome}. Aposentadoria: {aposentadoriaComplementar}. Contribuiu 89-95: {contribuicao89a95}. Paga IR: {pagaIrAtualmente}.
+Responda à última mensagem do cliente de forma educada, profissional e concisa. 
+Seu objetivo é entender o problema previdenciário dele e agendar uma consulta com um advogado.
+Não invente informações jurídicas complexas, apenas colete dados e seja acolhedor.`);
+          }
         } catch (error) {
           console.error("Erro ao carregar prompt da IA:", error);
         }
@@ -106,6 +119,7 @@ export default function Admin() {
     setPromptSaved(false);
     try {
       await setDoc(doc(db, 'settings', 'ai_prompt'), { text: aiPrompt });
+      await setDoc(doc(db, 'settings', 'ai_chat_prompt'), { text: aiChatPrompt });
       setPromptSaved(true);
       setTimeout(() => setPromptSaved(false), 3000);
     } catch (error) {
@@ -155,6 +169,17 @@ export default function Admin() {
       });
     } catch (error) {
       console.error('Erro ao atualizar status:', error);
+    }
+  };
+
+  const toggleAI = async (leadId: string, currentStatus: boolean) => {
+    try {
+      await updateDoc(doc(db, 'leads', leadId), {
+        aiEnabled: currentStatus === false ? true : false,
+        updatedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Erro ao alternar IA:', error);
     }
   };
 
@@ -368,6 +393,14 @@ export default function Admin() {
                       </div>
                       <div className="flex gap-2 bg-slate-50 p-1 rounded-lg border border-slate-200">
                         <button 
+                          onClick={() => toggleAI(selectedLead.id, selectedLead.aiEnabled)}
+                          className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium transition-colors ${selectedLead.aiEnabled !== false ? 'bg-indigo-100 text-indigo-700 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}
+                          title={selectedLead.aiEnabled !== false ? "Desativar IA e assumir atendimento" : "Reativar atendimento por IA"}
+                        >
+                          {selectedLead.aiEnabled !== false ? <><Bot size={16} /> IA Ativa</> : <><User size={16} /> Humano</>}
+                        </button>
+                        <div className="w-px bg-slate-200 mx-1"></div>
+                        <button 
                           onClick={() => updateLeadStatus(selectedLead.id, 'em_atendimento')}
                           className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${selectedLead.status === 'em_atendimento' ? 'bg-amber-100 text-amber-800 shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}
                         >
@@ -500,9 +533,21 @@ export default function Admin() {
                   <textarea 
                     value={aiPrompt}
                     onChange={(e) => setAiPrompt(e.target.value)}
-                    className="w-full h-64 p-4 border border-slate-200 rounded-lg font-mono text-sm leading-relaxed focus:ring-2 focus:ring-[#dcb366] focus:border-transparent outline-none resize-y"
-                    placeholder="Digite o prompt da IA aqui..."
+                    className="w-full h-48 p-4 border border-slate-200 rounded-lg font-mono text-sm leading-relaxed focus:ring-2 focus:ring-[#dcb366] focus:border-transparent outline-none resize-y mb-6"
+                    placeholder="Digite o prompt da primeira mensagem aqui..."
                   />
+
+                  <div className="border-t border-slate-200 pt-6 mb-6">
+                    <h3 className="font-bold text-slate-800 text-lg mb-1">Prompt do Chatbot (Respostas Contínuas)</h3>
+                    <p className="text-sm text-slate-500 mb-4">Este é o comando que a IA recebe sempre que o cliente responder a mensagem no WhatsApp. O histórico da conversa será enviado automaticamente junto com este prompt.</p>
+                    
+                    <textarea 
+                      value={aiChatPrompt}
+                      onChange={(e) => setAiChatPrompt(e.target.value)}
+                      className="w-full h-48 p-4 border border-slate-200 rounded-lg font-mono text-sm leading-relaxed focus:ring-2 focus:ring-[#dcb366] focus:border-transparent outline-none resize-y"
+                      placeholder="Digite o prompt de conversação contínua aqui..."
+                    />
+                  </div>
                   
                   <div className="mt-6">
                     <h4 className="font-bold text-slate-700 text-sm mb-3 uppercase tracking-wider">Variáveis Disponíveis</h4>

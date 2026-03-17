@@ -57,6 +57,12 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
       createdAt: new Date().toISOString()
     });
 
+    // 4. Desativar a IA para este lead (Humano assumiu)
+    await dbAdmin.collection('leads').doc(leadId).update({
+      aiEnabled: false,
+      updatedAt: new Date().toISOString()
+    });
+
     return res.status(200).json({ success: true });
   } catch (error) {
     console.error("Erro ao enviar mensagem manual:", error);

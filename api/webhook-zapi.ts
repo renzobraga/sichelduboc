@@ -48,7 +48,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
         }
         
         // 4. Lógica do Chatbot (IA)
-        if (leadData.status === 'em_atendimento') {
+        if (leadData.aiEnabled !== false) {
           try {
             const { GoogleGenAI } = await import("@google/genai");
             
@@ -64,33 +64,55 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
               const historySnapshot = await dbAdmin.collection('messages')
                 .where('leadId', '==', leadId)
                 .orderBy('createdAt', 'desc')
-                .limit(10)
+                .limit(15)
                 .get();
                 
               const history = historySnapshot.docs.map(d => d.data()).reverse();
               
-              let prompt = `Você é um assistente virtual de um escritório de advocacia previdenciária (Sichel & Duboc).
-O nome do cliente é ${leadData.nome}.
-Histórico da conversa:\n`;
+              // Buscar prompt de chat customizado
+              let customChatPrompt = "";
+              try {
+                const promptDoc = await dbAdmin.collection('settings').doc('ai_chat_prompt').get();
+                if (promptDoc.exists) {
+                  customChatPrompt = promptDoc.data()?.text || "";
+                }
+              } catch (e) {
+                console.error("Erro ao buscar prompt de chat customizado:", e);
+              }
 
-              history.forEach(msg => {
-                prompt += `${msg.sender === 'user' ? 'Cliente' : 'Você'}: ${msg.text}\n`;
-              });
-              
-              prompt += `\nResponda à última mensagem do cliente de forma educada, profissional e concisa. 
+              let promptTemplate = customChatPrompt || `Você é um assistente virtual de um escritório de advocacia previdenciária (Sichel & Duboc).
+O nome do cliente é {nome}. Aposentadoria: {aposentadoriaComplementar}. Contribuiu 89-95: {contribuicao89a95}. Paga IR: {pagaIrAtualmente}.
+Responda à última mensagem do cliente de forma educada, profissional e concisa. 
 Seu objetivo é entender o problema previdenciário dele e agendar uma consulta com um advogado.
 Não invente informações jurídicas complexas, apenas colete dados e seja acolhedor.`;
 
+              let promptText = promptTemplate
+                .replace(/{nome}/g, leadData.nome)
+                .replace(/{aposentadoriaComplementar}/g, leadData.aposentadoriaComplementar || 'Não informado')
+                .replace(/{contribuicao89a95}/g, leadData.contribuicao89a95 || 'Não informado')
+                .replace(/{pagaIrAtualmente}/g, leadData.pagaIrAtualmente || 'Não informado');
+
+              promptText += `\n\nHistórico da conversa:\n`;
+
+              history.forEach(msg => {
+                promptText += `${msg.sender === 'user' ? 'Cliente' : 'Você'}: ${msg.text}\n`;
+              });
+              
+              promptText += `\nVocê:`;
+
               const response = await ai.models.generateContent({
                 model: "gemini-3-flash-preview",
-                contents: prompt,
+                contents: promptText,
               });
               
               const aiResponseText = response.text;
               
               if (aiResponseText) {
                 // Enviar a resposta via Z-API
-                const zApiUrl = "https://api.z-api.io/instances/3F04463B905D722D1841026B50D22DF4/token/DA7B3B0DBC0D106EAB56DF63/send-text";
+                const zApiInstance = process.env.ZAPI_INSTANCE || "3F04463B905D722D1841026B50D22DF4";
+                const zApiToken = process.env.ZAPI_TOKEN || "DA7B3B0DBC0D106EAB56DF63";
+                const zApiUrl = `https://api.z-api.io/instances/${zApiInstance}/token/${zApiToken}/send-text`;
+                
                 const zApiHeaders: Record<string, string> = { "Content-Type": "application/json" };
                 if (process.env.ZAPI_CLIENT_TOKEN) {
                   zApiHeaders["Client-Token"] = process.env.ZAPI_CLIENT_TOKEN;
