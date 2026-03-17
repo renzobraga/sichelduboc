@@ -1,7 +1,7 @@
 import nodemailer from "nodemailer";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { GoogleGenAI } from "@google/genai";
-import { dbAdmin } from "./firebase-admin";
+import { dbAdmin } from "./firebase-admin.js";
 
 export default async function handler(req: VercelRequest | any, res: VercelResponse | any) {
   // Allow CORS for local development if needed, though Vercel handles it via vercel.json usually
@@ -79,7 +79,10 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASS,
         },
-        tls: { rejectUnauthorized: false }
+        tls: { rejectUnauthorized: false },
+        connectionTimeout: 5000, // 5 segundos de timeout
+        greetingTimeout: 5000,
+        socketTimeout: 5000,
       });
 
       const mailOptions = {
@@ -177,11 +180,17 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
         zApiHeaders["Client-Token"] = process.env.ZAPI_CLIENT_TOKEN;
       }
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 segundos de timeout
+
       const zApiResponse = await fetch(zApiUrl, {
         method: "POST",
         headers: zApiHeaders,
-        body: JSON.stringify({ phone: formattedPhone, message: mensagemWhatsApp })
+        body: JSON.stringify({ phone: formattedPhone, message: mensagemWhatsApp }),
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
       
       const zApiText = await zApiResponse.text();
       
