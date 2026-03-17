@@ -357,8 +357,15 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
                       className={`p-4 border-b border-slate-100 cursor-pointer transition-colors hover:bg-white ${selectedLead?.id === lead.id ? 'bg-white border-l-4 border-l-[#dcb366]' : ''}`}
                     >
                       <div className="flex justify-between items-start mb-1">
-                        <h3 className="font-bold text-slate-800 truncate pr-2">{lead.nome}</h3>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wide whitespace-nowrap
+                        <div className="flex items-center gap-2 overflow-hidden">
+                          <h3 className="font-bold text-slate-800 truncate">{lead.nome}</h3>
+                          {lead.aiEnabled !== false ? (
+                            <Bot size={14} className="text-indigo-500 shrink-0" title="IA Ativa" />
+                          ) : (
+                            <User size={14} className="text-slate-400 shrink-0" title="Atendimento Humano" />
+                          )}
+                        </div>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wide whitespace-nowrap ml-2
                           ${lead.status === 'novo' ? 'bg-blue-100 text-blue-700' : 
                             lead.status === 'em_atendimento' ? 'bg-amber-100 text-amber-700' : 
                             lead.status === 'qualificado' ? 'bg-green-100 text-green-700' : 
