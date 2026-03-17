@@ -1,0 +1,63 @@
+{
+  "entities": {
+    "Lead": {
+      "title": "Lead",
+      "description": "A potential client who submitted the form",
+      "type": "object",
+      "properties": {
+        "nome": { "type": "string" },
+        "telefone": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "cidade": { "type": "string" },
+        "estado": { "type": "string" },
+        "aposentadoriaComplementar": { "type": "string" },
+        "contribuicao89a95": { "type": "string" },
+        "pagaIrAtualmente": { "type": "string" },
+        "status": { 
+          "type": "string", 
+          "enum": ["novo", "em_atendimento", "qualificado", "descartado"] 
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["nome", "telefone", "status", "createdAt"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "A WhatsApp message exchanged with a lead",
+      "type": "object",
+      "properties": {
+        "leadId": { "type": "string" },
+        "text": { "type": "string" },
+        "sender": { "type": "string", "enum": ["bot", "user", "admin"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["leadId", "text", "sender", "createdAt"]
+    },
+    "User": {
+      "title": "User",
+      "description": "An admin user of the system",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["admin"] },
+        "name": { "type": "string" }
+      },
+      "required": ["email", "role"]
+    }
+  },
+  "firestore": {
+    "/leads/{leadId}": {
+      "schema": { "$ref": "#/entities/Lead" },
+      "description": "Collection of all leads"
+    },
+    "/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/Message" },
+      "description": "Collection of all WhatsApp messages"
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Collection of admin users"
+    }
+  }
+}

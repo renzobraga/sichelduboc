@@ -1,0 +1,71 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: uid
+    // Fields:
+    //   - email: string (required)
+    //   - role: string (required, 'admin')
+    //   - name: string (optional)
+    //
+    // Collection: leads
+    // Document ID: auto-generated
+    // Fields:
+    //   - nome: string (required)
+    //   - telefone: string (required)
+    //   - email: string (optional)
+    //   - status: string (required)
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: messages
+    // Document ID: auto-generated
+    // Fields:
+    //   - leadId: string (required)
+    //   - text: string (required)
+    //   - sender: string (required)
+    //   - createdAt: timestamp (required)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         (request.auth.token.email == "ia.resguarde@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      // Only admins can read/write users
+      allow read, write: if isAdmin();
+    }
+
+    match /leads/{leadId} {
+      // Only admins can read/update/delete leads
+      allow read, update, delete: if isAdmin();
+      // Backend uses Admin SDK to create leads, so no create rule needed here
+      allow create: if false; 
+    }
+
+    match /messages/{messageId} {
+      // Only admins can read/update/delete messages
+      allow read, update, delete: if isAdmin();
+      // Backend uses Admin SDK to create messages, so no create rule needed here
+      allow create: if false;
+    }
+  }
+}
