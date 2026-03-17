@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
-import { LogOut, MessageCircle, LayoutDashboard, Workflow, Save, Bot, User, Kanban, List, BarChart3, Users, CheckCircle, XCircle, Clock, Moon, Sun } from 'lucide-react';
+import { LogOut, MessageCircle, LayoutDashboard, Workflow, Save, Bot, User, Kanban, List, BarChart3, Users, CheckCircle, XCircle, Clock, Moon, Sun, Sparkles } from 'lucide-react';
 
 const EXPERT_PROMPT = `Você é o assistente virtual do escritório de advocacia Sichel & Duboc, especialista em direito previdenciário e tributário.
 Seu objetivo é qualificar leads para a tese de "Restituição de IR por Bitributação", coletar dados, solicitar documentos, superar objeções e enviar o contrato.
@@ -762,8 +762,9 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
                       <h3 className="font-bold text-slate-800 text-lg">Prompt do Chatbot (Respostas Contínuas)</h3>
                       <button 
                         onClick={() => setAiChatPrompt(EXPERT_PROMPT)}
-                        className="text-xs font-medium bg-indigo-50 text-indigo-600 hover:bg-indigo-100 px-3 py-1.5 rounded-md transition-colors border border-indigo-200"
+                        className="flex items-center gap-2 text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded-lg transition-colors shadow-sm"
                       >
+                        <Sparkles size={16} />
                         Carregar Prompt Especialista
                       </button>
                     </div>
