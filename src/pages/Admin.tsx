@@ -14,8 +14,8 @@ export default function Admin() {
   const [newMessage, setNewMessage] = useState('');
   
   // Layout states
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'fluxos'>('dashboard');
-  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'chat' | 'fluxos'>('dashboard');
+  const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
   
   // Fluxos states
   const [aiPrompt, setAiPrompt] = useState('');
@@ -322,6 +322,14 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
             <LayoutDashboard size={18} />
             Dashboard
           </button>
+
+          <button 
+            onClick={() => setActiveTab('chat')}
+            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium ${activeTab === 'chat' ? 'bg-[#dcb366] text-[#1a1a1a]' : 'text-slate-300 hover:bg-white/5 hover:text-white'}`}
+          >
+            <MessageCircle size={18} />
+            Chat
+          </button>
           
           <button 
             onClick={() => setActiveTab('fluxos')}
@@ -355,20 +363,6 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
             <div className="bg-white border-b border-slate-200 p-6 shrink-0">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-slate-800">Visão Geral</h2>
-                <div className="flex bg-slate-100 p-1 rounded-lg">
-                  <button 
-                    onClick={() => setViewMode('list')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${viewMode === 'list' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                  >
-                    <List size={16} /> Lista
-                  </button>
-                  <button 
-                    onClick={() => setViewMode('kanban')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${viewMode === 'kanban' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                  >
-                    <Kanban size={16} /> Kanban
-                  </button>
-                </div>
               </div>
               
               <div className="grid grid-cols-5 gap-4">
@@ -395,65 +389,128 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
               </div>
             </div>
 
-            {/* Content Area (List or Kanban) */}
-            {viewMode === 'list' ? (
-              <div className="flex flex-1 overflow-hidden">
-                {/* Leads List */}
-                <div className="w-1/3 bg-slate-50 border-r border-slate-200 flex flex-col shrink-0">
-                  <div className="p-4 border-b border-slate-200 bg-white">
-                    <h2 className="font-bold text-slate-800">Leads Recentes <span className="text-[#dcb366] ml-1">({leads.length})</span></h2>
-                  </div>
-                  <div className="flex-1 overflow-y-auto">
-                    {leads.length === 0 ? (
-                      <div className="p-8 text-center text-slate-500">Nenhum lead encontrado.</div>
-                    ) : (
-                      leads.map(lead => (
+            {/* Kanban View (Dashboard) */}
+            <div className="flex-1 overflow-x-auto p-6 bg-slate-50/50">
+              <div className="flex gap-6 h-full min-w-max">
+                {[
+                  { id: 'novo', title: 'Novos', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+                  { id: 'em_atendimento', title: 'Em Atendimento', color: 'bg-amber-100 text-amber-700 border-amber-200' },
+                  { id: 'qualificado', title: 'Qualificados', color: 'bg-green-100 text-green-700 border-green-200' },
+                  { id: 'descartado', title: 'Descartados', color: 'bg-slate-100 text-slate-700 border-slate-200' },
+                ].map(col => (
+                  <div 
+                    key={col.id} 
+                    className="w-80 flex flex-col bg-slate-100/50 rounded-xl border border-slate-200"
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      if (draggedLeadId) {
+                        updateLeadStatus(draggedLeadId, col.id);
+                        setDraggedLeadId(null);
+                      }
+                    }}
+                  >
+                    <div className={`p-3 m-3 rounded-lg border font-bold text-sm flex justify-between items-center ${col.color}`}>
+                      {col.title}
+                      <span className="bg-white/50 px-2 py-0.5 rounded-full text-xs">
+                        {leads.filter(l => l.status === col.id).length}
+                      </span>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-3 pt-0 space-y-3">
+                      {leads.filter(l => l.status === col.id).map(lead => (
                         <div 
-                          key={lead.id}
-                          onClick={() => setSelectedLead(lead)}
-                          className={`p-4 border-b border-slate-100 cursor-pointer transition-colors hover:bg-white ${selectedLead?.id === lead.id ? 'bg-white border-l-4 border-l-[#dcb366]' : ''}`}
+                          key={lead.id} 
+                          draggable
+                          onDragStart={() => setDraggedLeadId(lead.id)}
+                          onDragEnd={() => setDraggedLeadId(null)}
+                          onClick={() => { setSelectedLead(lead); setActiveTab('chat'); }}
+                          className={`bg-white p-4 rounded-lg shadow-sm border border-slate-200 cursor-pointer hover:shadow-md transition-shadow ${draggedLeadId === lead.id ? 'opacity-50' : ''}`}
                         >
-                          <div className="flex justify-between items-start mb-1">
-                            <div className="flex items-center gap-2 overflow-hidden">
-                              <h3 className="font-bold text-slate-800 truncate">{lead.nome}</h3>
-                              {lead.aiEnabled !== false ? (
-                                <Bot size={14} className="text-indigo-500 shrink-0" title="IA Ativa" />
-                              ) : (
-                                <User size={14} className="text-slate-400 shrink-0" title="Atendimento Humano" />
-                              )}
-                            </div>
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wide whitespace-nowrap ml-2
-                              ${lead.status === 'novo' ? 'bg-blue-100 text-blue-700' : 
-                                lead.status === 'em_atendimento' ? 'bg-amber-100 text-amber-700' : 
-                                lead.status === 'qualificado' ? 'bg-green-100 text-green-700' : 
-                                'bg-slate-100 text-slate-700'}`}
-                            >
-                              {lead.status === 'novo' ? 'Novo' : 
-                               lead.status === 'em_atendimento' ? 'Em Atend.' : 
-                               lead.status === 'qualificado' ? 'Qualificado' : 'Descartado'}
-                            </span>
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="font-bold text-slate-800 truncate pr-2">{lead.nome}</div>
+                            {lead.aiEnabled !== false ? (
+                              <Bot size={14} className="text-indigo-500 shrink-0" title="IA Ativa" />
+                            ) : (
+                              <User size={14} className="text-slate-400 shrink-0" title="Atendimento Humano" />
+                            )}
                           </div>
-                          <p className="text-sm text-slate-500 mb-2">{lead.telefone}</p>
-                          <div className="text-xs text-slate-400">
-                            {new Date(lead.createdAt).toLocaleString('pt-BR')}
+                          <div className="text-xs text-slate-500 mb-3 flex items-center gap-1">
+                            <MessageCircle size={12} /> {lead.telefone}
+                          </div>
+                          <div className="text-xs text-slate-400 flex items-center gap-1">
+                            <Clock size={12} />
+                            {new Date(lead.createdAt).toLocaleDateString('pt-BR')}
                           </div>
                         </div>
-                      ))
-                    )}
+                      ))}
+                    </div>
                   </div>
-                </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
-                {/* Lead Details & Chat */}
-                <div className="flex-1 flex flex-col bg-white">
-                  {selectedLead ? (
-                    <>
-                      <div className="bg-white p-6 border-b border-slate-200 shrink-0 shadow-sm z-10">
-                        <div className="flex justify-between items-start mb-4">
-                          <div>
-                            <h2 className="text-2xl font-bold text-slate-800 mb-1">{selectedLead.nome}</h2>
-                            <p className="text-slate-500 flex items-center gap-2">
-                              <MessageCircle size={16} /> {selectedLead.telefone}
-                            </p>
+        {/* CHAT TAB */}
+        {activeTab === 'chat' && (
+          <div className="flex flex-1 overflow-hidden">
+            {/* Leads List (Compact) */}
+            <div className="w-72 bg-slate-50 border-r border-slate-200 flex flex-col shrink-0">
+              <div className="p-4 border-b border-slate-200 bg-white">
+                <h2 className="font-bold text-slate-800">Conversas <span className="text-[#dcb366] ml-1">({leads.length})</span></h2>
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                {leads.length === 0 ? (
+                  <div className="p-8 text-center text-slate-500">Nenhum lead encontrado.</div>
+                ) : (
+                  leads.map(lead => (
+                    <div 
+                      key={lead.id}
+                      onClick={() => setSelectedLead(lead)}
+                      className={`p-4 border-b border-slate-100 cursor-pointer transition-colors hover:bg-white ${selectedLead?.id === lead.id ? 'bg-white border-l-4 border-l-[#dcb366]' : ''}`}
+                    >
+                      <div className="flex justify-between items-start mb-1">
+                        <div className="flex items-center gap-2 overflow-hidden">
+                          <h3 className="font-bold text-slate-800 truncate text-sm">{lead.nome}</h3>
+                          {lead.aiEnabled !== false ? (
+                            <Bot size={12} className="text-indigo-500 shrink-0" title="IA Ativa" />
+                          ) : (
+                            <User size={12} className="text-slate-400 shrink-0" title="Atendimento Humano" />
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center mt-2">
+                        <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wide whitespace-nowrap
+                          ${lead.status === 'novo' ? 'bg-blue-100 text-blue-700' : 
+                            lead.status === 'em_atendimento' ? 'bg-amber-100 text-amber-700' : 
+                            lead.status === 'qualificado' ? 'bg-green-100 text-green-700' : 
+                            'bg-slate-100 text-slate-700'}`}
+                        >
+                          {lead.status === 'novo' ? 'Novo' : 
+                           lead.status === 'em_atendimento' ? 'Em Atend.' : 
+                           lead.status === 'qualificado' ? 'Qualificado' : 'Descartado'}
+                        </span>
+                        <div className="text-[10px] text-slate-400">
+                          {new Date(lead.createdAt).toLocaleDateString('pt-BR')}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Lead Details & Chat */}
+            <div className="flex-1 flex flex-col bg-white">
+              {selectedLead ? (
+                <>
+                  <div className="bg-white p-6 border-b border-slate-200 shrink-0 shadow-sm z-10">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h2 className="text-xl font-bold text-slate-800 mb-1">{selectedLead.nome}</h2>
+                        <p className="text-sm text-slate-500 flex items-center gap-2">
+                          <MessageCircle size={14} /> {selectedLead.telefone}
+                        </p>
                       </div>
                       <div className="flex gap-2 bg-slate-50 p-1 rounded-lg border border-slate-200">
                         <button 
@@ -485,21 +542,21 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4 text-sm">
-                      <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                        <span className="block text-slate-400 text-[10px] uppercase font-bold mb-1 tracking-wider">Aposentadoria</span>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4 text-xs">
+                      <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
+                        <span className="block text-slate-400 text-[9px] uppercase font-bold mb-1 tracking-wider">Aposentadoria</span>
                         <span className="font-medium text-slate-700 capitalize">{selectedLead.aposentadoriaComplementar || '-'}</span>
                       </div>
-                      <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                        <span className="block text-slate-400 text-[10px] uppercase font-bold mb-1 tracking-wider">Contribuiu 89-95</span>
+                      <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
+                        <span className="block text-slate-400 text-[9px] uppercase font-bold mb-1 tracking-wider">Contribuiu 89-95</span>
                         <span className="font-medium text-slate-700 capitalize">{selectedLead.contribuicao89a95 || '-'}</span>
                       </div>
-                      <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                        <span className="block text-slate-400 text-[10px] uppercase font-bold mb-1 tracking-wider">Paga IR</span>
+                      <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
+                        <span className="block text-slate-400 text-[9px] uppercase font-bold mb-1 tracking-wider">Paga IR</span>
                         <span className="font-medium text-slate-700 capitalize">{selectedLead.pagaIrAtualmente || '-'}</span>
                       </div>
-                      <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                        <span className="block text-slate-400 text-[10px] uppercase font-bold mb-1 tracking-wider">Localização</span>
+                      <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
+                        <span className="block text-slate-400 text-[9px] uppercase font-bold mb-1 tracking-wider">Localização</span>
                         <span className="font-medium text-slate-700">{selectedLead.cidade || '-'} / {selectedLead.estado || '-'}</span>
                       </div>
                     </div>
@@ -558,53 +615,6 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
                 </div>
               )}
             </div>
-          </div>
-            ) : (
-              <div className="flex-1 overflow-x-auto p-6 bg-slate-50/50">
-                <div className="flex gap-6 h-full min-w-max">
-                  {[
-                    { id: 'novo', title: 'Novos', color: 'bg-blue-100 text-blue-700 border-blue-200' },
-                    { id: 'em_atendimento', title: 'Em Atendimento', color: 'bg-amber-100 text-amber-700 border-amber-200' },
-                    { id: 'qualificado', title: 'Qualificados', color: 'bg-green-100 text-green-700 border-green-200' },
-                    { id: 'descartado', title: 'Descartados', color: 'bg-slate-100 text-slate-700 border-slate-200' },
-                  ].map(col => (
-                    <div key={col.id} className="w-80 flex flex-col bg-slate-100/50 rounded-xl border border-slate-200">
-                      <div className={`p-3 m-3 rounded-lg border font-bold text-sm flex justify-between items-center ${col.color}`}>
-                        {col.title}
-                        <span className="bg-white/50 px-2 py-0.5 rounded-full text-xs">
-                          {leads.filter(l => l.status === col.id).length}
-                        </span>
-                      </div>
-                      <div className="flex-1 overflow-y-auto p-3 pt-0 space-y-3">
-                        {leads.filter(l => l.status === col.id).map(lead => (
-                          <div 
-                            key={lead.id} 
-                            onClick={() => { setSelectedLead(lead); setViewMode('list'); }}
-                            className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 cursor-pointer hover:shadow-md transition-shadow"
-                          >
-                            <div className="flex justify-between items-start mb-2">
-                              <div className="font-bold text-slate-800 truncate pr-2">{lead.nome}</div>
-                              {lead.aiEnabled !== false ? (
-                                <Bot size={14} className="text-indigo-500 shrink-0" title="IA Ativa" />
-                              ) : (
-                                <User size={14} className="text-slate-400 shrink-0" title="Atendimento Humano" />
-                              )}
-                            </div>
-                            <div className="text-xs text-slate-500 mb-3 flex items-center gap-1">
-                              <MessageCircle size={12} /> {lead.telefone}
-                            </div>
-                            <div className="text-xs text-slate-400 flex items-center gap-1">
-                              <Clock size={12} />
-                              {new Date(lead.createdAt).toLocaleDateString('pt-BR')}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         )}
 
