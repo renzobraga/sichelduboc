@@ -21,6 +21,10 @@ Sempre que você fizer uma pergunta de múltipla escolha ou de "Sim ou Não", vo
 Formato: [BUTTONS: Opção 1 | Opção 2]
 Exemplo: "Você contribuiu entre 1989 e 1995? [BUTTONS: Sim | Não]"
 
+FUNÇÕES ESPECIAIS (IA):
+1. Agendamento de Reunião: Se o lead pedir para ligar, fazer uma chamada de vídeo, ou agendar uma reunião, use a ferramenta "scheduleMeeting".
+2. Envio de Contrato: Quando o lead estiver qualificado e pronto para assinar, use a ferramenta "createContract". Você deve ter o nome e o e-mail do lead para isso.
+
 VÍDEOS EXPLICATIVOS (FUTURO):
 Sempre que o cliente tiver uma dúvida complexa (ex: "Como funciona a tese?", "Isso é golpe?"), você pode enviar uma breve explicação em texto e mencionar que enviará um vídeo explicativo do Dr. Sichel/Duboc em seguida. (A integração de vídeo será adicionada em breve).
 
@@ -182,21 +186,19 @@ export default function Admin() {
           const docRef = doc(db, 'settings', 'ai_prompt');
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
-            setAiPrompt(docSnap.data().text || '');
+            const text = docSnap.data().text;
+            setAiPrompt(text !== undefined && text !== null ? text : EXPERT_PROMPT);
           } else {
-            setAiPrompt(`Você é um assistente do escritório Sichel & Duboc. Lead: {nome}. Aposentadoria: {aposentadoriaComplementar}. Contribuiu 89-95: {contribuicao89a95}. Paga IR: {pagaIrAtualmente}. Crie uma mensagem curta de WhatsApp agradecendo, dizendo se é promissor e fazendo uma pergunta aberta. Assine Equipe Sichel & Duboc.`);
+            setAiPrompt(EXPERT_PROMPT);
           }
 
           const chatDocRef = doc(db, 'settings', 'ai_chat_prompt');
           const chatDocSnap = await getDoc(chatDocRef);
           if (chatDocSnap.exists()) {
-            setAiChatPrompt(chatDocSnap.data().text || '');
+            const text = chatDocSnap.data().text;
+            setAiChatPrompt(text !== undefined && text !== null ? text : EXPERT_PROMPT);
           } else {
-            setAiChatPrompt(`Você é um assistente virtual de um escritório de advocacia previdenciária (Sichel & Duboc).
-O nome do cliente é {nome}. Aposentadoria: {aposentadoriaComplementar}. Contribuiu 89-95: {contribuicao89a95}. Paga IR: {pagaIrAtualmente}.
-Responda à última mensagem do cliente de forma educada, profissional e concisa. 
-Seu objetivo é entender o problema previdenciário dele e agendar uma consulta com um advogado.
-Não invente informações jurídicas complexas, apenas colete dados e seja acolhedor.`);
+            setAiChatPrompt(EXPERT_PROMPT);
           }
         } catch (error) {
           console.error("Erro ao carregar prompt da IA:", error);
@@ -555,6 +557,7 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
                   { id: 'qualificado', title: 'Qualificados', color: 'bg-green-100 text-green-700 border-green-200' },
                   { id: 'dados_coletados', title: 'Dados Coletados', color: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
                   { id: 'contrato_enviado', title: 'Contrato Enviado', color: 'bg-purple-100 text-purple-700 border-purple-200' },
+                  { id: 'fechado', title: 'Fechados', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
                   { id: 'descartado', title: 'Descartados', color: 'bg-slate-100 text-slate-700 border-slate-200' },
                 ].map(col => (
                   <div 
@@ -711,30 +714,36 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
                         </div>
                       ) : (
                         messages.map(msg => (
-                          <div 
-                            key={msg.id} 
-                            className={`max-w-[75%] flex gap-3 ${
-                              msg.sender === 'user' 
-                                ? 'self-start' 
-                                : 'self-end flex-row-reverse'
-                            }`}
-                          >
-                            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-400 mt-auto">
-                              {msg.sender === 'user' ? <User size={14} /> : <Bot size={14} />}
+                          msg.sender === 'system' ? (
+                            <div key={msg.id} className="self-center bg-slate-100 text-slate-500 text-[10px] uppercase font-bold tracking-widest px-3 py-1 rounded-full border border-slate-200 my-2">
+                              {msg.text}
                             </div>
-                            <div className="flex flex-col gap-1">
-                              <div className={`rounded-2xl p-3.5 shadow-sm border ${
+                          ) : (
+                            <div 
+                              key={msg.id} 
+                              className={`max-w-[75%] flex gap-3 ${
                                 msg.sender === 'user' 
-                                  ? 'bg-white border-slate-200 rounded-bl-none text-slate-700' 
-                                  : 'bg-emerald-50 border-emerald-100 rounded-br-none text-emerald-900'
-                              }`}>
-                                <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.text}</p>
+                                  ? 'self-start' 
+                                  : 'self-end flex-row-reverse'
+                              }`}
+                            >
+                              <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-400 mt-auto">
+                                {msg.sender === 'user' ? <User size={14} /> : <Bot size={14} />}
                               </div>
-                              <span className={`text-[10px] text-slate-400 ${msg.sender === 'user' ? 'text-left ml-1' : 'text-right mr-1'}`}>
-                                {new Date(msg.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                              </span>
+                              <div className="flex flex-col gap-1">
+                                <div className={`rounded-2xl p-3.5 shadow-sm border ${
+                                  msg.sender === 'user' 
+                                    ? 'bg-white border-slate-200 rounded-bl-none text-slate-700' 
+                                    : 'bg-emerald-50 border-emerald-100 rounded-br-none text-emerald-900'
+                                }`}>
+                                  <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.text}</p>
+                                </div>
+                                <span className={`text-[10px] text-slate-400 ${msg.sender === 'user' ? 'text-left ml-1' : 'text-right mr-1'}`}>
+                                  {new Date(msg.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
                             </div>
-                          </div>
+                          )
                         ))
                       )}
                     </div>
@@ -782,6 +791,40 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
                           Qualificar
                         </button>
                         <button 
+                          onClick={() => updateLeadStatus(selectedLead.id, 'fechado')}
+                          className={`px-3 py-2 rounded text-sm font-medium transition-colors text-left ${selectedLead.status === 'fechado' ? 'bg-emerald-100 text-emerald-800 shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'}`}
+                        >
+                          Fechar Contrato
+                        </button>
+                        {!selectedLead.contractUrl && selectedLead.email && (
+                          <button 
+                            onClick={async () => {
+                              try {
+                                const res = await fetch('/api/create-contract', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    leadId: selectedLead.id,
+                                    name: selectedLead.nome,
+                                    email: selectedLead.email
+                                  })
+                                });
+                                const data = await res.json();
+                                if (data.success) {
+                                  alert("Contrato gerado com sucesso!");
+                                } else {
+                                  alert("Erro ao gerar contrato: " + data.error);
+                                }
+                              } catch (e) {
+                                alert("Erro ao gerar contrato.");
+                              }
+                            }}
+                            className="px-3 py-2 rounded text-sm font-medium bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-100 text-left"
+                          >
+                            Gerar Contrato ZapSign
+                          </button>
+                        )}
+                        <button 
                           onClick={() => updateLeadStatus(selectedLead.id, 'descartado')}
                           className={`px-3 py-2 rounded text-sm font-medium transition-colors text-left ${selectedLead.status === 'descartado' ? 'bg-red-100 text-red-800 shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'}`}
                         >
@@ -811,6 +854,24 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
                           <span className="block text-slate-400 text-[9px] uppercase font-bold mb-1 tracking-wider">Email</span>
                           <span className="font-medium text-slate-700 break-all">{selectedLead.email || '-'}</span>
                         </div>
+                        {selectedLead.contractUrl && (
+                          <div className="bg-emerald-50 p-3 rounded-lg border border-emerald-100 shadow-sm">
+                            <span className="block text-emerald-600 text-[9px] uppercase font-bold mb-1 tracking-wider">Contrato ZapSign</span>
+                            <div className="flex flex-col gap-2">
+                              <span className={`text-[10px] font-bold ${selectedLead.contractStatus === 'signed' ? 'text-emerald-700' : 'text-amber-600'}`}>
+                                {selectedLead.contractStatus === 'signed' ? '✅ ASSINADO' : '⏳ PENDENTE'}
+                              </span>
+                              <a 
+                                href={selectedLead.contractUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-[10px] text-indigo-600 hover:underline truncate"
+                              >
+                                Ver Link de Assinatura
+                              </a>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

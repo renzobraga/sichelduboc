@@ -51,8 +51,9 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
       }
 
       const phone = data.phone;
+      const senderName = data.senderName || data.senderShortName || "Cliente (Via WhatsApp)";
       
-      console.log(`Mensagem recebida de ${phone}: ${messageText}`);
+      console.log(`Mensagem recebida de ${phone} (${senderName}): ${messageText}`);
 
       // 1. Encontrar o Lead pelo telefone usando dbAdmin (bypassa regras de segurança)
       let leadsSnapshot = await dbAdmin.collection('leads')
@@ -92,11 +93,11 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
         leadData = leadDoc.data();
       } else {
         const triggerMessage = "quero iniciar minha análise gratuita";
-        if (messageText.toLowerCase().includes(triggerMessage)) {
+        if (messageText.toLowerCase().includes(triggerMessage) || messageText.toLowerCase().includes("iniciar análise")) {
           console.log(`Mensagem de gatilho detectada! Criando novo lead para ${phone}`);
           const newLead = {
             telefone: phone,
-            nome: "Cliente (Via WhatsApp)",
+            nome: senderName,
             status: "novo",
             aiEnabled: true,
             createdAt: new Date().toISOString(),
@@ -271,12 +272,35 @@ Quando os documentos forem recebidos ou o lead confirmar interesse:
                 },
               };
 
+              const createContractDeclaration: any = {
+                name: "createContract",
+                description: "Gera um contrato digital na ZapSign para o lead assinar. Use esta função quando o lead estiver qualificado e pronto para fechar o contrato.",
+                parameters: {
+                  type: Type.OBJECT,
+                  properties: {
+                    leadId: {
+                      type: Type.STRING,
+                      description: "O ID do lead no sistema.",
+                    },
+                    name: {
+                      type: Type.STRING,
+                      description: "Nome completo do lead.",
+                    },
+                    email: {
+                      type: Type.STRING,
+                      description: "E-mail do lead.",
+                    },
+                  },
+                  required: ["leadId", "name", "email"],
+                },
+              };
+
               const response = await ai.models.generateContent({
                 model: "gemini-3-flash-preview",
                 contents: promptText,
                 config: {
-                  tools: [{ functionDeclarations: [scheduleMeetingDeclaration] }],
-                  systemInstruction: `A data e hora atual é: ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })} (Horário de Brasília). Use isso como referência para agendar reuniões. Se o lead pedir para agendar uma reunião, use a ferramenta scheduleMeeting.`,
+                  tools: [{ functionDeclarations: [scheduleMeetingDeclaration, createContractDeclaration] }],
+                  systemInstruction: `A data e hora atual é: ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })} (Horário de Brasília). Use isso como referência para agendar reuniões. Se o lead pedir para agendar uma reunião, use a ferramenta scheduleMeeting. Se o lead estiver pronto para assinar o contrato, use a ferramenta createContract.`,
                 }
               });
               
@@ -294,6 +318,32 @@ Quando os documentos forem recebidos ou o lead confirmar interesse:
                     } catch (err) {
                       console.error("Erro ao agendar reunião:", err);
                       aiResponseText = "Infelizmente não consegui agendar a reunião automaticamente no momento. Por favor, aguarde que um de nossos especialistas entrará em contato para agendar.";
+                    }
+                  } else if (call.name === "createContract") {
+                    try {
+                      const args = call.args as any;
+                      console.log(`Gerando contrato para ${args.name} (${args.email})...`);
+                      
+                      // Chamar API interna para criar contrato
+                      const contractResponse = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/create-contract`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          leadId: args.leadId,
+                          name: args.name,
+                          email: args.email
+                        })
+                      });
+                      
+                      const contractData = await contractResponse.json();
+                      if (contractData.success && contractData.signUrl) {
+                        aiResponseText = `Perfeito, ${args.name.split(' ')[0]}! Acabei de gerar o seu contrato. Você pode ler e assinar digitalmente pelo seu celular clicando no link abaixo:\n\n${contractData.signUrl}\n\nA assinatura é rápida e tem total validade jurídica. Assim que assinar, me avise aqui!`;
+                      } else {
+                        throw new Error(contractData.error || "Erro ao gerar link do contrato");
+                      }
+                    } catch (err) {
+                      console.error("Erro ao criar contrato:", err);
+                      aiResponseText = "Tive um pequeno problema técnico ao gerar o seu contrato agora. Mas não se preocupe, nossa equipe vai te enviar o link manualmente em instantes!";
                     }
                   }
                 }

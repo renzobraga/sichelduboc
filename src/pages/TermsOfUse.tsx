@@ -141,7 +141,8 @@ const TermsOfUse: React.FC = () => {
                 Especialistas na defesa dos direitos de aposentados e contribuintes em demandas tributárias e previdenciárias.
               </p>
               <p className="text-slate-500 text-xs">
-                CNPJ: 48.319.240/0001-80
+                CNPJ: 48.319.240/0001-80<br/>
+                OAB/RJ: 181.046
               </p>
             </div>
 
