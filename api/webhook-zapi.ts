@@ -13,19 +13,37 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
     if (data && data.phone && !data.isGroup) {
       let messageText = "";
       
-      if (data.text && data.text.message) {
-        messageText = data.text.message;
-      } else if (data.buttonResponseMessage && data.buttonResponseMessage.selectedDisplayText) {
+      // Prioritize button/interactive responses first
+      if (data.buttonResponseMessage && data.buttonResponseMessage.selectedDisplayText) {
         messageText = data.buttonResponseMessage.selectedDisplayText;
       } else if (data.listResponseMessage && data.listResponseMessage.title) {
         messageText = data.listResponseMessage.title;
       } else if (data.templateButtonReplyMessage && data.templateButtonReplyMessage.selectedDisplayText) {
         messageText = data.templateButtonReplyMessage.selectedDisplayText;
+      } else if (data.interactiveResponseMessage && data.interactiveResponseMessage.body && data.interactiveResponseMessage.body.text) {
+        messageText = data.interactiveResponseMessage.body.text;
+      } else if (data.interactiveResponseMessage && data.interactiveResponseMessage.nativeFlowResponseMessage) {
+        try {
+          const params = JSON.parse(data.interactiveResponseMessage.nativeFlowResponseMessage.paramsJson || "{}");
+          if (params.id) messageText = params.id;
+        } catch (e) {}
       } else if (data.button && data.button.text) {
         messageText = data.button.text;
+      } else if (data.extendedTextMessage && data.extendedTextMessage.text) {
+        messageText = data.extendedTextMessage.text;
+      } else if (data.text && data.text.message) {
+        messageText = data.text.message;
+      }
+
+      // Se ainda não achou, tenta buscar em qualquer lugar do objeto (fallback extremo)
+      if (!messageText) {
+        const dataStr = JSON.stringify(data);
+        const match = dataStr.match(/"selectedDisplayText":"([^"]+)"/);
+        if (match) messageText = match[1];
       }
 
       if (!messageText) {
+        console.log("Payload não reconhecido como texto:", JSON.stringify(data));
         return res.status(200).json({ success: true, message: "Not a text or button message" });
       }
 
