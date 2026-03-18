@@ -13,33 +13,62 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
     // Z-API sends events like 'onMessage'
     if (data && data.phone && data.isGroup !== true && data.isGroup !== "true" && data.fromMe !== true && data.fromMe !== "true") {
       let messageText = "";
+      let fileUrl = "";
+      let fileName = "";
+      let fileType = "";
       
-      // Prioritize button/interactive responses first
-      if (data.buttonResponseMessage && data.buttonResponseMessage.selectedDisplayText) {
-        messageText = data.buttonResponseMessage.selectedDisplayText;
-      } else if (data.listResponseMessage && data.listResponseMessage.title) {
-        messageText = data.listResponseMessage.title;
-      } else if (data.templateButtonReplyMessage && data.templateButtonReplyMessage.selectedDisplayText) {
-        messageText = data.templateButtonReplyMessage.selectedDisplayText;
-      } else if (data.interactiveResponseMessage && data.interactiveResponseMessage.body && data.interactiveResponseMessage.body.text) {
-        messageText = data.interactiveResponseMessage.body.text;
-      } else if (data.interactiveResponseMessage && data.interactiveResponseMessage.nativeFlowResponseMessage) {
-        try {
-          const params = JSON.parse(data.interactiveResponseMessage.nativeFlowResponseMessage.paramsJson || "{}");
-          if (params.id) messageText = params.id;
-        } catch (e) {}
-      } else if (data.button && data.button.text) {
-        messageText = data.button.text;
-      } else if (data.extendedTextMessage && data.extendedTextMessage.text) {
-        messageText = data.extendedTextMessage.text;
-      } else if (data.text && typeof data.text === 'string') {
-        messageText = data.text;
-      } else if (data.text && data.text.message) {
-        messageText = data.text.message;
-      } else if (data.message && data.message.buttonResponseMessage) {
-        messageText = data.message.buttonResponseMessage.selectedDisplayText;
-      } else if (data.message && data.message.templateButtonReplyMessage) {
-        messageText = data.message.templateButtonReplyMessage.selectedDisplayText;
+      // Handle Media Messages from Z-API
+      if (data.image && data.image.url) {
+        fileUrl = data.image.url;
+        fileType = "image";
+        messageText = data.image.caption || "[Imagem]";
+      } else if (data.video && data.video.url) {
+        fileUrl = data.video.url;
+        fileType = "video";
+        messageText = data.video.caption || "[Vídeo]";
+      } else if (data.audio && data.audio.url) {
+        fileUrl = data.audio.url;
+        fileType = "audio";
+        messageText = "[Áudio]";
+      } else if (data.document && data.document.url) {
+        fileUrl = data.document.url;
+        fileType = "document";
+        fileName = data.document.fileName || "documento";
+        messageText = data.document.caption || `[Documento: ${fileName}]`;
+      } else if (data.sticker && data.sticker.url) {
+        fileUrl = data.sticker.url;
+        fileType = "sticker";
+        messageText = "[Sticker]";
+      }
+
+      // Prioritize button/interactive responses first if not a media message with caption
+      if (!messageText) {
+        if (data.buttonResponseMessage && data.buttonResponseMessage.selectedDisplayText) {
+          messageText = data.buttonResponseMessage.selectedDisplayText;
+        } else if (data.listResponseMessage && data.listResponseMessage.title) {
+          messageText = data.listResponseMessage.title;
+        } else if (data.templateButtonReplyMessage && data.templateButtonReplyMessage.selectedDisplayText) {
+          messageText = data.templateButtonReplyMessage.selectedDisplayText;
+        } else if (data.interactiveResponseMessage && data.interactiveResponseMessage.body && data.interactiveResponseMessage.body.text) {
+          messageText = data.interactiveResponseMessage.body.text;
+        } else if (data.interactiveResponseMessage && data.interactiveResponseMessage.nativeFlowResponseMessage) {
+          try {
+            const params = JSON.parse(data.interactiveResponseMessage.nativeFlowResponseMessage.paramsJson || "{}");
+            if (params.id) messageText = params.id;
+          } catch (e) {}
+        } else if (data.button && data.button.text) {
+          messageText = data.button.text;
+        } else if (data.extendedTextMessage && data.extendedTextMessage.text) {
+          messageText = data.extendedTextMessage.text;
+        } else if (data.text && typeof data.text === 'string') {
+          messageText = data.text;
+        } else if (data.text && data.text.message) {
+          messageText = data.text.message;
+        } else if (data.message && data.message.buttonResponseMessage) {
+          messageText = data.message.buttonResponseMessage.selectedDisplayText;
+        } else if (data.message && data.message.templateButtonReplyMessage) {
+          messageText = data.message.templateButtonReplyMessage.selectedDisplayText;
+        }
       }
 
       // Se ainda não achou, tenta buscar em qualquer lugar do objeto (fallback extremo)
@@ -129,7 +158,10 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
             text: messageText,
             sender: 'user',
             messageId: messageId || null,
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            fileUrl: fileUrl || null,
+            fileName: fileName || null,
+            fileType: fileType || null
           });
         } catch (e: any) {
           // Se o documento já existe (código 6 no gRPC do Firebase Admin), ignorar

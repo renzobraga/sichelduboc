@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
-import { LogOut, MessageCircle, LayoutDashboard, Workflow, Save, Bot, User, Kanban, List, BarChart3, Users, CheckCircle, XCircle, Clock, Moon, Sun, Sparkles, Calendar, Maximize, Minimize, TrendingUp, PieChart, Activity, ArrowRight, MapPin, Mail, Phone, FileText, ExternalLink, MoreVertical, Search, Filter, ChevronRight, ChevronLeft } from 'lucide-react';
+import { LogOut, MessageCircle, LayoutDashboard, Workflow, Save, Bot, User, Kanban, List, BarChart3, Users, CheckCircle, XCircle, Clock, Moon, Sun, Sparkles, Calendar, Maximize, Minimize, TrendingUp, PieChart, Activity, ArrowRight, MapPin, Mail, Phone, FileText, ExternalLink, MoreVertical, Search, Filter, ChevronRight, ChevronLeft, Image, Video, Music, Download, Paperclip } from 'lucide-react';
 import { PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, AreaChart, Area } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
 import PromptsFlow from '../components/PromptsFlow';
@@ -161,15 +161,27 @@ export default function Admin() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior });
+    }
   };
 
   useEffect(() => {
-    if (activeTab === 'chat' && selectedLead) {
-      scrollToBottom();
+    if (activeTab === 'chat' && selectedLead && messages.length > 0) {
+      // Use "auto" for immediate scroll when switching leads or opening chat
+      const behavior = messages.length > 50 ? "auto" : "smooth";
+      const timer = setTimeout(() => scrollToBottom(behavior), 100);
+      return () => clearTimeout(timer);
     }
-  }, [messages, selectedLead, activeTab]);
+  }, [selectedLead?.id, activeTab]);
+
+  // Also scroll when new messages arrive, but only if we are already near the bottom or it's a bot/admin message
+  useEffect(() => {
+    if (activeTab === 'chat' && selectedLead && messages.length > 0) {
+      scrollToBottom("smooth");
+    }
+  }, [messages.length]);
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
@@ -1070,6 +1082,47 @@ export default function Admin() {
                                     ? 'bg-white border-slate-200 rounded-bl-none text-slate-700' 
                                     : 'bg-emerald-50 border-emerald-100 rounded-br-none text-emerald-900'
                                 }`}>
+                                  {msg.fileUrl && (
+                                    <div className="mb-3 overflow-hidden rounded-lg border border-slate-100 bg-slate-50">
+                                      {msg.fileType === 'image' ? (
+                                        <div className="relative group">
+                                          <img src={msg.fileUrl} alt="Imagem" className="max-w-full h-auto block" referrerPolicy="no-referrer" />
+                                          <a 
+                                            href={msg.fileUrl} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="absolute top-2 right-2 p-2 bg-white/80 backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                                            title="Baixar Imagem"
+                                          >
+                                            <Download size={16} className="text-slate-700" />
+                                          </a>
+                                        </div>
+                                      ) : msg.fileType === 'video' ? (
+                                        <video src={msg.fileUrl} controls className="max-w-full h-auto block" />
+                                      ) : msg.fileType === 'audio' ? (
+                                        <audio src={msg.fileUrl} controls className="w-full p-2" />
+                                      ) : (
+                                        <div className="p-4 flex items-center gap-3">
+                                          <div className="w-10 h-10 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                                            <FileText size={20} />
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-bold text-slate-700 truncate">{msg.fileName || 'Arquivo'}</p>
+                                            <p className="text-[10px] text-slate-400 uppercase tracking-wider">{msg.fileType || 'Documento'}</p>
+                                          </div>
+                                          <a 
+                                            href={msg.fileUrl} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="p-2 hover:bg-slate-200 rounded-full transition-colors text-slate-500"
+                                            title="Baixar Arquivo"
+                                          >
+                                            <Download size={18} />
+                                          </a>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
                                   <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.text}</p>
                                 </div>
                                 <span className={`text-[10px] text-slate-400 ${msg.sender === 'user' ? 'text-left ml-1' : 'text-right mr-1'}`}>
@@ -1085,52 +1138,90 @@ export default function Admin() {
 
                     <div className="p-4 bg-white border-t border-slate-100 shrink-0">
                       <form onSubmit={sendMessage} className="flex items-center gap-3">
-                        <button type="button" className="text-slate-400 hover:text-slate-600 transition-colors p-2">
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                        <button 
+                          type="button" 
+                          className="w-11 h-11 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-all shrink-0"
+                          title="Anexar arquivo (Em breve)"
+                          onClick={() => showToast("O envio de arquivos pelo painel será liberado em breve. Por enquanto, você pode receber arquivos dos clientes.", "success")}
+                        >
+                          <Paperclip size={20} />
                         </button>
                         <input
                           type="text"
                           value={newMessage}
                           onChange={(e) => setNewMessage(e.target.value)}
                           placeholder="Digite sua mensagem..."
-                          className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none text-sm transition-all"
+                          className="flex-1 px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none text-sm transition-all"
                         />
                         <button 
                           type="submit"
                           disabled={!newMessage.trim()}
-                          className="w-12 h-12 bg-indigo-400 text-white rounded-full flex items-center justify-center hover:bg-indigo-500 transition-colors disabled:opacity-50 disabled:hover:bg-indigo-400 shrink-0 shadow-sm"
+                          className="w-11 h-11 bg-indigo-600 text-white rounded-full flex items-center justify-center hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:hover:bg-indigo-600 shrink-0 shadow-lg shadow-indigo-100"
                         >
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-0.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                         </button>
                       </form>
                     </div>
                   </div>
 
                   {/* Right Sidebar: Lead Details */}
-                  <div className="w-72 bg-slate-50 flex flex-col shrink-0 overflow-y-auto border-l border-slate-100">
+                  <div className="w-80 bg-white flex flex-col shrink-0 overflow-y-auto border-l border-slate-100 shadow-xl z-10">
                     <div className="p-6">
-                      <h3 className="font-bold text-slate-800 mb-4">Detalhes do Lead</h3>
+                      <div className="flex items-center gap-4 mb-8">
+                        <div className="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-inner">
+                          <User size={32} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-bold text-slate-800 text-xl truncate">{selectedLead.nome}</h3>
+                          <p className="text-slate-400 text-xs flex items-center gap-1 mt-1">
+                            <MapPin size={12} /> {selectedLead.cidade || 'Localização não informada'}
+                          </p>
+                        </div>
+                      </div>
                       
+                      {/* Status Badge */}
+                      <div className="mb-8">
+                        <span className="block text-slate-400 text-[9px] uppercase font-bold mb-2 tracking-wider">Status do Atendimento</span>
+                        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border ${
+                          selectedLead.status === 'novo' ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                          selectedLead.status === 'em_atendimento' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                          selectedLead.status === 'qualificado' ? 'bg-green-50 text-green-600 border-green-100' :
+                          selectedLead.status === 'fechado' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                          'bg-slate-50 text-slate-500 border-slate-100'
+                        }`}>
+                          <div className={`w-2 h-2 rounded-full ${
+                            selectedLead.status === 'novo' ? 'bg-blue-500' :
+                            selectedLead.status === 'em_atendimento' ? 'bg-amber-500' :
+                            selectedLead.status === 'qualificado' ? 'bg-green-500' :
+                            selectedLead.status === 'fechado' ? 'bg-emerald-500' :
+                            'bg-slate-400'
+                          }`} />
+                          {selectedLead.status.replace('_', ' ').toUpperCase()}
+                        </div>
+                      </div>
+
                       {/* Action Buttons */}
-                      <div className="flex flex-col gap-2 mb-6">
+                      <div className="grid grid-cols-1 gap-2 mb-8">
+                        <span className="block text-slate-400 text-[9px] uppercase font-bold mb-2 tracking-wider">Ações Rápidas</span>
                         <button 
                           onClick={() => updateLeadStatus(selectedLead.id, 'em_atendimento')}
-                          className={`px-3 py-2 rounded text-sm font-medium transition-colors text-left ${selectedLead.status === 'em_atendimento' ? 'bg-amber-100 text-amber-800 shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'}`}
+                          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${selectedLead.status === 'em_atendimento' ? 'bg-amber-500 text-white shadow-lg shadow-amber-100' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'}`}
                         >
-                          Em Atendimento
+                          <Clock size={18} /> Em Atendimento
                         </button>
                         <button 
                           onClick={() => updateLeadStatus(selectedLead.id, 'qualificado')}
-                          className={`px-3 py-2 rounded text-sm font-medium transition-colors text-left ${selectedLead.status === 'qualificado' ? 'bg-green-100 text-green-800 shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'}`}
+                          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${selectedLead.status === 'qualificado' ? 'bg-green-500 text-white shadow-lg shadow-green-100' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'}`}
                         >
-                          Qualificar
+                          <CheckCircle size={18} /> Qualificar Lead
                         </button>
                         <button 
                           onClick={() => updateLeadStatus(selectedLead.id, 'fechado')}
-                          className={`px-3 py-2 rounded text-sm font-medium transition-colors text-left ${selectedLead.status === 'fechado' ? 'bg-emerald-100 text-emerald-800 shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'}`}
+                          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${selectedLead.status === 'fechado' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-100' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'}`}
                         >
-                          Fechar Contrato
+                          <TrendingUp size={18} /> Fechar Contrato
                         </button>
+                        
                         {!selectedLead.contractUrl && selectedLead.email && (
                           <button 
                             onClick={async () => {
@@ -1154,57 +1245,99 @@ export default function Admin() {
                                 showToast("Erro ao gerar contrato.", 'error');
                               }
                             }}
-                            className="px-3 py-2 rounded text-sm font-medium bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-100 text-left"
+                            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-100 transition-all"
                           >
-                            Gerar Contrato ZapSign
+                            <FileText size={18} /> Gerar Contrato ZapSign
                           </button>
                         )}
+                        
                         <button 
                           onClick={() => updateLeadStatus(selectedLead.id, 'descartado')}
-                          className={`px-3 py-2 rounded text-sm font-medium transition-colors text-left ${selectedLead.status === 'descartado' ? 'bg-red-100 text-red-800 shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'}`}
+                          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${selectedLead.status === 'descartado' ? 'bg-red-500 text-white shadow-lg shadow-red-100' : 'bg-white text-slate-600 hover:bg-red-50 hover:text-red-600 border border-slate-200 hover:border-red-100'}`}
                         >
-                          Descartar
+                          <XCircle size={18} /> Descartar Lead
                         </button>
                       </div>
 
-                      {/* Details Grid (Vertical) */}
-                      <div className="flex flex-col gap-3 text-xs">
-                        <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
-                          <span className="block text-slate-400 text-[9px] uppercase font-bold mb-1 tracking-wider">Aposentadoria</span>
-                          <span className="font-medium text-slate-700 capitalize">{selectedLead.aposentadoriaComplementar || '-'}</span>
-                        </div>
-                        <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
-                          <span className="block text-slate-400 text-[9px] uppercase font-bold mb-1 tracking-wider">Contribuiu 89-95</span>
-                          <span className="font-medium text-slate-700 capitalize">{selectedLead.contribuicao89a95 || '-'}</span>
-                        </div>
-                        <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
-                          <span className="block text-slate-400 text-[9px] uppercase font-bold mb-1 tracking-wider">Paga IR</span>
-                          <span className="font-medium text-slate-700 capitalize">{selectedLead.pagaIrAtualmente || '-'}</span>
-                        </div>
-                        <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
-                          <span className="block text-slate-400 text-[9px] uppercase font-bold mb-1 tracking-wider">Localização</span>
-                          <span className="font-medium text-slate-700">{selectedLead.cidade || '-'} / {selectedLead.estado || '-'}</span>
-                        </div>
-                        <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
-                          <span className="block text-slate-400 text-[9px] uppercase font-bold mb-1 tracking-wider">Email</span>
-                          <span className="font-medium text-slate-700 break-all">{selectedLead.email || '-'}</span>
-                        </div>
-                        {selectedLead.contractUrl && (
-                          <div className="bg-emerald-50 p-3 rounded-lg border border-emerald-100 shadow-sm">
-                            <span className="block text-emerald-600 text-[9px] uppercase font-bold mb-1 tracking-wider">Contrato ZapSign</span>
-                            <div className="flex flex-col gap-2">
-                              <span className={`text-[10px] font-bold ${selectedLead.contractStatus === 'signed' ? 'text-emerald-700' : 'text-amber-600'}`}>
-                                {selectedLead.contractStatus === 'signed' ? '✅ ASSINADO' : '⏳ PENDENTE'}
-                              </span>
-                              <a 
-                                href={selectedLead.contractUrl} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="text-[10px] text-indigo-600 hover:underline truncate"
-                              >
-                                Ver Link de Assinatura
-                              </a>
+                      {/* Details Grid */}
+                      <div className="space-y-4">
+                        <span className="block text-slate-400 text-[9px] uppercase font-bold mb-2 tracking-wider">Informações Coletadas</span>
+                        
+                        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-indigo-500 shadow-sm">
+                              <PieChart size={16} />
                             </div>
+                            <div>
+                              <span className="block text-slate-400 text-[10px] uppercase font-bold tracking-wider">Previdência</span>
+                              <span className="font-bold text-slate-700 text-sm capitalize">{selectedLead.aposentadoriaComplementar || '-'}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-emerald-500 shadow-sm">
+                              <Calendar size={16} />
+                            </div>
+                            <div>
+                              <span className="block text-slate-400 text-[10px] uppercase font-bold tracking-wider">Contribuiu 89-95</span>
+                              <span className="font-bold text-slate-700 text-sm capitalize">{selectedLead.contribuicao89a95 || '-'}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-amber-500 shadow-sm">
+                              <Activity size={16} />
+                            </div>
+                            <div>
+                              <span className="block text-slate-400 text-[10px] uppercase font-bold tracking-wider">Paga IR</span>
+                              <span className="font-bold text-slate-700 text-sm capitalize">{selectedLead.pagaIrAtualmente || '-'}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-500">
+                              <Mail size={16} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <span className="block text-slate-400 text-[10px] uppercase font-bold tracking-wider">Email</span>
+                              <span className="font-medium text-slate-700 text-xs break-all">{selectedLead.email || '-'}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-500">
+                              <Phone size={16} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <span className="block text-slate-400 text-[10px] uppercase font-bold tracking-wider">Telefone</span>
+                              <span className="font-medium text-slate-700 text-xs">{selectedLead.telefone || '-'}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {selectedLead.contractUrl && (
+                          <div className="bg-emerald-600 p-5 rounded-2xl text-white shadow-lg shadow-emerald-100">
+                            <div className="flex items-center gap-3 mb-4">
+                              <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center">
+                                <FileText size={20} />
+                              </div>
+                              <div>
+                                <h4 className="font-bold text-sm">Contrato ZapSign</h4>
+                                <p className="text-[10px] opacity-80 uppercase tracking-widest">
+                                  {selectedLead.contractStatus === 'signed' ? '✅ Assinado' : '⏳ Pendente'}
+                                </p>
+                              </div>
+                            </div>
+                            <a 
+                              href={selectedLead.contractUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="block w-full py-2.5 bg-white text-emerald-700 text-center rounded-xl text-xs font-bold hover:bg-emerald-50 transition-colors"
+                            >
+                              Ver Documento
+                            </a>
                           </div>
                         )}
                       </div>
@@ -1235,51 +1368,79 @@ export default function Admin() {
                 <div className="animate-in fade-in duration-300">
                   <div className="flex justify-between items-start mb-8">
                     <div>
-                      <h2 className="text-2xl font-bold text-slate-800 mb-2">Fluxos de Automação</h2>
-                      <p className="text-slate-600">Gerencie as respostas automáticas e integrações da IA.</p>
+                      <h2 className="text-3xl font-bold text-slate-800 mb-2">Fluxos de Automação</h2>
+                      <p className="text-slate-600">Gerencie as respostas automáticas e a inteligência do seu robô.</p>
                     </div>
                     <button 
                       onClick={() => setFlowView('editor')}
-                      className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg font-medium transition-colors shadow-sm"
+                      className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl font-bold transition-all shadow-lg shadow-indigo-100 hover:scale-[1.02] active:scale-[0.98]"
                     >
                       <Sparkles size={18} />
                       Criar com IA
                     </button>
                   </div>
 
+                  {/* Stats Row */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+                    {[
+                      { label: 'Leads Atendidos', value: leads.length, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
+                      { label: 'IA Ativa', value: leads.filter(l => l.aiEnabled !== false).length, icon: Bot, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+                      { label: 'Conversão', value: '24%', icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                      { label: 'Tempo Médio', value: '1.2m', icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
+                    ].map((stat, i) => (
+                      <div key={i} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+                        <div className={`w-12 h-12 rounded-xl ${stat.bg} ${stat.color} flex items-center justify-center shadow-inner`}>
+                          <stat.icon size={24} />
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{stat.label}</p>
+                          <p className="text-xl font-bold text-slate-800">{stat.value}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {/* Create New Flow Card */}
                     <button 
                       onClick={() => setFlowView('editor')}
-                      className="flex flex-col items-center justify-center p-8 bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl hover:bg-slate-100 hover:border-indigo-400 transition-all group h-64"
+                      className="flex flex-col items-center justify-center p-8 bg-white border-2 border-dashed border-slate-200 rounded-3xl hover:bg-slate-50 hover:border-indigo-400 transition-all group h-72"
                     >
-                      <div className="w-12 h-12 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-400 group-hover:text-indigo-500 group-hover:border-indigo-200 group-hover:bg-indigo-50 transition-colors mb-4">
-                        <Sparkles size={24} />
+                      <div className="w-16 h-16 rounded-2xl bg-slate-50 border border-slate-100 shadow-sm flex items-center justify-center text-slate-400 group-hover:text-indigo-500 group-hover:border-indigo-200 group-hover:bg-indigo-50 group-hover:scale-110 transition-all mb-6">
+                        <Sparkles size={32} />
                       </div>
-                      <h3 className="text-lg font-bold text-slate-700 group-hover:text-indigo-700 mb-2 transition-colors">Gerar Novo Fluxo</h3>
-                      <p className="text-sm text-slate-500 text-center max-w-[200px]">
-                        Descreva o que você precisa e a IA criará a automação
+                      <h3 className="text-xl font-bold text-slate-700 group-hover:text-indigo-700 mb-2 transition-colors">Gerar Novo Fluxo</h3>
+                      <p className="text-sm text-slate-400 text-center max-w-[220px]">
+                        Descreva o que você precisa e nossa IA criará a automação completa para você.
                       </p>
                     </button>
                     
                     {/* Existing Flow Card (Example) */}
                     <div 
                       onClick={() => setFlowView('editor')}
-                      className="flex flex-col p-6 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md cursor-pointer transition-all group h-64"
+                      className="flex flex-col p-8 bg-white border border-slate-200 rounded-3xl shadow-sm hover:shadow-xl cursor-pointer transition-all group h-72 relative overflow-hidden"
                     >
-                      <div className="flex justify-between items-start mb-4">
-                        <div className="w-10 h-10 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
-                          <Workflow size={20} />
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full -mr-16 -mt-16 opacity-50 group-hover:scale-150 transition-transform duration-500" />
+                      
+                      <div className="flex justify-between items-start mb-6 relative z-10">
+                        <div className="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-sm">
+                          <Workflow size={24} />
                         </div>
-                        <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-full border border-emerald-100">Ativo</span>
+                        <span className="px-3 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-full border border-emerald-100 uppercase tracking-wider">Ativo</span>
                       </div>
-                      <h3 className="text-lg font-bold text-slate-800 mb-2 group-hover:text-indigo-600 transition-colors">Triagem de Restituição IR</h3>
-                      <p className="text-sm text-slate-500 mb-auto line-clamp-3">
+                      
+                      <h3 className="text-xl font-bold text-slate-800 mb-3 group-hover:text-indigo-600 transition-colors relative z-10">Triagem de Restituição IR</h3>
+                      <p className="text-sm text-slate-500 mb-auto line-clamp-3 relative z-10">
                         Qualifica leads para a tese de "Restituição de IR por Bitributação", coleta dados e envia o contrato automaticamente.
                       </p>
-                      <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
-                        <span>Atualizado há 2 dias</span>
-                        <span className="flex items-center gap-1"><Bot size={14} /> IA Ativa</span>
+                      
+                      <div className="pt-6 mt-6 border-t border-slate-50 flex items-center justify-between text-[10px] text-slate-400 relative z-10">
+                        <div className="flex items-center gap-1.5 font-medium">
+                          <Clock size={12} /> Atualizado há 2 dias
+                        </div>
+                        <div className="flex items-center gap-1.5 font-bold text-indigo-500 bg-indigo-50 px-2 py-1 rounded-lg">
+                          <Bot size={12} /> IA ATIVA
+                        </div>
                       </div>
                     </div>
                   </div>
