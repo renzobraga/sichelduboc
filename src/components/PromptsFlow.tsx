@@ -42,7 +42,7 @@ const PromptNode = ({ data }: NodeProps) => {
       <div className="p-4">
         <p className="text-xs text-slate-500 mb-3">{data.description}</p>
         <textarea
-          className="w-full h-40 p-3 text-sm font-mono border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
+          className="nodrag w-full h-40 p-3 text-sm font-mono border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
           value={data.value}
           onChange={(e) => data.onChange(e.target.value)}
           placeholder={data.placeholder}

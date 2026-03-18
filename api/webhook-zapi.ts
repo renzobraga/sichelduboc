@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { dbAdmin } from "./firebase-admin.js";
+import { createGoogleEvent } from "./google-calendar.js";
 
 export default async function handler(req: VercelRequest | any, res: VercelResponse | any) {
   if (req.method !== "POST") {
@@ -147,7 +148,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
         // 4. Lógica do Chatbot (IA)
         if (leadData.aiEnabled !== false) {
           try {
-            const { GoogleGenAI } = await import("@google/genai");
+            const { GoogleGenAI, Type, FunctionDeclaration } = await import("@google/genai");
             
             let apiKey = process.env.CHAVE_IA_GEMINI || process.env.GEMINI_API_KEY;
             if (apiKey) {
@@ -186,6 +187,7 @@ DIRETRIZES GERAIS:
 3. Palavras-chave Negativas: Se o lead disser "não", "nunca", "jamais", "negativo", acione o Fluxo de Desqualificação.
 4. Hesitação: Se o lead disser "pensar", "depois", "amanhã", "ver com filho", acione a Superação de Objeções antes de avançar.
 5. Fuga/Escape: Para perguntas não mapeadas, responda: "Essa é uma ótima pergunta! Vou passar você para um dos nossos especialistas para responder com mais detalhes. Um momento, por favor." e pare de responder.
+6. Agendamento de Reunião: Se o lead pedir para ligar, fazer uma chamada de vídeo, ou agendar uma reunião, pergunte qual o melhor dia e horário para ele. Quando ele informar, use a ferramenta "scheduleMeeting" para agendar no Google Calendar. Confirme o agendamento com o lead.
 
 ETAPAS DE ATENDIMENTO (Siga sequencialmente, uma pergunta por vez):
 
@@ -242,12 +244,60 @@ Quando os documentos forem recebidos ou o lead confirmar interesse:
               
               promptText += `\nVocê:`;
 
+              const scheduleMeetingDeclaration: any = {
+                name: "scheduleMeeting",
+                description: "Agenda uma reunião no Google Calendar. Use esta função quando o lead quiser marcar uma reunião ou ligação.",
+                parameters: {
+                  type: Type.OBJECT,
+                  properties: {
+                    summary: {
+                      type: Type.STRING,
+                      description: "Título da reunião, ex: 'Reunião com [Nome do Lead]'",
+                    },
+                    description: {
+                      type: Type.STRING,
+                      description: "Descrição da reunião, incluindo o telefone do lead e o assunto.",
+                    },
+                    startTime: {
+                      type: Type.STRING,
+                      description: "Data e hora de início no formato ISO 8601 (ex: 2026-03-20T14:00:00-03:00). Lembre-se que o fuso horário é de Brasília (America/Sao_Paulo).",
+                    },
+                    endTime: {
+                      type: Type.STRING,
+                      description: "Data e hora de término no formato ISO 8601 (ex: 2026-03-20T15:00:00-03:00). A reunião geralmente dura 1 hora.",
+                    },
+                  },
+                  required: ["summary", "description", "startTime", "endTime"],
+                },
+              };
+
               const response = await ai.models.generateContent({
                 model: "gemini-3-flash-preview",
                 contents: promptText,
+                config: {
+                  tools: [{ functionDeclarations: [scheduleMeetingDeclaration] }],
+                  systemInstruction: `A data e hora atual é: ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })} (Horário de Brasília). Use isso como referência para agendar reuniões. Se o lead pedir para agendar uma reunião, use a ferramenta scheduleMeeting.`,
+                }
               });
               
               let aiResponseText = response.text || "";
+              
+              // Handle function calls
+              if (response.functionCalls && response.functionCalls.length > 0) {
+                for (const call of response.functionCalls) {
+                  if (call.name === "scheduleMeeting") {
+                    try {
+                      const args = call.args as any;
+                      await createGoogleEvent(args.summary, args.description, args.startTime, args.endTime);
+                      const formattedDate = new Date(args.startTime).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+                      aiResponseText = `Reunião agendada com sucesso para ${formattedDate}! Nossa equipe entrará em contato no horário marcado.`;
+                    } catch (err) {
+                      console.error("Erro ao agendar reunião:", err);
+                      aiResponseText = "Infelizmente não consegui agendar a reunião automaticamente no momento. Por favor, aguarde que um de nossos especialistas entrará em contato para agendar.";
+                    }
+                  }
+                }
+              }
               
               if (aiResponseText) {
                 // Parse buttons if the AI included them, e.g., [BUTTONS: Sim | Não]

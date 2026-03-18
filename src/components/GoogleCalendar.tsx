@@ -23,18 +23,13 @@ export default function GoogleCalendar() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Check if we have a token stored in localStorage or if we just returned from OAuth
-    const token = localStorage.getItem('google_calendar_token');
-    if (token) {
-      setIsAuthenticated(true);
-      fetchEvents(token);
-    }
+    // Try to fetch events on mount to check if we are authenticated
+    fetchEvents();
 
     const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'OAUTH_AUTH_SUCCESS' && event.data?.token) {
-        localStorage.setItem('google_calendar_token', event.data.token);
+      if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
         setIsAuthenticated(true);
-        fetchEvents(event.data.token);
+        fetchEvents();
       }
     };
     window.addEventListener('message', handleMessage);
@@ -62,27 +57,29 @@ export default function GoogleCalendar() {
     }
   };
 
-  const handleDisconnect = () => {
-    localStorage.removeItem('google_calendar_token');
+  const handleDisconnect = async () => {
+    try {
+      await fetch('/api/auth/google/disconnect', { method: 'POST' });
+    } catch (e) {
+      console.error(e);
+    }
     setIsAuthenticated(false);
     setEvents([]);
   };
 
-  const fetchEvents = async (token: string) => {
+  const fetchEvents = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/auth/google/events', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await fetch('/api/auth/google/events');
       if (!response.ok) {
         if (response.status === 401) {
-          handleDisconnect();
-          throw new Error('Token expirado');
+          setIsAuthenticated(false);
+          return;
         }
         throw new Error('Failed to fetch events');
       }
+      
+      setIsAuthenticated(true);
       const data = await response.json();
       
       const formattedEvents = data.items.map((item: any) => ({
@@ -124,7 +121,7 @@ export default function GoogleCalendar() {
           ) : (
             <div className="flex items-center gap-3">
               <button 
-                onClick={() => fetchEvents(localStorage.getItem('google_calendar_token')!)}
+                onClick={() => fetchEvents()}
                 className="flex items-center gap-2 text-slate-600 hover:text-slate-900 bg-white border border-slate-200 px-3 py-2 rounded-lg transition-colors"
                 disabled={loading}
               >

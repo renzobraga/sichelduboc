@@ -5,7 +5,7 @@ import submitFormHandler from "./api/submit-form.js";
 import webhookZapiHandler from "./api/webhook-zapi.js";
 import sendMessageHandler from "./api/send-message.js";
 import cronFollowupsHandler from "./api/cron-followups.js";
-import { getGoogleAuthUrl, handleGoogleCallback, getGoogleEvents } from "./api/google-calendar.js";
+import { getGoogleAuthUrl, handleGoogleCallback, getGoogleEvents, handleGoogleDisconnect } from "./api/google-calendar.js";
 
 dotenv.config();
 
@@ -32,6 +32,7 @@ async function startServer() {
   app.get("/api/auth/google/url", getGoogleAuthUrl);
   app.get("/api/auth/google/callback", handleGoogleCallback);
   app.get("/api/auth/google/events", getGoogleEvents);
+  app.post("/api/auth/google/disconnect", handleGoogleDisconnect);
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
