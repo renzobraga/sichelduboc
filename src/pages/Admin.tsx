@@ -95,10 +95,29 @@ export default function Admin() {
   // Fluxos states
   const [fluxoTab, setFluxoTab] = useState<'prompts' | 'timers' | 'videos'>('prompts');
   const [flowView, setFlowView] = useState<'list' | 'editor'>('list');
-  const [aiPrompt, setAiPrompt] = useState('');
-  const [aiChatPrompt, setAiChatPrompt] = useState('');
+  const [prompts, setPrompts] = useState({
+    prompt1: 'Olá! Sou o assistente virtual do escritório Sichel & Duboc. Vi que você tem interesse na restituição de Imposto de Renda sobre previdência complementar. Para começar, você recebe ou recebeu aposentadoria de fundo de previdência privada (como PREVI, PETROS, FUNCEF, etc)? [BUTTONS: Sim | Não]',
+    prompt2: 'Ótimo! Segunda pergunta: Você contribuiu para esse fundo de previdência entre os anos de 1989 e 1995? [BUTTONS: Sim | Não]',
+    prompt3: 'Quase lá! Última pergunta: Atualmente, é descontado Imposto de Renda diretamente na fonte sobre o valor da sua aposentadoria complementar? [BUTTONS: Sim | Não]',
+    prompt4: 'Excelente notícia! Você preenche os requisitos para buscar a restituição. Nossa equipe vai preparar sua análise. Qual é o seu nome completo?',
+    prompt5: 'Tudo anotado! Precisaremos de alguns documentos: RG, Comprovante de Residência, Contracheque e Declaração de IR. Consegue me enviar hoje? [BUTTONS: Sim, envio hoje | Envio depois]',
+    promptDesq: 'Compreendo. Analisando as suas respostas, verificamos que o seu perfil não se enquadra nos requisitos para esta ação. Agradecemos o contato!',
+    promptObjections: 'Entendo que possa ter dúvidas ou precise de mais tempo. Gostaria de agendar uma breve reunião com um de nossos advogados especialistas para esclarecer tudo, ou prefere tirar suas dúvidas por aqui mesmo? [BUTTONS: Agendar Reunião | Tirar Dúvidas]',
+    promptSchedule: 'Ótimo! Por favor, escolha o melhor dia e horário diretamente na nossa agenda clicando neste link: [LINK DO GOOGLE CALENDAR]. Um de nossos especialistas ligará para você no horário marcado.',
+    promptContract: 'Perfeito! Recebi os documentos. Vou encaminhar agora o seu Contrato de Prestação de Serviços Jurídicos. Como combinamos, os honorários são cobrados apenas no êxito. Clique no link abaixo para ler e assinar digitalmente: [LINK PARA ASSINATURA DO CONTRATO]',
+    promptClosing: 'Contrato recebido e validado com sucesso! ✅ Parabéns por dar esse passo importante para recuperar o que é seu por direito. A partir de agora, o escritório Sichel & Duboc cuida de tudo. Seja muito bem-vindo(a)!',
+    promptTrust: 'Entendo a sua preocupação. O escritório Sichel & Duboc é registrado na OAB/RJ sob o número 181.046 e no CNPJ 48.319.240/0001-80. Você pode verificar no site do Conselho Federal da OAB. Nosso site é [sichelduboc.com.br]. A tese é baseada na Lei 7.713/88 e tem jurisprudência favorável.',
+    promptFees: 'O escritório trabalha no modelo de honorários de êxito, ou seja, você não paga nada adiantado. Nossos honorários são um percentual combinado em contrato, cobrado apenas quando você ganhar a ação.',
+    aiChatPrompt: ''
+  });
   const [savingPrompt, setSavingPrompt] = useState(false);
   const [promptSaved, setPromptSaved] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
   
   // Search state
   const [searchTerm, setSearchTerm] = useState('');
@@ -178,33 +197,31 @@ export default function Admin() {
     }
   }, [selectedLead, user, isAdmin]);
 
-  // Fetch AI Prompt
+  // Fetch AI Prompts
   useEffect(() => {
     if (user && isAdmin && activeTab === 'fluxos') {
-      const fetchPrompt = async () => {
+      const fetchPrompts = async () => {
         try {
-          const docRef = doc(db, 'settings', 'ai_prompt');
-          const docSnap = await getDoc(docRef);
+          const docSnap = await getDoc(doc(db, 'settings', 'prompts'));
           if (docSnap.exists()) {
-            const text = docSnap.data().text;
-            setAiPrompt(text !== undefined && text !== null ? text : EXPERT_PROMPT);
+            const data = docSnap.data();
+            setPrompts(prev => ({ ...prev, ...data }));
           } else {
-            setAiPrompt(EXPERT_PROMPT);
-          }
-
-          const chatDocRef = doc(db, 'settings', 'ai_chat_prompt');
-          const chatDocSnap = await getDoc(chatDocRef);
-          if (chatDocSnap.exists()) {
-            const text = chatDocSnap.data().text;
-            setAiChatPrompt(text !== undefined && text !== null ? text : EXPERT_PROMPT);
-          } else {
-            setAiChatPrompt(EXPERT_PROMPT);
+            // Fallback to legacy docs if new prompts doc doesn't exist
+            const aiPromptSnap = await getDoc(doc(db, 'settings', 'ai_prompt'));
+            const aiChatPromptSnap = await getDoc(doc(db, 'settings', 'ai_chat_prompt'));
+            
+            setPrompts(prev => ({
+              ...prev,
+              prompt1: aiPromptSnap.exists() ? aiPromptSnap.data().text : prev.prompt1,
+              aiChatPrompt: aiChatPromptSnap.exists() ? aiChatPromptSnap.data().text : prev.aiChatPrompt
+            }));
           }
         } catch (error) {
-          console.error("Erro ao carregar prompt da IA:", error);
+          console.error("Erro ao buscar prompts:", error);
         }
       };
-      fetchPrompt();
+      fetchPrompts();
     }
   }, [user, isAdmin, activeTab]);
 
@@ -212,13 +229,18 @@ export default function Admin() {
     setSavingPrompt(true);
     setPromptSaved(false);
     try {
-      await setDoc(doc(db, 'settings', 'ai_prompt'), { text: aiPrompt });
-      await setDoc(doc(db, 'settings', 'ai_chat_prompt'), { text: aiChatPrompt });
+      // Save to the new consolidated document
+      await setDoc(doc(db, 'settings', 'prompts'), prompts);
+      
+      // Keep legacy docs for compatibility with existing webhook logic
+      await setDoc(doc(db, 'settings', 'ai_prompt'), { text: prompts.prompt1 });
+      await setDoc(doc(db, 'settings', 'ai_chat_prompt'), { text: prompts.aiChatPrompt });
+      
       setPromptSaved(true);
       setTimeout(() => setPromptSaved(false), 3000);
     } catch (error) {
-      console.error("Erro ao salvar prompt:", error);
-      alert("Erro ao salvar o prompt.");
+      console.error("Erro ao salvar prompts:", error);
+      alert("Erro ao salvar os prompts.");
     } finally {
       setSavingPrompt(false);
     }
@@ -811,12 +833,12 @@ export default function Admin() {
                                 });
                                 const data = await res.json();
                                 if (data.success) {
-                                  alert("Contrato gerado com sucesso!");
+                                  showToast("Contrato gerado com sucesso!");
                                 } else {
-                                  alert("Erro ao gerar contrato: " + data.error);
+                                  showToast("Erro ao gerar contrato: " + data.error, 'error');
                                 }
                               } catch (e) {
-                                alert("Erro ao gerar contrato.");
+                                showToast("Erro ao gerar contrato.", 'error');
                               }
                             }}
                             className="px-3 py-2 rounded text-sm font-medium bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-100 text-left"
@@ -996,10 +1018,8 @@ export default function Admin() {
                       
                       <div className="p-0">
                         <PromptsFlow 
-                          aiPrompt={aiPrompt}
-                          setAiPrompt={setAiPrompt}
-                          aiChatPrompt={aiChatPrompt}
-                          setAiChatPrompt={setAiChatPrompt}
+                          prompts={prompts}
+                          setPrompts={setPrompts}
                           onSave={handleSavePrompt}
                           saving={savingPrompt}
                           saved={promptSaved}
@@ -1109,6 +1129,21 @@ export default function Admin() {
         )}
 
       </main>
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`fixed bottom-6 right-6 px-6 py-3 rounded-xl shadow-lg z-50 animate-in fade-in slide-in-from-bottom-4 duration-300 ${
+          toast.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
+        }`}>
+          <div className="flex items-center gap-2">
+            {toast.type === 'success' ? (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+            )}
+            <span className="font-medium">{toast.message}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

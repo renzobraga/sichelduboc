@@ -149,10 +149,22 @@ const nodeTypes = {
 };
 
 interface PromptsFlowProps {
-  aiPrompt: string;
-  setAiPrompt: (val: string) => void;
-  aiChatPrompt: string;
-  setAiChatPrompt: (val: string) => void;
+  prompts: {
+    prompt1: string;
+    prompt2: string;
+    prompt3: string;
+    prompt4: string;
+    prompt5: string;
+    promptDesq: string;
+    promptObjections: string;
+    promptSchedule: string;
+    promptContract: string;
+    promptClosing: string;
+    promptTrust: string;
+    promptFees: string;
+    aiChatPrompt: string;
+  };
+  setPrompts: (prompts: any) => void;
   onSave: () => void;
   saving: boolean;
   saved: boolean;
@@ -160,25 +172,17 @@ interface PromptsFlowProps {
 }
 
 export default function PromptsFlow({
-  aiPrompt,
-  setAiPrompt,
-  aiChatPrompt,
-  setAiChatPrompt,
+  prompts,
+  setPrompts,
   onSave,
   saving,
   saved,
   expertPrompt
 }: PromptsFlowProps) {
   
-  const [prompt2, setPrompt2] = useState('Ótimo! Segunda pergunta: Você contribuiu para esse fundo de previdência entre os anos de 1989 e 1995? [BUTTONS: Sim | Não]');
-  const [prompt3, setPrompt3] = useState('Quase lá! Última pergunta: Atualmente, é descontado Imposto de Renda diretamente na fonte sobre o valor da sua aposentadoria complementar? [BUTTONS: Sim | Não]');
-  const [promptDesq, setPromptDesq] = useState('Compreendo. Analisando as suas respostas, verificamos que o seu perfil não se enquadra nos requisitos para esta ação. Agradecemos o contato!');
-  const [prompt4, setPrompt4] = useState('Excelente notícia! Você preenche os requisitos para buscar a restituição. Nossa equipe vai preparar sua análise. Qual é o seu nome completo?');
-  const [prompt5, setPrompt5] = useState('Tudo anotado! Precisaremos de alguns documentos: RG, Comprovante de Residência, Contracheque e Declaração de IR. Consegue me enviar hoje? [BUTTONS: Sim, envio hoje | Envio depois]');
-  const [promptObjections, setPromptObjections] = useState('Entendo que possa ter dúvidas ou precise de mais tempo. Gostaria de agendar uma breve reunião com um de nossos advogados especialistas para esclarecer tudo, ou prefere tirar suas dúvidas por aqui mesmo? [BUTTONS: Agendar Reunião | Tirar Dúvidas]');
-  const [promptSchedule, setPromptSchedule] = useState('Ótimo! Por favor, escolha o melhor dia e horário diretamente na nossa agenda clicando neste link: [LINK DO GOOGLE CALENDAR]. Um de nossos especialistas ligará para você no horário marcado.');
-  const [promptContract, setPromptContract] = useState('Perfeito! Recebi os documentos. Vou encaminhar agora o seu Contrato de Prestação de Serviços Jurídicos. Como combinamos, os honorários são cobrados apenas no êxito. Clique no link abaixo para ler e assinar digitalmente: [LINK PARA ASSINATURA DO CONTRATO]');
-  const [promptClosing, setPromptClosing] = useState('Contrato recebido e validado com sucesso! ✅ Parabéns por dar esse passo importante para recuperar o que é seu por direito. A partir de agora, o escritório Sichel & Duboc cuida de tudo. Seja muito bem-vindo(a)!');
+  const updatePrompt = (key: string, value: string) => {
+    setPrompts({ ...prompts, [key]: value });
+  };
 
   const initialNodes = [
     {
@@ -198,8 +202,8 @@ export default function PromptsFlow({
       data: { 
         label: '1. Triagem: Previdência',
         description: 'Pergunta 1: Recebe previdência complementar?',
-        value: aiPrompt,
-        onChange: setAiPrompt,
+        value: prompts.prompt1,
+        onChange: (val: string) => updatePrompt('prompt1', val),
         placeholder: 'Digite a primeira pergunta...'
       },
     },
@@ -220,8 +224,8 @@ export default function PromptsFlow({
       data: { 
         label: 'Desqualificação',
         description: 'Enviada quando o cliente não cumpre os requisitos.',
-        value: promptDesq,
-        onChange: setPromptDesq,
+        value: prompts.promptDesq,
+        onChange: (val: string) => updatePrompt('promptDesq', val),
         placeholder: 'Mensagem de recusa...'
       },
     },
@@ -232,8 +236,8 @@ export default function PromptsFlow({
       data: { 
         label: '2. Triagem: Período',
         description: 'Pergunta 2: Contribuiu entre 1989 e 1995?',
-        value: prompt2,
-        onChange: setPrompt2,
+        value: prompts.prompt2,
+        onChange: (val: string) => updatePrompt('prompt2', val),
         placeholder: 'Digite a segunda pergunta...'
       },
     },
@@ -254,8 +258,8 @@ export default function PromptsFlow({
       data: { 
         label: '3. Triagem: Retenção IR',
         description: 'Pergunta 3: Tem desconto de IR na fonte?',
-        value: prompt3,
-        onChange: setPrompt3,
+        value: prompts.prompt3,
+        onChange: (val: string) => updatePrompt('prompt3', val),
         placeholder: 'Digite a terceira pergunta...'
       },
     },
@@ -276,8 +280,8 @@ export default function PromptsFlow({
       data: { 
         label: '4. Qualificação e Dados',
         description: 'Informa o direito e pede dados básicos.',
-        value: prompt4,
-        onChange: setPrompt4,
+        value: prompts.prompt4,
+        onChange: (val: string) => updatePrompt('prompt4', val),
         placeholder: 'Mensagem de qualificação...'
       },
     },
@@ -297,8 +301,8 @@ export default function PromptsFlow({
       data: { 
         label: '5. Solicitar Documentos',
         description: 'Pede RG, Comprovante, Contracheque e IR.',
-        value: prompt5,
-        onChange: setPrompt5,
+        value: prompts.prompt5,
+        onChange: (val: string) => updatePrompt('prompt5', val),
         placeholder: 'Mensagem pedindo documentos...'
       },
     },
@@ -313,14 +317,38 @@ export default function PromptsFlow({
       },
     },
     {
+      id: 'prompt-trust',
+      type: 'prompt',
+      position: { x: 50, y: 2650 },
+      data: { 
+        label: 'Dúvida: É Seguro?',
+        description: 'Explica sobre a OAB e a validade jurídica.',
+        value: prompts.promptTrust,
+        onChange: (val: string) => updatePrompt('promptTrust', val),
+        placeholder: 'Mensagem sobre confiança...'
+      },
+    },
+    {
+      id: 'prompt-fees',
+      type: 'prompt',
+      position: { x: 50, y: 2850 },
+      data: { 
+        label: 'Dúvida: Honorários',
+        description: 'Explica que só cobra no êxito.',
+        value: prompts.promptFees,
+        onChange: (val: string) => updatePrompt('promptFees', val),
+        placeholder: 'Mensagem sobre valores...'
+      },
+    },
+    {
       id: 'prompt-objections',
       type: 'prompt',
       position: { x: 400, y: 2650 },
       data: { 
         label: '6. Superação de Objeções',
         description: 'Oferece reunião ou tira dúvidas por chat.',
-        value: promptObjections,
-        onChange: setPromptObjections,
+        value: prompts.promptObjections,
+        onChange: (val: string) => updatePrompt('promptObjections', val),
         placeholder: 'Mensagem de objeções...'
       },
     },
@@ -341,8 +369,8 @@ export default function PromptsFlow({
       data: { 
         label: '7. Agendamento (Calendar)',
         description: 'Envia o link do Google Calendar.',
-        value: promptSchedule,
-        onChange: setPromptSchedule,
+        value: prompts.promptSchedule,
+        onChange: (val: string) => updatePrompt('promptSchedule', val),
         placeholder: 'Mensagem de agendamento...'
       },
     },
@@ -353,11 +381,11 @@ export default function PromptsFlow({
       data: { 
         label: '7. Chatbot Contínuo (Dúvidas)',
         description: 'Assume a conversa para tirar dúvidas específicas.',
-        value: aiChatPrompt,
-        onChange: setAiChatPrompt,
+        value: prompts.aiChatPrompt,
+        onChange: (val: string) => updatePrompt('aiChatPrompt', val),
         placeholder: 'Prompt do especialista...',
         showExpertButton: true,
-        onLoadExpert: () => setAiChatPrompt(expertPrompt)
+        onLoadExpert: () => updatePrompt('aiChatPrompt', expertPrompt)
       },
     },
     {
@@ -367,8 +395,8 @@ export default function PromptsFlow({
       data: { 
         label: '6. Envio do Contrato',
         description: 'Envia o link para assinatura digital.',
-        value: promptContract,
-        onChange: setPromptContract,
+        value: prompts.promptContract,
+        onChange: (val: string) => updatePrompt('promptContract', val),
         placeholder: 'Mensagem do contrato...'
       },
     },
@@ -389,12 +417,13 @@ export default function PromptsFlow({
       data: { 
         label: '8. Fechamento / Sucesso',
         description: 'Mensagem de boas-vindas após assinatura.',
-        value: promptClosing,
-        onChange: setPromptClosing,
+        value: prompts.promptClosing,
+        onChange: (val: string) => updatePrompt('promptClosing', val),
         placeholder: 'Mensagem de fechamento...'
       },
     }
   ];
+
 
   const initialEdges: any[] = [
     { id: 'e1-2', source: 'trigger-1', target: 'prompt-1', type: 'smoothstep', style: { stroke: '#cbd5e1', strokeWidth: 2 } },
@@ -424,7 +453,9 @@ export default function PromptsFlow({
     { id: 'e10-11', source: 'prompt-5', target: 'condition-docs', type: 'smoothstep', style: { stroke: '#cbd5e1', strokeWidth: 2 } },
     
     // Condition Docs
-    { id: 'cdocs-false', source: 'condition-docs', sourceHandle: 'false', target: 'prompt-objections', type: 'smoothstep', style: { stroke: '#f43f5e', strokeWidth: 2 }, label: 'Dúvidas/Depois', labelStyle: { fill: '#be123c', fontWeight: 600, fontSize: 11 }, labelBgStyle: { fill: '#ffe4e6', fillOpacity: 1 }, labelBgPadding: [8, 4], labelBgBorderRadius: 4 },
+    { id: 'cdocs-false', source: 'condition-docs', sourceHandle: 'false', target: 'prompt-objections', type: 'smoothstep', style: { stroke: '#f43f5e', strokeWidth: 2 }, label: 'Dúvidas', labelStyle: { fill: '#be123c', fontWeight: 600, fontSize: 11 }, labelBgStyle: { fill: '#ffe4e6', fillOpacity: 1 }, labelBgPadding: [8, 4], labelBgBorderRadius: 4 },
+    { id: 'cdocs-trust', source: 'condition-docs', sourceHandle: 'false', target: 'prompt-trust', type: 'smoothstep', style: { stroke: '#f43f5e', strokeWidth: 2 }, label: 'Segurança?', labelStyle: { fill: '#be123c', fontWeight: 600, fontSize: 11 }, labelBgStyle: { fill: '#ffe4e6', fillOpacity: 1 }, labelBgPadding: [8, 4], labelBgBorderRadius: 4 },
+    { id: 'cdocs-fees', source: 'condition-docs', sourceHandle: 'false', target: 'prompt-fees', type: 'smoothstep', style: { stroke: '#f43f5e', strokeWidth: 2 }, label: 'Valores?', labelStyle: { fill: '#be123c', fontWeight: 600, fontSize: 11 }, labelBgStyle: { fill: '#ffe4e6', fillOpacity: 1 }, labelBgPadding: [8, 4], labelBgBorderRadius: 4 },
     { id: 'cdocs-true', source: 'condition-docs', sourceHandle: 'true', target: 'prompt-contract', type: 'smoothstep', style: { stroke: '#10b981', strokeWidth: 2 }, label: 'Enviou', labelStyle: { fill: '#047857', fontWeight: 600, fontSize: 11 }, labelBgStyle: { fill: '#d1fae5', fillOpacity: 1 }, labelBgPadding: [8, 4], labelBgBorderRadius: 4 },
 
     // Objections -> Condition Objections
@@ -432,6 +463,8 @@ export default function PromptsFlow({
     
     // Condition Objections
     { id: 'cobj-true', source: 'condition-objections', sourceHandle: 'true', target: 'prompt-schedule', type: 'smoothstep', style: { stroke: '#10b981', strokeWidth: 2 }, label: 'Agendar', labelStyle: { fill: '#047857', fontWeight: 600, fontSize: 11 }, labelBgStyle: { fill: '#d1fae5', fillOpacity: 1 }, labelBgPadding: [8, 4], labelBgBorderRadius: 4 },
+    { id: 'cobj-trust', source: 'condition-objections', sourceHandle: 'false', target: 'prompt-trust', type: 'smoothstep', style: { stroke: '#f43f5e', strokeWidth: 2 }, label: 'Segurança?', labelStyle: { fill: '#be123c', fontWeight: 600, fontSize: 11 }, labelBgStyle: { fill: '#ffe4e6', fillOpacity: 1 }, labelBgPadding: [8, 4], labelBgBorderRadius: 4 },
+    { id: 'cobj-fees', source: 'condition-objections', sourceHandle: 'false', target: 'prompt-fees', type: 'smoothstep', style: { stroke: '#f43f5e', strokeWidth: 2 }, label: 'Valores?', labelStyle: { fill: '#be123c', fontWeight: 600, fontSize: 11 }, labelBgStyle: { fill: '#ffe4e6', fillOpacity: 1 }, labelBgPadding: [8, 4], labelBgBorderRadius: 4 },
     { id: 'cobj-false', source: 'condition-objections', sourceHandle: 'false', target: 'prompt-expert', type: 'smoothstep', style: { stroke: '#f43f5e', strokeWidth: 2 }, label: 'Chat', labelStyle: { fill: '#be123c', fontWeight: 600, fontSize: 11 }, labelBgStyle: { fill: '#ffe4e6', fillOpacity: 1 }, labelBgPadding: [8, 4], labelBgBorderRadius: 4 },
 
     // Contract -> Condition Contract
@@ -439,6 +472,8 @@ export default function PromptsFlow({
 
     // Condition Contract
     { id: 'ccontract-true', source: 'condition-contract', sourceHandle: 'true', target: 'prompt-closing', type: 'smoothstep', style: { stroke: '#10b981', strokeWidth: 2 }, label: 'Assinou', labelStyle: { fill: '#047857', fontWeight: 600, fontSize: 11 }, labelBgStyle: { fill: '#d1fae5', fillOpacity: 1 }, labelBgPadding: [8, 4], labelBgBorderRadius: 4 },
+    { id: 'ccontract-trust', source: 'condition-contract', sourceHandle: 'false', target: 'prompt-trust', type: 'smoothstep', style: { stroke: '#f43f5e', strokeWidth: 2 }, label: 'Segurança?', labelStyle: { fill: '#be123c', fontWeight: 600, fontSize: 11 }, labelBgStyle: { fill: '#ffe4e6', fillOpacity: 1 }, labelBgPadding: [8, 4], labelBgBorderRadius: 4 },
+    { id: 'ccontract-fees', source: 'condition-contract', sourceHandle: 'false', target: 'prompt-fees', type: 'smoothstep', style: { stroke: '#f43f5e', strokeWidth: 2 }, label: 'Valores?', labelStyle: { fill: '#be123c', fontWeight: 600, fontSize: 11 }, labelBgStyle: { fill: '#ffe4e6', fillOpacity: 1 }, labelBgPadding: [8, 4], labelBgBorderRadius: 4 },
     { id: 'ccontract-false', source: 'condition-contract', sourceHandle: 'false', target: 'prompt-expert', type: 'smoothstep', style: { stroke: '#f43f5e', strokeWidth: 2 }, label: 'Dúvidas', labelStyle: { fill: '#be123c', fontWeight: 600, fontSize: 11 }, labelBgStyle: { fill: '#ffe4e6', fillOpacity: 1 }, labelBgPadding: [8, 4], labelBgBorderRadius: 4 },
     
     // Loop back edge for expert
@@ -467,42 +502,42 @@ export default function PromptsFlow({
     setNodes((nds) =>
       nds.map((node) => {
         if (node.id === 'prompt-1') {
-          node.data = { ...node.data, value: aiPrompt, onChange: setAiPrompt };
+          node.data = { ...node.data, value: prompts.prompt1, onChange: (val: string) => updatePrompt('prompt1', val) };
         }
         if (node.id === 'prompt-2') {
-          node.data = { ...node.data, value: prompt2, onChange: setPrompt2 };
+          node.data = { ...node.data, value: prompts.prompt2, onChange: (val: string) => updatePrompt('prompt2', val) };
         }
         if (node.id === 'prompt-3') {
-          node.data = { ...node.data, value: prompt3, onChange: setPrompt3 };
+          node.data = { ...node.data, value: prompts.prompt3, onChange: (val: string) => updatePrompt('prompt3', val) };
         }
         if (node.id === 'prompt-4') {
-          node.data = { ...node.data, value: prompt4, onChange: setPrompt4 };
+          node.data = { ...node.data, value: prompts.prompt4, onChange: (val: string) => updatePrompt('prompt4', val) };
         }
         if (node.id === 'prompt-5') {
-          node.data = { ...node.data, value: prompt5, onChange: setPrompt5 };
+          node.data = { ...node.data, value: prompts.prompt5, onChange: (val: string) => updatePrompt('prompt5', val) };
         }
         if (node.id === 'prompt-objections') {
-          node.data = { ...node.data, value: promptObjections, onChange: setPromptObjections };
+          node.data = { ...node.data, value: prompts.promptObjections, onChange: (val: string) => updatePrompt('promptObjections', val) };
         }
         if (node.id === 'prompt-schedule') {
-          node.data = { ...node.data, value: promptSchedule, onChange: setPromptSchedule };
+          node.data = { ...node.data, value: prompts.promptSchedule, onChange: (val: string) => updatePrompt('promptSchedule', val) };
         }
         if (node.id === 'prompt-contract') {
-          node.data = { ...node.data, value: promptContract, onChange: setPromptContract };
+          node.data = { ...node.data, value: prompts.promptContract, onChange: (val: string) => updatePrompt('promptContract', val) };
         }
         if (node.id === 'prompt-closing') {
-          node.data = { ...node.data, value: promptClosing, onChange: setPromptClosing };
+          node.data = { ...node.data, value: prompts.promptClosing, onChange: (val: string) => updatePrompt('promptClosing', val) };
         }
         if (node.id === 'prompt-desq') {
-          node.data = { ...node.data, value: promptDesq, onChange: setPromptDesq };
+          node.data = { ...node.data, value: prompts.promptDesq, onChange: (val: string) => updatePrompt('promptDesq', val) };
         }
         if (node.id === 'prompt-expert') {
-          node.data = { ...node.data, value: aiChatPrompt, onChange: setAiChatPrompt, onLoadExpert: () => setAiChatPrompt(expertPrompt) };
+          node.data = { ...node.data, value: prompts.aiChatPrompt, onChange: (val: string) => updatePrompt('aiChatPrompt', val), onLoadExpert: () => updatePrompt('aiChatPrompt', expertPrompt) };
         }
         return node;
       })
     );
-  }, [aiPrompt, aiChatPrompt, prompt2, prompt3, prompt4, prompt5, promptObjections, promptSchedule, promptContract, promptClosing, promptDesq, setAiPrompt, setAiChatPrompt, expertPrompt, setNodes]);
+  }, [prompts, expertPrompt, setNodes]);
 
   return (
     <div className="h-[800px] w-full bg-slate-50 border border-slate-200 rounded-xl overflow-hidden relative flex flex-col">

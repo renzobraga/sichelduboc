@@ -36,6 +36,10 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
         messageText = data.text;
       } else if (data.text && data.text.message) {
         messageText = data.text.message;
+      } else if (data.message && data.message.buttonResponseMessage) {
+        messageText = data.message.buttonResponseMessage.selectedDisplayText;
+      } else if (data.message && data.message.templateButtonReplyMessage) {
+        messageText = data.message.templateButtonReplyMessage.selectedDisplayText;
       }
 
       // Se ainda não achou, tenta buscar em qualquer lugar do objeto (fallback extremo)
@@ -168,82 +172,80 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                 
               const history = historySnapshot.docs.map(d => d.data()).reverse();
               
-              // Buscar prompt de chat customizado
+              // Buscar prompts de chat customizados
               let customChatPrompt = "";
+              let workflowPrompts: any = {};
               try {
-                const promptDoc = await dbAdmin.collection('settings').doc('ai_chat_prompt').get();
-                if (promptDoc.exists) {
-                  customChatPrompt = promptDoc.data()?.text || "";
+                const promptsDoc = await dbAdmin.collection('settings').doc('prompts').get();
+                if (promptsDoc.exists) {
+                  workflowPrompts = promptsDoc.data();
+                }
+                
+                const chatPromptDoc = await dbAdmin.collection('settings').doc('ai_chat_prompt').get();
+                if (chatPromptDoc.exists) {
+                  customChatPrompt = chatPromptDoc.data()?.text || "";
                 }
               } catch (e) {
-                console.error("Erro ao buscar prompt de chat customizado:", e);
+                console.error("Erro ao buscar prompts customizados:", e);
               }
-
-              let promptTemplate = customChatPrompt || `Você é o assistente virtual do escritório de advocacia Sichel & Duboc, especialista em direito previdenciário e tributário.
-Seu objetivo é qualificar leads para a tese de "Restituição de IR por Bitributação", coletar dados, solicitar documentos, superar objeções e enviar o contrato.
-
-DIRETRIZES GERAIS:
-1. Personalização: Chame o lead pelo nome ({nome}) em todas as mensagens para criar proximidade.
-2. Horário: Respeite o horário comercial (9h às 18h). Se for fora desse horário, avise que retornará no próximo dia útil.
-3. Palavras-chave Negativas: Se o lead disser "não", "nunca", "jamais", "negativo", acione o Fluxo de Desqualificação.
-4. Hesitação: Se o lead disser "pensar", "depois", "amanhã", "ver com filho", acione a Superação de Objeções antes de avançar.
-5. Fuga/Escape: Para perguntas não mapeadas, responda: "Essa é uma ótima pergunta! Vou passar você para um dos nossos especialistas para responder com mais detalhes. Um momento, por favor." e pare de responder.
-6. Agendamento de Reunião: Se o lead pedir para ligar, fazer uma chamada de vídeo, ou agendar uma reunião, pergunte qual o melhor dia e horário para ele. Quando ele informar, use a ferramenta "scheduleMeeting" para agendar no Google Calendar. Confirme o agendamento com o lead.
-
-ETAPAS DE ATENDIMENTO (Siga sequencialmente, uma pergunta por vez):
-
-ETAPA 1: TRIAGEM (Faça uma pergunta por vez)
-- Pergunta 1 (Previdência Complementar): "Primeira pergunta: Você recebe aposentadoria de alguma previdência complementar que não seja paga pelo INSS? (Exemplos: Petros, Funcef, Previ, Banesprev, Valia, Sistel, BNDES, Banco do Brasil, Rede Ferroviária, entre outros.) Responda com SIM ou NÃO."
-  -> Se SIM: Vá para Pergunta 2. Se NÃO: Vá para Desqualificação.
-- Pergunta 2 (Período de Contribuição): "Ótimo! Segunda pergunta: Você contribuiu para esse fundo de previdência entre os anos de 1989 e 1995? Responda com SIM ou NÃO."
-  -> Se SIM: Vá para Pergunta 3. Se NÃO: Vá para Desqualificação.
-- Pergunta 3 (Retenção Atual): "Quase lá! Última pergunta: Atualmente, é descontado Imposto de Renda diretamente na fonte sobre o valor da sua aposentadoria complementar? Responda com SIM ou NÃO."
-  -> Se SIM: Lead Qualificado -> Vá para Etapa 3. Se NÃO: Vá para Desqualificação.
-
-ETAPA ALTERNATIVA: DESQUALIFICAÇÃO
-Se o lead responder "Não" a qualquer pergunta da triagem:
-"Compreendo. Analisando as suas respostas, verificamos que, neste momento, o seu perfil não se enquadra nos requisitos específicos exigidos pela Justiça para esta ação de restituição por bitributação. Essa ação é voltada para aposentados que contribuíram entre 1989 e 1995 com IR retido na fonte e que ainda sofrem desconto de IR hoje. Não sendo o seu caso, não seria correto da nossa parte prosseguir. Agradecemos muito o seu contato! O escritório Sichel & Duboc está sempre à disposição para outras demandas previdenciárias ou tributárias. Tenha um excelente dia!"
-
-ETAPA 3: VALIDAÇÃO DO DIREITO E COLETA DE DADOS
-Se o lead respondeu "Sim" às 3 perguntas:
-1. Confirmação: "Excelente notícia! Com base nas suas respostas, você preenche todos os requisitos para buscar a restituição do Imposto de Renda cobrado indevidamente. O que ocorreu foi o seguinte: você já pagou esse imposto lá atrás, entre 1989 e 1995, quando contribuía para o seu fundo. Mesmo assim, a Receita Federal continua cobrando IR sobre o seu benefício hoje — isso é bitributação e a Justiça reconhece o seu direito de receber esse dinheiro de volta. Nossa equipe vai preparar a sua análise personalizada. Para isso, preciso de alguns dados básicos. Qual é o seu nome completo?"
-2. Após o nome: "Prazer em conhecer, {nome}! De qual cidade e estado você está nos contatando?"
-3. Após cidade/estado: "Perfeito! Qual é o nome do seu fundo de previdência (ex: Petros, Funcef, Previ, etc.)? E qual é o seu e-mail para enviarmos a documentação do seu caso?"
-
-ETAPA 4: APRESENTAÇÃO DA PROPOSTA E SOLICITAÇÃO DE DOCUMENTOS
-Após coletar os dados básicos:
-"Tudo anotado, {nome}! Sua pasta já está sendo aberta pela nossa equipe. O escritório Sichel & Duboc (OAB/RJ 181.046) trabalha com total transparência e segurança. Para darmos entrada na sua ação e garantirmos que você não perca mais dinheiro por prescrição, precisaremos de alguns documentos. São apenas 4 itens:
-1. Documento de Identidade (RG ou CNH — foto frente e verso)
-2. Comprovante de Residência (conta de luz, água ou telefone)
-3. Contracheque atual da aposentadoria complementar
-4. Declaração de Imposto de Renda (último ano)
-Você pode me enviar as fotos ou PDFs aqui mesmo pelo WhatsApp. Todos os seus dados são protegidos pela LGPD e utilizados exclusivamente para a análise do seu caso. Consegue me enviar hoje?"
-
-ETAPA 5: SUPERAÇÃO DE OBJEÇÕES (Responda conforme a dúvida do lead)
-- "Isso é golpe?" / "Como sei que é verdade?": "Entendo a sua preocupação, e é muito saudável questionar. O escritório Sichel & Duboc é registrado na OAB/RJ sob o número 181.046 e no CNPJ 48.319.240/0001-80. Você pode verificar no site do Conselho Federal da OAB. Nosso site é [sichelduboc.com.br]. A tese é baseada na Lei 7.713/88 e tem jurisprudência favorável nos tribunais superiores. Estamos aqui para proteger os seus direitos, não o contrário."
-- "Quanto vou pagar?": "Ótima pergunta! O escritório trabalha no modelo de honorários de êxito, ou seja, você não paga nada adiantado. Nossos honorários são um percentual combinado em contrato, cobrado apenas quando você ganhar a ação e o dinheiro estiver disponível. É risco zero para você."
-- "Preciso pensar" / "Vou ver com meu filho/filha": "Claro, {nome}, é uma decisão importante e faz todo sentido conversar com a família. Só quero te lembrar de um detalhe: o direito à restituição prescreve mês a mês. Cada mês que passa sem a ação, você perde definitivamente o direito de recuperar aquele mês de 5 anos atrás. Se quiser, posso te enviar um resumo do caso para você mostrar para a família. Posso fazer isso?"
-- "Não sei se tenho os documentos": "Não se preocupe com isso! Nossa equipe pode te ajudar a emitir alguns documentos pela internet, como o contracheque e a declaração de IR. Me diga qual documento está com dificuldade de encontrar e eu te oriento."
-
-ETAPA 6: ENVIO DO CONTRATO E FECHAMENTO
-Quando os documentos forem recebidos ou o lead confirmar interesse:
-"Perfeito, {nome}! Recebi tudo. Vou encaminhar agora o seu Contrato de Prestação de Serviços Jurídicos. Como combinamos, os honorários são cobrados apenas no êxito — você não paga nada agora. O contrato é simples, claro e protege os seus direitos. Clique no link abaixo para ler e assinar digitalmente pelo seu celular mesmo. A assinatura digital tem total validade jurídica: [LINK PARA ASSINATURA DO CONTRATO] Assim que assinar, me avise aqui para confirmarmos no sistema. Tem alguma dúvida sobre algum ponto do contrato?"
-- Após assinatura: "Contrato recebido e validado com sucesso, {nome}! ✅ Parabéns por dar esse passo importante para recuperar o que é seu por direito. A partir de agora, o escritório Sichel & Duboc cuida de tudo. Você receberá atualizações sobre o andamento do seu processo por este mesmo WhatsApp. Seja muito bem-vindo(a) ao nosso escritório! Qualquer dúvida, é só chamar."`;
-
-              const primeiroNome = leadData.nome ? leadData.nome.split(' ')[0] : 'Cliente';
-              let promptText = promptTemplate
-                .replace(/{nome}/g, primeiroNome)
-                .replace(/{aposentadoriaComplementar}/g, leadData.aposentadoriaComplementar || 'Não informado')
-                .replace(/{contribuicao89a95}/g, leadData.contribuicao89a95 || 'Não informado')
-                .replace(/{pagaIrAtualmente}/g, leadData.pagaIrAtualmente || 'Não informado');
-
-              promptText += `\n\nHistórico da conversa:\n`;
-
-              history.forEach(msg => {
-                promptText += `${msg.sender === 'user' ? 'Cliente' : 'Você'}: ${msg.text}\n`;
-              });
               
-              promptText += `\nVocê:`;
+                const p = {
+                  prompt1: workflowPrompts.prompt1 || 'Olá! Sou o assistente virtual do escritório Sichel & Duboc. Vi que você tem interesse na restituição de Imposto de Renda sobre previdência complementar. Para começar, você recebe ou recebeu aposentadoria de fundo de previdência privada (como PREVI, PETROS, FUNCEF, etc)? [BUTTONS: Sim | Não]',
+                  prompt2: workflowPrompts.prompt2 || 'Ótimo! Segunda pergunta: Você contribuiu para esse fundo de previdência entre os anos de 1989 e 1995? [BUTTONS: Sim | Não]',
+                  prompt3: workflowPrompts.prompt3 || 'Quase lá! Última pergunta: Atualmente, é descontado Imposto de Renda diretamente na fonte sobre o valor da sua aposentadoria complementar? [BUTTONS: Sim | Não]',
+                  prompt4: workflowPrompts.prompt4 || 'Excelente notícia! Você preenche os requisitos para buscar a restituição. Nossa equipe vai preparar sua análise. Qual é o seu nome completo?',
+                  prompt5: workflowPrompts.prompt5 || 'Tudo anotado! Precisaremos de alguns documentos: RG, Comprovante de Residência, Contracheque e Declaração de IR. Consegue me enviar hoje? [BUTTONS: Sim, envio hoje | Envio depois]',
+                  promptDesq: workflowPrompts.promptDesq || 'Compreendo. Analisando as suas respostas, verificamos que o seu perfil não se enquadra nos requisitos para esta ação. Agradecemos o contato!',
+                  promptObjections: workflowPrompts.promptObjections || 'Entendo que possa ter dúvidas ou precise de mais tempo. Gostaria de agendar uma breve reunião com um de nossos advogados especialistas para esclarecer tudo, ou prefere tirar suas dúvidas por aqui mesmo? [BUTTONS: Agendar Reunião | Tirar Dúvidas]',
+                  promptSchedule: workflowPrompts.promptSchedule || 'Ótimo! Por favor, escolha o melhor dia e horário diretamente na nossa agenda clicando neste link: [LINK DO GOOGLE CALENDAR]. Um de nossos especialistas ligará para você no horário marcado.',
+                  promptContract: workflowPrompts.promptContract || 'Perfeito! Recebi os documentos. Vou encaminhar agora o seu Contrato de Prestação de Serviços Jurídicos. Como combinamos, os honorários são cobrados apenas no êxito. Clique no link abaixo para ler e assinar digitalmente: [LINK PARA ASSINATURA DO CONTRATO]',
+                  promptClosing: workflowPrompts.promptClosing || 'Contrato recebido e validado com sucesso! ✅ Parabéns por dar esse passo importante para recuperar o que é seu por direito. A partir de agora, o escritório Sichel & Duboc cuida de tudo. Seja muito bem-vindo(a)!',
+                  promptTrust: workflowPrompts.promptTrust || 'Entendo a sua preocupação. O escritório Sichel & Duboc é registrado na OAB/RJ sob o número 181.046 e no CNPJ 48.319.240/0001-80. Você pode verificar no site do Conselho Federal da OAB. Nosso site é [sichelduboc.com.br]. A tese é baseada na Lei 7.713/88 e tem jurisprudência favorável.',
+                  promptFees: workflowPrompts.promptFees || 'O escritório trabalha no modelo de honorários de êxito, ou seja, você não paga nada adiantado. Nossos honorários são um percentual combinado em contrato, cobrado apenas quando você ganhar a ação.',
+                };
+
+                const primeiroNome = leadData.nome ? leadData.nome.split(' ')[0] : 'Cliente';
+                
+                const promptText = `
+                  Você é o assistente virtual do escritório de advocacia Sichel & Duboc, especialista em direito previdenciário e tributário.
+                  Seu objetivo é qualificar leads para a tese de "Restituição de IR por Bitributação", coletar dados, solicitar documentos, superar objeções e enviar o contrato.
+
+                  DADOS DO LEAD ATUAL:
+                  - Nome: ${leadData.nome || 'Não informado'}
+                  - E-mail: ${leadData.email || 'Não informado'}
+                  - Cidade: ${leadData.cidade || 'Não informado'}
+                  - Fundo: ${leadData.fundoPrevidencia || 'Não informado'}
+                  - Status: ${leadData.status}
+                  - ID: ${leadId}
+
+                  DIRETRIZES DE CONVERSA (Use estas mensagens como base):
+                  1. Triagem 1: "${p.prompt1}"
+                  2. Triagem 2: "${p.prompt2}"
+                  3. Triagem 3: "${p.prompt3}"
+                  4. Qualificação: "${p.prompt4}"
+                  5. Documentos: "${p.prompt5}"
+                  6. Desqualificação: "${p.promptDesq}"
+                  7. Objeções Gerais: "${p.promptObjections}"
+                  8. Dúvida sobre Segurança/Golpe: "${p.promptTrust}"
+                  9. Dúvida sobre Valores/Honorários: "${p.promptFees}"
+                  10. Agendamento: "${p.promptSchedule}"
+                  11. Envio de Contrato: "${p.promptContract}"
+                  12. Fechamento: "${p.promptClosing}"
+
+                  INSTRUÇÕES IMPORTANTES:
+                  - Chame o lead pelo nome (${primeiroNome}) sempre que possível.
+                  - Use botões no formato [BUTTONS: Opção 1 | Opção 2]. O texto do botão DEVE ter no máximo 20 caracteres.
+                  - Se o lead informar nome, e-mail, cidade ou fundo, use a ferramenta 'updateLeadData' IMEDIATAMENTE.
+                  - Se o lead estiver pronto para o contrato, use 'createContract'.
+                  - Se o lead pedir reunião, use 'scheduleMeeting'.
+                  - Se o lead fizer uma pergunta que você não sabe responder ou quiser falar com um humano, use a palavra [ESCAPE] na resposta.
+
+                  HISTÓRICO RECENTE:
+                  ${history.map(m => `${m.sender === 'user' ? 'Lead' : 'Você'}: ${m.text}`).join('\n')}
+
+                  MENSAGEM ATUAL DO LEAD:
+                  ${messageText}
+                `;
 
               const scheduleMeetingDeclaration: any = {
                 name: "scheduleMeeting",
@@ -295,12 +297,26 @@ Quando os documentos forem recebidos ou o lead confirmar interesse:
                 },
               };
 
+              const updateLeadDataDeclaration: any = {
+                name: "updateLeadData",
+                description: "Atualiza os dados do lead no sistema (nome, e-mail, cidade, fundo de previdência). Use sempre que o lead fornecer uma dessas informações.",
+                parameters: {
+                  type: Type.OBJECT,
+                  properties: {
+                    nome: { type: Type.STRING },
+                    email: { type: Type.STRING },
+                    cidade: { type: Type.STRING },
+                    fundoPrevidencia: { type: Type.STRING }
+                  }
+                }
+              };
+
               const response = await ai.models.generateContent({
                 model: "gemini-3-flash-preview",
                 contents: promptText,
                 config: {
-                  tools: [{ functionDeclarations: [scheduleMeetingDeclaration, createContractDeclaration] }],
-                  systemInstruction: `A data e hora atual é: ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })} (Horário de Brasília). Use isso como referência para agendar reuniões. Se o lead pedir para agendar uma reunião, use a ferramenta scheduleMeeting. Se o lead estiver pronto para assinar o contrato, use a ferramenta createContract.`,
+                  tools: [{ functionDeclarations: [scheduleMeetingDeclaration, createContractDeclaration, updateLeadDataDeclaration] }],
+                  systemInstruction: `A data e hora atual é: ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })} (Horário de Brasília). Use isso como referência para agendar reuniões. Se o lead pedir para agendar uma reunião, use a ferramenta scheduleMeeting. Se o lead estiver pronto para assinar o contrato, use a ferramenta createContract. Use updateLeadData sempre que o lead informar dados pessoais.`,
                 }
               });
               
@@ -345,6 +361,17 @@ Quando os documentos forem recebidos ou o lead confirmar interesse:
                       console.error("Erro ao criar contrato:", err);
                       aiResponseText = "Tive um pequeno problema técnico ao gerar o seu contrato agora. Mas não se preocupe, nossa equipe vai te enviar o link manualmente em instantes!";
                     }
+                  } else if (call.name === "updateLeadData") {
+                    try {
+                      const updates = call.args as any;
+                      console.log(`Atualizando dados do lead ${leadId}:`, updates);
+                      await dbAdmin.collection('leads').doc(leadId).update({
+                        ...updates,
+                        updatedAt: new Date().toISOString()
+                      });
+                    } catch (err) {
+                      console.error("Erro ao atualizar dados do lead:", err);
+                    }
                   }
                 }
               }
@@ -368,15 +395,22 @@ Quando os documentos forem recebidos ou o lead confirmar interesse:
                 let zApiBody: any = { phone, message: aiResponseText };
 
                 if (buttons.length > 0 && buttons.length <= 3) {
+                  console.log(`Enviando botões: ${buttons.join(', ')}`);
                   zApiUrl = `https://api.z-api.io/instances/${zApiInstance}/token/${zApiToken}/send-button-list`;
                   zApiBody = {
                     phone,
                     message: aiResponseText,
                     buttonList: {
-                      buttons: buttons.map((label, index) => ({
-                        id: String(index + 1),
-                        label: label.substring(0, 20) // WhatsApp limit is 20 chars
-                      }))
+                      buttons: buttons.map((label, index) => {
+                        const cleanLabel = label.substring(0, 20).trim();
+                        if (label.length > 20) {
+                          console.warn(`Botão cortado: "${label}" -> "${cleanLabel}"`);
+                        }
+                        return {
+                          id: String(index + 1),
+                          label: cleanLabel
+                        };
+                      })
                     }
                   };
                 }
