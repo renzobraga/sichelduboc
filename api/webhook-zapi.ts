@@ -172,10 +172,12 @@ Quando os documentos forem recebidos ou o lead confirmar interesse:
                   zApiBody = {
                     phone,
                     message: aiResponseText,
-                    buttonList: buttons.map((label, index) => ({
-                      id: String(index + 1),
-                      label: label.substring(0, 20) // WhatsApp limit is 20 chars
-                    }))
+                    buttonList: {
+                      buttons: buttons.map((label, index) => ({
+                        id: String(index + 1),
+                        label: label.substring(0, 20) // WhatsApp limit is 20 chars
+                      }))
+                    }
                   };
                 }
                 
@@ -184,11 +186,32 @@ Quando os documentos forem recebidos ou o lead confirmar interesse:
                   zApiHeaders["Client-Token"] = process.env.ZAPI_CLIENT_TOKEN;
                 }
 
-                await fetch(zApiUrl, {
+                const zApiResponse = await fetch(zApiUrl, {
                   method: "POST",
                   headers: zApiHeaders,
                   body: JSON.stringify(zApiBody)
                 });
+                
+                const zApiResultText = await zApiResponse.text();
+                if (!zApiResponse.ok) {
+                  console.error("Erro ao enviar mensagem via Z-API:", zApiResponse.status, zApiResultText);
+                  
+                  // Fallback: se falhar ao enviar botões, tenta enviar como texto normal
+                  if (zApiUrl.includes("send-button-list")) {
+                    console.log("Tentando fallback para texto normal...");
+                    const fallbackUrl = `https://api.z-api.io/instances/${zApiInstance}/token/${zApiToken}/send-text`;
+                    const fallbackBody = { 
+                      phone, 
+                      message: aiResponseText + "\n\nResponda com:\n" + buttons.map(b => `- ${b}`).join('\n') 
+                    };
+                    
+                    await fetch(fallbackUrl, {
+                      method: "POST",
+                      headers: zApiHeaders,
+                      body: JSON.stringify(fallbackBody)
+                    });
+                  }
+                }
                 
                 // Salvar a resposta da IA no Firestore
                 await dbAdmin.collection('messages').add({
