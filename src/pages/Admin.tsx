@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
@@ -114,6 +114,17 @@ export default function Admin() {
   const [promptSaved, setPromptSaved] = useState(false);
   const [isFlowFullScreen, setIsFlowFullScreen] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    if (activeTab === 'chat' && selectedLead) {
+      scrollToBottom();
+    }
+  }, [messages, selectedLead, activeTab]);
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
@@ -769,6 +780,7 @@ export default function Admin() {
                           )
                         ))
                       )}
+                      <div ref={messagesEndRef} />
                     </div>
 
                     <div className="p-4 bg-white border-t border-slate-100 shrink-0">
