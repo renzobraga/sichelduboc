@@ -147,13 +147,37 @@ Quando os documentos forem recebidos ou o lead confirmar interesse:
                 contents: promptText,
               });
               
-              const aiResponseText = response.text;
+              let aiResponseText = response.text || "";
               
               if (aiResponseText) {
+                // Parse buttons if the AI included them, e.g., [BUTTONS: Sim | Não]
+                const buttonRegex = /\[BUTTONS:\s*(.+?)\]/i;
+                const buttonMatch = aiResponseText.match(buttonRegex);
+                let buttons: string[] = [];
+                
+                if (buttonMatch) {
+                  buttons = buttonMatch[1].split('|').map(b => b.trim()).filter(b => b);
+                  aiResponseText = aiResponseText.replace(buttonRegex, '').trim();
+                }
+
                 // Enviar a resposta via Z-API
                 const zApiInstance = process.env.ZAPI_INSTANCE || "3F04463B905D722D1841026B50D22DF4";
                 const zApiToken = process.env.ZAPI_TOKEN || "DA7B3B0DBC0D106EAB56DF63";
-                const zApiUrl = `https://api.z-api.io/instances/${zApiInstance}/token/${zApiToken}/send-text`;
+                
+                let zApiUrl = `https://api.z-api.io/instances/${zApiInstance}/token/${zApiToken}/send-text`;
+                let zApiBody: any = { phone, message: aiResponseText };
+
+                if (buttons.length > 0 && buttons.length <= 3) {
+                  zApiUrl = `https://api.z-api.io/instances/${zApiInstance}/token/${zApiToken}/send-button-list`;
+                  zApiBody = {
+                    phone,
+                    message: aiResponseText,
+                    buttonList: buttons.map((label, index) => ({
+                      id: String(index + 1),
+                      label: label.substring(0, 20) // WhatsApp limit is 20 chars
+                    }))
+                  };
+                }
                 
                 const zApiHeaders: Record<string, string> = { "Content-Type": "application/json" };
                 if (process.env.ZAPI_CLIENT_TOKEN) {
@@ -163,13 +187,13 @@ Quando os documentos forem recebidos ou o lead confirmar interesse:
                 await fetch(zApiUrl, {
                   method: "POST",
                   headers: zApiHeaders,
-                  body: JSON.stringify({ phone, message: aiResponseText })
+                  body: JSON.stringify(zApiBody)
                 });
                 
                 // Salvar a resposta da IA no Firestore
                 await dbAdmin.collection('messages').add({
                   leadId,
-                  text: aiResponseText,
+                  text: aiResponseText + (buttons.length > 0 ? `\n[Botões: ${buttons.join(' | ')}]` : ''),
                   sender: 'bot',
                   createdAt: new Date().toISOString()
                 });

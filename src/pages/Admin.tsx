@@ -14,14 +14,22 @@ DIRETRIZES GERAIS:
 4. Hesitação: Se o lead disser "pensar", "depois", "amanhã", "ver com filho", acione a Superação de Objeções antes de avançar.
 5. Fuga/Escape: Para perguntas não mapeadas, responda: "Essa é uma ótima pergunta! Vou passar você para um dos nossos especialistas para responder com mais detalhes. Um momento, por favor." e pare de responder.
 
+BOTÕES INTERATIVOS (MUITO IMPORTANTE):
+Sempre que você fizer uma pergunta de múltipla escolha ou de "Sim ou Não", você DEVE adicionar a tag de botões no final da sua mensagem. Isso facilita a resposta do cliente.
+Formato: [BUTTONS: Opção 1 | Opção 2]
+Exemplo: "Você contribuiu entre 1989 e 1995? [BUTTONS: Sim | Não]"
+
+VÍDEOS EXPLICATIVOS (FUTURO):
+Sempre que o cliente tiver uma dúvida complexa (ex: "Como funciona a tese?", "Isso é golpe?"), você pode enviar uma breve explicação em texto e mencionar que enviará um vídeo explicativo do Dr. Sichel/Duboc em seguida. (A integração de vídeo será adicionada em breve).
+
 ETAPAS DE ATENDIMENTO (Siga sequencialmente, uma pergunta por vez):
 
-ETAPA 1: TRIAGEM (Faça uma pergunta por vez)
-- Pergunta 1 (Previdência Complementar): "Primeira pergunta: Você recebe aposentadoria de alguma previdência complementar que não seja paga pelo INSS? (Exemplos: Petros, Funcef, Previ, Banesprev, Valia, Sistel, BNDES, Banco do Brasil, Rede Ferroviária, entre outros.) Responda com SIM ou NÃO."
+ETAPA 1: TRIAGEM (Faça uma pergunta por vez usando botões)
+- Pergunta 1 (Previdência Complementar): "Primeira pergunta: Você recebe aposentadoria de alguma previdência complementar que não seja paga pelo INSS? (Exemplos: Petros, Funcef, Previ, Banesprev, Valia, Sistel, etc.) [BUTTONS: Sim | Não]"
   -> Se SIM: Vá para Pergunta 2. Se NÃO: Vá para Desqualificação.
-- Pergunta 2 (Período de Contribuição): "Ótimo! Segunda pergunta: Você contribuiu para esse fundo de previdência entre os anos de 1989 e 1995? Responda com SIM ou NÃO."
+- Pergunta 2 (Período de Contribuição): "Ótimo! Segunda pergunta: Você contribuiu para esse fundo de previdência entre os anos de 1989 e 1995? [BUTTONS: Sim | Não]"
   -> Se SIM: Vá para Pergunta 3. Se NÃO: Vá para Desqualificação.
-- Pergunta 3 (Retenção Atual): "Quase lá! Última pergunta: Atualmente, é descontado Imposto de Renda diretamente na fonte sobre o valor da sua aposentadoria complementar? Responda com SIM ou NÃO."
+- Pergunta 3 (Retenção Atual): "Quase lá! Última pergunta: Atualmente, é descontado Imposto de Renda diretamente na fonte sobre o valor da sua aposentadoria complementar? [BUTTONS: Sim | Não]"
   -> Se SIM: Lead Qualificado -> Vá para Etapa 3. Se NÃO: Vá para Desqualificação.
 
 ETAPA ALTERNATIVA: DESQUALIFICAÇÃO
@@ -41,17 +49,17 @@ Após coletar os dados básicos:
 2. Comprovante de Residência (conta de luz, água ou telefone)
 3. Contracheque atual da aposentadoria complementar
 4. Declaração de Imposto de Renda (último ano)
-Você pode me enviar as fotos ou PDFs aqui mesmo pelo WhatsApp. Todos os seus dados são protegidos pela LGPD e utilizados exclusivamente para a análise do seu caso. Consegue me enviar hoje?"
+Você pode me enviar as fotos ou PDFs aqui mesmo pelo WhatsApp. Todos os seus dados são protegidos pela LGPD e utilizados exclusivamente para a análise do seu caso. Consegue me enviar hoje? [BUTTONS: Sim, envio hoje | Envio depois]"
 
 ETAPA 5: SUPERAÇÃO DE OBJEÇÕES (Responda conforme a dúvida do lead)
 - "Isso é golpe?" / "Como sei que é verdade?": "Entendo a sua preocupação, e é muito saudável questionar. O escritório Sichel & Duboc é registrado na OAB/RJ sob o número 181.046 e no CNPJ 48.319.240/0001-80. Você pode verificar no site do Conselho Federal da OAB. Nosso site é [sichelduboc.com.br]. A tese é baseada na Lei 7.713/88 e tem jurisprudência favorável nos tribunais superiores. Estamos aqui para proteger os seus direitos, não o contrário."
-- "Quanto vou pagar?": "Ótima pergunta! O escritório trabalha no modelo de honorários de êxito, ou seja, você não paga nada adiantado. Nossos honorários são um percentual combinado em contrato, cobrado apenas quando você ganhar a ação e o dinheiro estiver disponível. É risco zero para você."
-- "Preciso pensar" / "Vou ver com meu filho/filha": "Claro, [Nome], é uma decisão importante e faz todo sentido conversar com a família. Só quero te lembrar de um detalhe: o direito à restituição prescreve mês a mês. Cada mês que passa sem a ação, você perde definitivamente o direito de recuperar aquele mês de 5 anos atrás. Se quiser, posso te enviar um resumo do caso para você mostrar para a família. Posso fazer isso?"
+- "Quanto vou pagar?": "Ótima pergunta! O escritório trabalha no modelo de honorários de êxito, ou seja, você não paga nada adiantado. Nossos honorários são um percentual combinado em contrato, cobrado apenas quando você ganhar a ação e o dinheiro estiver disponível. É risco zero para você. [BUTTONS: Entendi | Tenho outra dúvida]"
+- "Preciso pensar" / "Vou ver com meu filho/filha": "Claro, [Nome], é uma decisão importante e faz todo sentido conversar com a família. Só quero te lembrar de um detalhe: o direito à restituição prescreve mês a mês. Cada mês que passa sem a ação, você perde definitivamente o direito de recuperar aquele mês de 5 anos atrás. Se quiser, posso te enviar um resumo do caso para você mostrar para a família. Posso fazer isso? [BUTTONS: Sim, por favor | Não precisa]"
 - "Não sei se tenho os documentos": "Não se preocupe com isso! Nossa equipe pode te ajudar a emitir alguns documentos pela internet, como o contracheque e a declaração de IR. Me diga qual documento está com dificuldade de encontrar e eu te oriento."
 
 ETAPA 6: ENVIO DO CONTRATO E FECHAMENTO
 Quando os documentos forem recebidos ou o lead confirmar interesse:
-"Perfeito, [Nome]! Recebi tudo. Vou encaminhar agora o seu Contrato de Prestação de Serviços Jurídicos. Como combinamos, os honorários são cobrados apenas no êxito — você não paga nada agora. O contrato é simples, claro e protege os seus direitos. Clique no link abaixo para ler e assinar digitalmente pelo seu celular mesmo. A assinatura digital tem total validade jurídica: [LINK PARA ASSINATURA DO CONTRATO] Assim que assinar, me avise aqui para confirmarmos no sistema. Tem alguma dúvida sobre algum ponto do contrato?"
+"Perfeito, [Nome]! Recebi tudo. Vou encaminhar agora o seu Contrato de Prestação de Serviços Jurídicos. Como combinamos, os honorários são cobrados apenas no êxito — você não paga nada agora. O contrato é simples, claro e protege os seus direitos. Clique no link abaixo para ler e assinar digitalmente pelo seu celular mesmo. A assinatura digital tem total validade jurídica: [LINK PARA ASSINATURA DO CONTRATO] Assim que assinar, me avise aqui para confirmarmos no sistema. Tem alguma dúvida sobre algum ponto do contrato? [BUTTONS: Já assinei | Tenho dúvida]"
 - Após assinatura: "Contrato recebido e validado com sucesso, [Nome]! ✅ Parabéns por dar esse passo importante para recuperar o que é seu por direito. A partir de agora, o escritório Sichel & Duboc cuida de tudo. Você receberá atualizações sobre o andamento do seu processo por este mesmo WhatsApp. Seja muito bem-vindo(a) ao nosso escritório! Qualquer dúvida, é só chamar."
 
 FOLLOW-UPS (Reengajamento automático se o lead parar de responder):
@@ -79,6 +87,7 @@ export default function Admin() {
   });
   
   // Fluxos states
+  const [fluxoTab, setFluxoTab] = useState<'prompts' | 'timers' | 'videos'>('prompts');
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiChatPrompt, setAiChatPrompt] = useState('');
   const [savingPrompt, setSavingPrompt] = useState(false);
@@ -722,87 +731,205 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
           <div className="flex-1 overflow-y-auto p-8 bg-slate-50">
             <div className="max-w-4xl mx-auto">
               <div className="mb-8">
-                <h2 className="text-2xl font-bold text-slate-800 mb-2">Fluxos e Inteligência Artificial</h2>
-                <p className="text-slate-600">Configure como a IA do Gemini atende os seus leads automaticamente.</p>
+                <h2 className="text-2xl font-bold text-slate-800 mb-2">Configurações do Robô</h2>
+                <p className="text-slate-600">Gerencie a inteligência artificial, regras de follow-up e mídias.</p>
               </div>
 
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <div className="p-6 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
-                  <div>
-                    <h3 className="font-bold text-slate-800 text-lg">Prompt do WhatsApp (Primeiro Contato)</h3>
-                    <p className="text-sm text-slate-500 mt-1">Este é o comando que a IA recebe para gerar a primeira mensagem do lead.</p>
-                  </div>
-                  <button 
-                    onClick={handleSavePrompt}
-                    disabled={savingPrompt}
-                    className="flex items-center gap-2 bg-[#38383a] text-white px-4 py-2 rounded-lg font-medium hover:bg-black transition-colors disabled:opacity-70"
-                  >
-                    <Save size={18} />
-                    {savingPrompt ? 'Salvando...' : 'Salvar Alterações'}
-                  </button>
-                </div>
-                
-                <div className="p-6">
-                  {promptSaved && (
-                    <div className="mb-4 p-3 bg-green-50 text-green-700 border border-green-200 rounded-lg text-sm font-medium flex items-center gap-2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      Prompt salvo com sucesso!
-                    </div>
-                  )}
-                  
-                  <textarea 
-                    value={aiPrompt}
-                    onChange={(e) => setAiPrompt(e.target.value)}
-                    className="w-full h-48 p-4 border border-slate-200 rounded-lg font-mono text-sm leading-relaxed focus:ring-2 focus:ring-[#dcb366] focus:border-transparent outline-none resize-y mb-6"
-                    placeholder="Digite o prompt da primeira mensagem aqui..."
-                  />
+              {/* Sub-tabs Navigation */}
+              <div className="flex gap-2 mb-6 border-b border-slate-200">
+                <button
+                  onClick={() => setFluxoTab('prompts')}
+                  className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${fluxoTab === 'prompts' ? 'border-[#dcb366] text-[#dcb366]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                >
+                  Prompts da IA
+                </button>
+                <button
+                  onClick={() => setFluxoTab('timers')}
+                  className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${fluxoTab === 'timers' ? 'border-[#dcb366] text-[#dcb366]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                >
+                  Temporizadores (Follow-ups)
+                </button>
+                <button
+                  onClick={() => setFluxoTab('videos')}
+                  className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${fluxoTab === 'videos' ? 'border-[#dcb366] text-[#dcb366]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                >
+                  Vídeos e Mídias
+                </button>
+              </div>
 
-                  <div className="border-t border-slate-200 pt-6 mb-6">
-                    <div className="flex justify-between items-center mb-1">
-                      <h3 className="font-bold text-slate-800 text-lg">Prompt do Chatbot (Respostas Contínuas)</h3>
-                      <button 
-                        onClick={() => setAiChatPrompt(EXPERT_PROMPT)}
-                        className="flex items-center gap-2 text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded-lg transition-colors shadow-sm"
-                      >
-                        <Sparkles size={16} />
-                        Carregar Prompt Especialista
-                      </button>
+              {fluxoTab === 'prompts' && (
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="p-6 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+                    <div>
+                      <h3 className="font-bold text-slate-800 text-lg">Prompt do WhatsApp (Primeiro Contato)</h3>
+                      <p className="text-sm text-slate-500 mt-1">Este é o comando que a IA recebe para gerar a primeira mensagem do lead.</p>
                     </div>
-                    <p className="text-sm text-slate-500 mb-4">Este é o comando que a IA recebe sempre que o cliente responder a mensagem no WhatsApp. O histórico da conversa será enviado automaticamente junto com este prompt.</p>
+                    <button 
+                      onClick={handleSavePrompt}
+                      disabled={savingPrompt}
+                      className="flex items-center gap-2 bg-[#38383a] text-white px-4 py-2 rounded-lg font-medium hover:bg-black transition-colors disabled:opacity-70"
+                    >
+                      <Save size={18} />
+                      {savingPrompt ? 'Salvando...' : 'Salvar Alterações'}
+                    </button>
+                  </div>
+                  
+                  <div className="p-6">
+                    {promptSaved && (
+                      <div className="mb-4 p-3 bg-green-50 text-green-700 border border-green-200 rounded-lg text-sm font-medium flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        Prompt salvo com sucesso!
+                      </div>
+                    )}
                     
                     <textarea 
-                      value={aiChatPrompt}
-                      onChange={(e) => setAiChatPrompt(e.target.value)}
-                      className="w-full h-96 p-4 border border-slate-200 rounded-lg font-mono text-sm leading-relaxed focus:ring-2 focus:ring-[#dcb366] focus:border-transparent outline-none resize-y"
-                      placeholder="Digite o prompt de conversação contínua aqui..."
+                      value={aiPrompt}
+                      onChange={(e) => setAiPrompt(e.target.value)}
+                      className="w-full h-48 p-4 border border-slate-200 rounded-lg font-mono text-sm leading-relaxed focus:ring-2 focus:ring-[#dcb366] focus:border-transparent outline-none resize-y mb-6"
+                      placeholder="Digite o prompt da primeira mensagem aqui..."
                     />
-                  </div>
-                  
-                  <div className="mt-6">
-                    <h4 className="font-bold text-slate-700 text-sm mb-3 uppercase tracking-wider">Variáveis Disponíveis</h4>
-                    <p className="text-sm text-slate-500 mb-4">Você pode usar estas variáveis no texto acima. Elas serão substituídas automaticamente pelas respostas do formulário do cliente.</p>
+
+                    <div className="border-t border-slate-200 pt-6 mb-6">
+                      <div className="flex justify-between items-center mb-1">
+                        <h3 className="font-bold text-slate-800 text-lg">Prompt do Chatbot (Respostas Contínuas)</h3>
+                        <button 
+                          onClick={() => setAiChatPrompt(EXPERT_PROMPT)}
+                          className="flex items-center gap-2 text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded-lg transition-colors shadow-sm"
+                        >
+                          <Sparkles size={16} />
+                          Carregar Prompt Especialista
+                        </button>
+                      </div>
+                      <p className="text-sm text-slate-500 mb-4">Este é o comando que a IA recebe sempre que o cliente responder a mensagem no WhatsApp. O histórico da conversa será enviado automaticamente junto com este prompt.</p>
+                      
+                      <textarea 
+                        value={aiChatPrompt}
+                        onChange={(e) => setAiChatPrompt(e.target.value)}
+                        className="w-full h-96 p-4 border border-slate-200 rounded-lg font-mono text-sm leading-relaxed focus:ring-2 focus:ring-[#dcb366] focus:border-transparent outline-none resize-y"
+                        placeholder="Digite o prompt de conversação contínua aqui..."
+                      />
+                    </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div className="bg-slate-50 p-3 rounded border border-slate-200 flex items-center gap-3">
-                        <code className="text-[#dcb366] font-bold bg-white px-2 py-1 rounded border border-slate-100">{'{nome}'}</code>
-                        <span className="text-sm text-slate-600">Nome do lead</span>
-                      </div>
-                      <div className="bg-slate-50 p-3 rounded border border-slate-200 flex items-center gap-3">
-                        <code className="text-[#dcb366] font-bold bg-white px-2 py-1 rounded border border-slate-100">{'{aposentadoriaComplementar}'}</code>
-                        <span className="text-sm text-slate-600">Sim / Não</span>
-                      </div>
-                      <div className="bg-slate-50 p-3 rounded border border-slate-200 flex items-center gap-3">
-                        <code className="text-[#dcb366] font-bold bg-white px-2 py-1 rounded border border-slate-100">{'{contribuicao89a95}'}</code>
-                        <span className="text-sm text-slate-600">Sim / Não</span>
-                      </div>
-                      <div className="bg-slate-50 p-3 rounded border border-slate-200 flex items-center gap-3">
-                        <code className="text-[#dcb366] font-bold bg-white px-2 py-1 rounded border border-slate-100">{'{pagaIrAtualmente}'}</code>
-                        <span className="text-sm text-slate-600">Sim / Não</span>
+                    <div className="mt-6">
+                      <h4 className="font-bold text-slate-700 text-sm mb-3 uppercase tracking-wider">Variáveis Disponíveis</h4>
+                      <p className="text-sm text-slate-500 mb-4">Você pode usar estas variáveis no texto acima. Elas serão substituídas automaticamente pelas respostas do formulário do cliente.</p>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="bg-slate-50 p-3 rounded border border-slate-200 flex items-center gap-3">
+                          <code className="text-[#dcb366] font-bold bg-white px-2 py-1 rounded border border-slate-100">{'{nome}'}</code>
+                          <span className="text-sm text-slate-600">Nome do lead</span>
+                        </div>
+                        <div className="bg-slate-50 p-3 rounded border border-slate-200 flex items-center gap-3">
+                          <code className="text-[#dcb366] font-bold bg-white px-2 py-1 rounded border border-slate-100">{'{aposentadoriaComplementar}'}</code>
+                          <span className="text-sm text-slate-600">Sim / Não</span>
+                        </div>
+                        <div className="bg-slate-50 p-3 rounded border border-slate-200 flex items-center gap-3">
+                          <code className="text-[#dcb366] font-bold bg-white px-2 py-1 rounded border border-slate-100">{'{contribuicao89a95}'}</code>
+                          <span className="text-sm text-slate-600">Sim / Não</span>
+                        </div>
+                        <div className="bg-slate-50 p-3 rounded border border-slate-200 flex items-center gap-3">
+                          <code className="text-[#dcb366] font-bold bg-white px-2 py-1 rounded border border-slate-100">{'{pagaIrAtualmente}'}</code>
+                          <span className="text-sm text-slate-600">Sim / Não</span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
+
+              {fluxoTab === 'timers' && (
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="p-6 border-b border-slate-200 bg-slate-50">
+                    <h3 className="font-bold text-slate-800 text-lg">Regras de Follow-up (Temporizadores)</h3>
+                    <p className="text-sm text-slate-500 mt-1">Configure o tempo de espera para o robô enviar mensagens automáticas caso o cliente pare de responder.</p>
+                  </div>
+                  <div className="p-6">
+                    <div className="space-y-4">
+                      <div className="border border-slate-200 rounded-lg p-4 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+                        <div>
+                          <h4 className="font-bold text-slate-800">FU-1: Abandono na Triagem</h4>
+                          <p className="text-sm text-slate-500">Disparado quando o cliente não responde às primeiras perguntas.</p>
+                        </div>
+                        <div className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded border border-slate-200">
+                          <Clock size={16} className="text-slate-400" />
+                          <span className="font-mono font-bold text-slate-700">4 horas</span>
+                        </div>
+                      </div>
+
+                      <div className="border border-slate-200 rounded-lg p-4 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+                        <div>
+                          <h4 className="font-bold text-slate-800">FU-2: Qualificado, sem dados</h4>
+                          <p className="text-sm text-slate-500">Disparado quando o cliente passou na triagem mas não enviou o nome/cidade.</p>
+                        </div>
+                        <div className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded border border-slate-200">
+                          <Clock size={16} className="text-slate-400" />
+                          <span className="font-mono font-bold text-slate-700">24 horas</span>
+                        </div>
+                      </div>
+
+                      <div className="border border-slate-200 rounded-lg p-4 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+                        <div>
+                          <h4 className="font-bold text-slate-800">FU-3: Dados coletados, sem documentos</h4>
+                          <p className="text-sm text-slate-500">Disparado quando o cliente não enviou as fotos dos documentos.</p>
+                        </div>
+                        <div className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded border border-slate-200">
+                          <Clock size={16} className="text-slate-400" />
+                          <span className="font-mono font-bold text-slate-700">48 horas</span>
+                        </div>
+                      </div>
+
+                      <div className="border border-slate-200 rounded-lg p-4 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+                        <div>
+                          <h4 className="font-bold text-slate-800">FU-4: Contrato enviado, não assinado</h4>
+                          <p className="text-sm text-slate-500">Disparado quando o link do contrato foi enviado mas não houve confirmação.</p>
+                        </div>
+                        <div className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded border border-slate-200">
+                          <Clock size={16} className="text-slate-400" />
+                          <span className="font-mono font-bold text-slate-700">24 horas</span>
+                        </div>
+                      </div>
+
+                      <div className="border border-slate-200 rounded-lg p-4 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+                        <div>
+                          <h4 className="font-bold text-slate-800">FU-5: Sem resposta geral</h4>
+                          <p className="text-sm text-slate-500">Última tentativa de contato antes de congelar o lead.</p>
+                        </div>
+                        <div className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded border border-slate-200">
+                          <Clock size={16} className="text-slate-400" />
+                          <span className="font-mono font-bold text-slate-700">7 dias</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-6 p-4 bg-indigo-50 text-indigo-800 rounded-lg border border-indigo-100 text-sm">
+                      <p className="font-bold mb-1 flex items-center gap-2"><Sparkles size={16} /> Dica de Ouro</p>
+                      <p>Os textos exatos de cada Follow-up são definidos dentro do <strong>Prompt do Chatbot</strong>. A IA usa esses temporizadores apenas como gatilho para saber <em>quando</em> enviar a mensagem.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {fluxoTab === 'videos' && (
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="p-6 border-b border-slate-200 bg-slate-50">
+                    <h3 className="font-bold text-slate-800 text-lg">Biblioteca de Vídeos (Em Breve)</h3>
+                    <p className="text-sm text-slate-500 mt-1">Faça upload de vídeos explicativos para a IA enviar automaticamente aos clientes.</p>
+                  </div>
+                  <div className="p-12 flex flex-col items-center justify-center text-center">
+                    <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+                    </div>
+                    <h4 className="text-xl font-bold text-slate-800 mb-2">Envio de Vídeos Nativos</h4>
+                    <p className="text-slate-500 max-w-md mb-6">
+                      Em breve, você poderá cadastrar vídeos curtos (ex: "Como funciona a tese", "O escritório é confiável?") e a IA enviará o vídeo nativamente no WhatsApp quando o cliente perguntar.
+                    </p>
+                    <button disabled className="bg-slate-200 text-slate-500 px-6 py-3 rounded-lg font-bold cursor-not-allowed">
+                      Recurso em Desenvolvimento
+                    </button>
+                  </div>
+                </div>
+              )}
+
             </div>
           </div>
         )}
