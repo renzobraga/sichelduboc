@@ -15,7 +15,7 @@ import '@xyflow/react/dist/style.css';
 import { Save, Sparkles, MessageSquare, FormInput, Bot } from 'lucide-react';
 
 // Custom Node for Trigger
-const TriggerNode = ({ data }: NodeProps) => {
+const TriggerNode = ({ data }: NodeProps<any>) => {
   return (
     <div className="bg-[#1a1a1a] text-white rounded-xl border-2 border-[#dcb366] shadow-xl w-64 overflow-hidden">
       <div className="bg-[#dcb366] text-[#1a1a1a] p-3 font-bold flex items-center gap-2">
@@ -31,7 +31,7 @@ const TriggerNode = ({ data }: NodeProps) => {
 };
 
 // Custom Node for Prompt
-const PromptNode = ({ data }: NodeProps) => {
+const PromptNode = ({ data }: NodeProps<any>) => {
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-xl w-96 overflow-hidden">
       <Handle type="target" position={Position.Top} className="w-3 h-3 bg-indigo-500" />
@@ -63,7 +63,7 @@ const PromptNode = ({ data }: NodeProps) => {
 };
 
 // Custom Node for Event
-const EventNode = ({ data }: NodeProps) => {
+const EventNode = ({ data }: NodeProps<any>) => {
   return (
     <div className="bg-slate-100 rounded-full border-2 border-slate-300 shadow-md px-6 py-3 flex items-center gap-2">
       <Handle type="target" position={Position.Top} className="w-3 h-3 bg-slate-400" />
@@ -148,7 +148,7 @@ export default function PromptsFlow({
     },
   ];
 
-  const initialEdges = [
+  const initialEdges: any[] = [
     { id: 'e1-2', source: 'trigger-1', target: 'prompt-1', animated: true, style: { stroke: '#dcb366', strokeWidth: 2 } },
     { id: 'e2-3', source: 'prompt-1', target: 'event-1', animated: true, style: { stroke: '#6366f1', strokeWidth: 2 } },
     { id: 'e3-4', source: 'event-1', target: 'prompt-2', animated: true, style: { stroke: '#94a3b8', strokeWidth: 2 } },
@@ -165,12 +165,12 @@ export default function PromptsFlow({
       label: 'Loop de Conversa',
       labelStyle: { fill: '#6366f1', fontWeight: 700, fontSize: 12 },
       labelBgStyle: { fill: 'white', fillOpacity: 0.8 },
-      labelBgPadding: [8, 4],
+      labelBgPadding: [8, 4] as [number, number],
       labelBgBorderRadius: 4,
     },
   ];
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes as any[]);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
   // Update node data when props change

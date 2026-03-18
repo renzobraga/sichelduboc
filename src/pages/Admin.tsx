@@ -94,6 +94,9 @@ export default function Admin() {
   const [aiChatPrompt, setAiChatPrompt] = useState('');
   const [savingPrompt, setSavingPrompt] = useState(false);
   const [promptSaved, setPromptSaved] = useState(false);
+  
+  // Search state
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Login states
   const [email, setEmail] = useState('');
@@ -407,18 +410,18 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
     <div className={`admin-panel min-h-screen flex h-screen overflow-hidden ${isDarkMode ? 'dark bg-[#121212]' : 'bg-slate-50'}`}>
       
       {/* Sidebar Navigation */}
-      <aside className="w-64 bg-[#1a1a1a] text-white flex flex-col shrink-0">
-        <div className="p-6 border-b border-white/10 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#dcb366] rounded-lg flex items-center justify-center shrink-0">
-            <span className="text-[#1a1a1a] font-serif font-bold text-xl">S&D</span>
+      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col shrink-0">
+        <div className="p-6 border-b border-slate-100 flex items-center gap-3">
+          <div className="w-8 h-8 bg-indigo-600 rounded flex items-center justify-center shrink-0">
+            <span className="text-white font-bold text-sm">S&D</span>
           </div>
-          <h1 className="font-bold text-lg leading-tight">Painel<br/>Administrativo</h1>
+          <h1 className="font-bold text-slate-800 text-lg leading-tight">Painel<br/>Administrativo</h1>
         </div>
         
         <nav className="flex-1 p-4 flex flex-col gap-2">
           <button 
             onClick={() => setActiveTab('dashboard')}
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium ${activeTab === 'dashboard' ? 'bg-[#dcb366] text-[#1a1a1a]' : 'text-slate-300 hover:bg-white/5 hover:text-white'}`}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-sm font-medium ${activeTab === 'dashboard' ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}
           >
             <LayoutDashboard size={18} />
             Dashboard
@@ -426,7 +429,7 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
 
           <button 
             onClick={() => setActiveTab('chat')}
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium ${activeTab === 'chat' ? 'bg-[#dcb366] text-[#1a1a1a]' : 'text-slate-300 hover:bg-white/5 hover:text-white'}`}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-sm font-medium ${activeTab === 'chat' ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}
           >
             <MessageCircle size={18} />
             Chat
@@ -434,7 +437,7 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
           
           <button 
             onClick={() => setActiveTab('calendario')}
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium ${activeTab === 'calendario' ? 'bg-[#dcb366] text-[#1a1a1a]' : 'text-slate-300 hover:bg-white/5 hover:text-white'}`}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-sm font-medium ${activeTab === 'calendario' ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}
           >
             <Calendar size={18} />
             Calendário
@@ -442,28 +445,21 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
           
           <button 
             onClick={() => setActiveTab('fluxos')}
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium ${activeTab === 'fluxos' ? 'bg-[#dcb366] text-[#1a1a1a]' : 'text-slate-300 hover:bg-white/5 hover:text-white'}`}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-sm font-medium ${activeTab === 'fluxos' ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}
           >
             <Workflow size={18} />
             Fluxos e IA
           </button>
         </nav>
 
-        <div className="p-4 border-t border-white/10 flex flex-col gap-2">
-          <div className="text-xs text-slate-400 mb-1 px-4 truncate">{user.email}</div>
-          <button 
-            onClick={() => setIsDarkMode(!isDarkMode)}
-            className="flex items-center gap-3 px-4 py-2 w-full rounded-lg text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
-          >
-            {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
-            {isDarkMode ? 'Modo Claro' : 'Modo Escuro'}
-          </button>
+        <div className="p-4 border-t border-slate-100 flex flex-col gap-2">
+          <div className="text-xs text-slate-400 mb-2 px-4 truncate">{user.email}</div>
           <button 
             onClick={handleLogout}
-            className="flex items-center gap-3 px-4 py-2 w-full rounded-lg text-sm font-medium text-red-400 hover:bg-red-400/10 transition-colors"
+            className="flex items-center gap-3 px-4 py-2 w-full rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition-colors"
           >
             <LogOut size={18} />
-            Sair do Sistema
+            Sair
           </button>
         </div>
       </aside>
@@ -547,9 +543,9 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
                           <div className="flex justify-between items-start mb-2">
                             <div className="font-bold text-slate-800 truncate pr-2">{lead.nome}</div>
                             {lead.aiEnabled !== false ? (
-                              <Bot size={14} className="text-indigo-500 shrink-0" title="IA Ativa" />
+                              <span title="IA Ativa"><Bot size={14} className="text-indigo-500 shrink-0" /></span>
                             ) : (
-                              <User size={14} className="text-slate-400 shrink-0" title="Atendimento Humano" />
+                              <span title="Atendimento Humano"><User size={14} className="text-slate-400 shrink-0" /></span>
                             )}
                           </div>
                           <div className="text-xs text-slate-500 mb-3 flex items-center gap-1">
@@ -571,47 +567,57 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
 
         {/* CHAT TAB */}
         {activeTab === 'chat' && (
-          <div className="flex flex-1 overflow-hidden">
+          <div className="flex flex-1 overflow-hidden bg-slate-50 p-6 gap-6">
             {/* Leads List (Compact) */}
-            <div className="w-72 bg-slate-50 border-r border-slate-200 flex flex-col shrink-0">
-              <div className="p-4 border-b border-slate-200 bg-white">
-                <h2 className="font-bold text-slate-800">Conversas <span className="text-[#dcb366] ml-1">({leads.length})</span></h2>
+            <div className="w-80 bg-white border border-slate-200 rounded-2xl flex flex-col shrink-0 shadow-sm overflow-hidden">
+              <div className="p-5 border-b border-slate-100">
+                <h2 className="font-bold text-slate-800 text-lg mb-4">Conversas</h2>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Buscar contatos..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                  />
+                </div>
               </div>
               <div className="flex-1 overflow-y-auto">
-                {leads.length === 0 ? (
-                  <div className="p-8 text-center text-slate-500">Nenhum lead encontrado.</div>
+                {leads.filter(l => l.nome.toLowerCase().includes(searchTerm.toLowerCase()) || l.telefone.includes(searchTerm)).length === 0 ? (
+                  <div className="p-8 text-center text-slate-500 text-sm">Nenhum contato encontrado.</div>
                 ) : (
-                  leads.map(lead => (
+                  leads.filter(l => l.nome.toLowerCase().includes(searchTerm.toLowerCase()) || l.telefone.includes(searchTerm)).map(lead => (
                     <div 
                       key={lead.id}
                       onClick={() => setSelectedLead(lead)}
-                      className={`p-4 border-b border-slate-100 cursor-pointer transition-colors hover:bg-white ${selectedLead?.id === lead.id ? 'bg-white border-l-4 border-l-[#dcb366]' : ''}`}
+                      className={`p-4 border-b border-slate-50 cursor-pointer transition-colors flex items-center gap-3 ${selectedLead?.id === lead.id ? 'bg-slate-50 border-l-4 border-l-indigo-600' : 'hover:bg-slate-50 border-l-4 border-l-transparent'}`}
                     >
-                      <div className="flex justify-between items-start mb-1">
-                        <div className="flex items-center gap-2 overflow-hidden">
-                          <h3 className="font-bold text-slate-800 truncate text-sm">{lead.nome}</h3>
-                          {lead.aiEnabled !== false ? (
-                            <Bot size={12} className="text-indigo-500 shrink-0" title="IA Ativa" />
-                          ) : (
-                            <User size={12} className="text-slate-400 shrink-0" title="Atendimento Humano" />
-                          )}
-                        </div>
+                      <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-500">
+                        <User size={18} />
                       </div>
-                      <div className="flex justify-between items-center mt-2">
-                        <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wide whitespace-nowrap
-                          ${lead.status === 'novo' ? 'bg-blue-100 text-blue-700' : 
-                            lead.status === 'em_atendimento' ? 'bg-amber-100 text-amber-700' : 
-                            lead.status === 'qualificado' ? 'bg-green-100 text-green-700' : 
-                            'bg-slate-100 text-slate-700'}`}
-                        >
-                          {lead.status === 'novo' ? 'Novo' : 
-                           lead.status === 'em_atendimento' ? 'Em Atend.' : 
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-center mb-0.5">
+                          <h3 className="font-semibold text-slate-800 truncate text-sm">{lead.nome}</h3>
+                          <span className="text-[10px] text-slate-400 shrink-0">
+                            {new Date(lead.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        <div className="text-xs text-slate-500 truncate">
+                          {lead.status === 'novo' ? 'Novo lead' : 
+                           lead.status === 'em_atendimento' ? 'Em atendimento' : 
                            lead.status === 'qualificado' ? 'Qualificado' : 'Descartado'}
-                        </span>
-                        <div className="text-[10px] text-slate-400">
-                          {new Date(lead.createdAt).toLocaleDateString('pt-BR')}
                         </div>
                       </div>
+                      {lead.status === 'novo' && (
+                        <div className="w-5 h-5 rounded-full bg-indigo-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+                          1
+                        </div>
+                      )}
                     </div>
                   ))
                 )}
@@ -619,78 +625,100 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
             </div>
 
             {/* Lead Details & Chat */}
-            <div className="flex-1 flex bg-white">
+            <div className="flex-1 flex bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
               {selectedLead ? (
                 <>
                   {/* Chat Area */}
-                  <div className="flex-1 flex flex-col border-r border-slate-200">
-                    <div className="p-4 border-b border-slate-200 bg-white shrink-0 flex justify-between items-center z-10 shadow-sm">
-                      <div>
-                        <h2 className="text-xl font-bold text-slate-800 mb-1">{selectedLead.nome}</h2>
-                        <p className="text-sm text-slate-500 flex items-center gap-2">
-                          <MessageCircle size={14} /> {selectedLead.telefone}
-                        </p>
+                  <div className="flex-1 flex flex-col border-r border-slate-100">
+                    <div className="p-4 border-b border-slate-100 bg-white shrink-0 flex justify-between items-center z-10">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-500">
+                          <User size={18} />
+                        </div>
+                        <div>
+                          <h2 className="text-base font-bold text-slate-800 leading-tight">{selectedLead.nome}</h2>
+                          <p className="text-xs text-slate-500">
+                            {selectedLead.telefone}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex gap-2 bg-slate-50 p-1 rounded-lg border border-slate-200">
+                      <div className="flex items-center gap-4">
                         <button 
                           onClick={() => toggleAI(selectedLead.id, selectedLead.aiEnabled)}
-                          className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm font-medium transition-colors ${selectedLead.aiEnabled !== false ? 'bg-indigo-100 text-indigo-700 shadow-sm' : 'text-slate-500 hover:bg-slate-200'}`}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${selectedLead.aiEnabled !== false ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
                           title={selectedLead.aiEnabled !== false ? "Desativar IA e assumir atendimento" : "Reativar atendimento por IA"}
                         >
-                          {selectedLead.aiEnabled !== false ? <><Bot size={16} /> IA Ativa</> : <><User size={16} /> Humano</>}
+                          {selectedLead.aiEnabled !== false ? <><Bot size={14} /> IA Ativa</> : <><User size={14} /> Humano</>}
+                        </button>
+                        <button className="text-slate-400 hover:text-slate-600 transition-colors">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                        </button>
+                        <button className="text-slate-400 hover:text-slate-600 transition-colors">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
                         </button>
                       </div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4 bg-slate-50/50">
+                    <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4 bg-white">
                       {messages.length === 0 ? (
-                        <div className="text-center text-slate-400 my-auto">
+                        <div className="text-center text-slate-400 my-auto text-sm">
                           Nenhuma mensagem registrada.
                         </div>
                       ) : (
                         messages.map(msg => (
                           <div 
                             key={msg.id} 
-                            className={`max-w-[80%] rounded-2xl p-4 shadow-sm ${
+                            className={`max-w-[75%] flex gap-3 ${
                               msg.sender === 'user' 
-                                ? 'bg-white border border-slate-200 self-start rounded-tl-none' 
-                                : msg.sender === 'bot'
-                                  ? 'bg-slate-800 text-white self-end rounded-tr-none'
-                                  : 'bg-[#dcb366] text-white self-end rounded-tr-none'
+                                ? 'self-start' 
+                                : 'self-end flex-row-reverse'
                             }`}
                           >
-                            <div className="text-[10px] opacity-70 mb-1.5 font-bold uppercase tracking-wider flex justify-between items-center gap-4">
-                              <span>{msg.sender === 'user' ? selectedLead.nome : msg.sender === 'bot' ? 'Robô IA' : 'Você (Admin)'}</span>
-                              <span>{new Date(msg.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-400 mt-auto">
+                              {msg.sender === 'user' ? <User size={14} /> : <Bot size={14} />}
                             </div>
-                            <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.text}</p>
+                            <div className="flex flex-col gap-1">
+                              <div className={`rounded-2xl p-3.5 shadow-sm border ${
+                                msg.sender === 'user' 
+                                  ? 'bg-white border-slate-200 rounded-bl-none text-slate-700' 
+                                  : 'bg-emerald-50 border-emerald-100 rounded-br-none text-emerald-900'
+                              }`}>
+                                <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.text}</p>
+                              </div>
+                              <span className={`text-[10px] text-slate-400 ${msg.sender === 'user' ? 'text-left ml-1' : 'text-right mr-1'}`}>
+                                {new Date(msg.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
                           </div>
                         ))
                       )}
                     </div>
 
-                    <div className="p-4 bg-white border-t border-slate-200 shrink-0">
-                      <form onSubmit={sendMessage} className="flex gap-2">
+                    <div className="p-4 bg-white border-t border-slate-100 shrink-0">
+                      <form onSubmit={sendMessage} className="flex items-center gap-3">
+                        <button type="button" className="text-slate-400 hover:text-slate-600 transition-colors p-2">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                        </button>
                         <input
                           type="text"
                           value={newMessage}
                           onChange={(e) => setNewMessage(e.target.value)}
-                          placeholder="Digite uma mensagem manual..."
-                          className="flex-1 p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#dcb366] focus:border-transparent outline-none"
+                          placeholder="Digite sua mensagem..."
+                          className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none text-sm transition-all"
                         />
                         <button 
                           type="submit"
                           disabled={!newMessage.trim()}
-                          className="bg-[#38383a] text-white px-6 py-3 rounded-lg font-bold hover:bg-black transition-colors disabled:opacity-50"
+                          className="w-12 h-12 bg-indigo-400 text-white rounded-full flex items-center justify-center hover:bg-indigo-500 transition-colors disabled:opacity-50 disabled:hover:bg-indigo-400 shrink-0 shadow-sm"
                         >
-                          Enviar
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                         </button>
                       </form>
                     </div>
                   </div>
 
                   {/* Right Sidebar: Lead Details */}
-                  <div className="w-80 bg-white flex flex-col shrink-0 overflow-y-auto">
+                  <div className="w-72 bg-slate-50 flex flex-col shrink-0 overflow-y-auto border-l border-slate-100">
                     <div className="p-6">
                       <h3 className="font-bold text-slate-800 mb-4">Detalhes do Lead</h3>
                       
@@ -698,19 +726,19 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
                       <div className="flex flex-col gap-2 mb-6">
                         <button 
                           onClick={() => updateLeadStatus(selectedLead.id, 'em_atendimento')}
-                          className={`px-3 py-2 rounded text-sm font-medium transition-colors text-left ${selectedLead.status === 'em_atendimento' ? 'bg-amber-100 text-amber-800 shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'}`}
+                          className={`px-3 py-2 rounded text-sm font-medium transition-colors text-left ${selectedLead.status === 'em_atendimento' ? 'bg-amber-100 text-amber-800 shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'}`}
                         >
                           Em Atendimento
                         </button>
                         <button 
                           onClick={() => updateLeadStatus(selectedLead.id, 'qualificado')}
-                          className={`px-3 py-2 rounded text-sm font-medium transition-colors text-left ${selectedLead.status === 'qualificado' ? 'bg-green-100 text-green-800 shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'}`}
+                          className={`px-3 py-2 rounded text-sm font-medium transition-colors text-left ${selectedLead.status === 'qualificado' ? 'bg-green-100 text-green-800 shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'}`}
                         >
                           Qualificar
                         </button>
                         <button 
                           onClick={() => updateLeadStatus(selectedLead.id, 'descartado')}
-                          className={`px-3 py-2 rounded text-sm font-medium transition-colors text-left ${selectedLead.status === 'descartado' ? 'bg-red-100 text-red-800 shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'}`}
+                          className={`px-3 py-2 rounded text-sm font-medium transition-colors text-left ${selectedLead.status === 'descartado' ? 'bg-red-100 text-red-800 shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'}`}
                         >
                           Descartar
                         </button>
@@ -718,23 +746,23 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
 
                       {/* Details Grid (Vertical) */}
                       <div className="flex flex-col gap-3 text-xs">
-                        <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                        <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
                           <span className="block text-slate-400 text-[9px] uppercase font-bold mb-1 tracking-wider">Aposentadoria</span>
                           <span className="font-medium text-slate-700 capitalize">{selectedLead.aposentadoriaComplementar || '-'}</span>
                         </div>
-                        <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                        <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
                           <span className="block text-slate-400 text-[9px] uppercase font-bold mb-1 tracking-wider">Contribuiu 89-95</span>
                           <span className="font-medium text-slate-700 capitalize">{selectedLead.contribuicao89a95 || '-'}</span>
                         </div>
-                        <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                        <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
                           <span className="block text-slate-400 text-[9px] uppercase font-bold mb-1 tracking-wider">Paga IR</span>
                           <span className="font-medium text-slate-700 capitalize">{selectedLead.pagaIrAtualmente || '-'}</span>
                         </div>
-                        <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                        <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
                           <span className="block text-slate-400 text-[9px] uppercase font-bold mb-1 tracking-wider">Localização</span>
                           <span className="font-medium text-slate-700">{selectedLead.cidade || '-'} / {selectedLead.estado || '-'}</span>
                         </div>
-                        <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                        <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
                           <span className="block text-slate-400 text-[9px] uppercase font-bold mb-1 tracking-wider">Email</span>
                           <span className="font-medium text-slate-700 break-all">{selectedLead.email || '-'}</span>
                         </div>
@@ -743,7 +771,7 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
                   </div>
                 </>
               ) : (
-                <div className="flex-1 flex flex-col items-center justify-center text-slate-400 bg-slate-50">
+                <div className="flex-1 flex flex-col items-center justify-center text-slate-400 bg-white">
                   <MessageCircle size={48} className="mb-4 opacity-20" />
                   <p>Selecione um lead na lista para ver os detalhes e o chat.</p>
                 </div>

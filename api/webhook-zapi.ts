@@ -148,7 +148,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
         // 4. Lógica do Chatbot (IA)
         if (leadData.aiEnabled !== false) {
           try {
-            const { GoogleGenAI, Type, FunctionDeclaration } = await import("@google/genai");
+            const { GoogleGenAI, Type } = await import("@google/genai");
             
             let apiKey = process.env.CHAVE_IA_GEMINI || process.env.GEMINI_API_KEY;
             if (apiKey) {

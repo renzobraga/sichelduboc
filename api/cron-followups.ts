@@ -1,7 +1,7 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
+import type { Request, Response } from "express";
 import { dbAdmin } from "./firebase-admin.js";
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req: Request, res: Response) {
   // Segurança: verifica se a requisição tem a senha correta (para evitar que curiosos disparem o cron)
   const cronSecret = process.env.CRON_SECRET;
   if (cronSecret && req.headers.authorization !== `Bearer ${cronSecret}`) {
