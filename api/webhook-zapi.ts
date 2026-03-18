@@ -10,9 +10,26 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
     const data = req.body;
     
     // Z-API sends events like 'onMessage'
-    if (data && data.phone && data.text && data.text.message && !data.isGroup) {
+    if (data && data.phone && !data.isGroup) {
+      let messageText = "";
+      
+      if (data.text && data.text.message) {
+        messageText = data.text.message;
+      } else if (data.buttonResponseMessage && data.buttonResponseMessage.selectedDisplayText) {
+        messageText = data.buttonResponseMessage.selectedDisplayText;
+      } else if (data.listResponseMessage && data.listResponseMessage.title) {
+        messageText = data.listResponseMessage.title;
+      } else if (data.templateButtonReplyMessage && data.templateButtonReplyMessage.selectedDisplayText) {
+        messageText = data.templateButtonReplyMessage.selectedDisplayText;
+      } else if (data.button && data.button.text) {
+        messageText = data.button.text;
+      }
+
+      if (!messageText) {
+        return res.status(200).json({ success: true, message: "Not a text or button message" });
+      }
+
       const phone = data.phone;
-      const messageText = data.text.message;
       
       console.log(`Mensagem recebida de ${phone}: ${messageText}`);
 
@@ -128,8 +145,9 @@ Quando os documentos forem recebidos ou o lead confirmar interesse:
 "Perfeito, {nome}! Recebi tudo. Vou encaminhar agora o seu Contrato de Prestação de Serviços Jurídicos. Como combinamos, os honorários são cobrados apenas no êxito — você não paga nada agora. O contrato é simples, claro e protege os seus direitos. Clique no link abaixo para ler e assinar digitalmente pelo seu celular mesmo. A assinatura digital tem total validade jurídica: [LINK PARA ASSINATURA DO CONTRATO] Assim que assinar, me avise aqui para confirmarmos no sistema. Tem alguma dúvida sobre algum ponto do contrato?"
 - Após assinatura: "Contrato recebido e validado com sucesso, {nome}! ✅ Parabéns por dar esse passo importante para recuperar o que é seu por direito. A partir de agora, o escritório Sichel & Duboc cuida de tudo. Você receberá atualizações sobre o andamento do seu processo por este mesmo WhatsApp. Seja muito bem-vindo(a) ao nosso escritório! Qualquer dúvida, é só chamar."`;
 
+              const primeiroNome = leadData.nome ? leadData.nome.split(' ')[0] : 'Cliente';
               let promptText = promptTemplate
-                .replace(/{nome}/g, leadData.nome)
+                .replace(/{nome}/g, primeiroNome)
                 .replace(/{aposentadoriaComplementar}/g, leadData.aposentadoriaComplementar || 'Não informado')
                 .replace(/{contribuicao89a95}/g, leadData.contribuicao89a95 || 'Não informado')
                 .replace(/{pagaIrAtualmente}/g, leadData.pagaIrAtualmente || 'Não informado');

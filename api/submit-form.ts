@@ -145,8 +145,9 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
 
           let promptTemplate = customPrompt || `Você é um assistente do escritório Sichel & Duboc. Lead: {nome}. Aposentadoria: {aposentadoriaComplementar}. Contribuiu 89-95: {contribuicao89a95}. Paga IR: {pagaIrAtualmente}. Crie uma mensagem curta de WhatsApp agradecendo, dizendo se é promissor e fazendo uma pergunta aberta. Assine Equipe Sichel & Duboc.`;
           
+          const primeiroNome = nome ? nome.split(' ')[0] : 'Cliente';
           const prompt = promptTemplate
-            .replace(/{nome}/g, nome)
+            .replace(/{nome}/g, primeiroNome)
             .replace(/{aposentadoriaComplementar}/g, aposentadoriaComplementar || 'Não informado')
             .replace(/{contribuicao89a95}/g, contribuicao89a95 || 'Não informado')
             .replace(/{pagaIrAtualmente}/g, pagaIrAtualmente || 'Não informado');
@@ -160,7 +161,8 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
         } catch (aiError: any) {
           console.error("Erro na IA:", aiError);
           erroIA = aiError.message;
-          mensagemWhatsApp = `Olá, ${nome}! Recebemos seu contato no site da Sichel & Duboc. Um de nossos especialistas vai analisar seu caso e entrará em contato. Qual o melhor horário para falarmos?`;
+          const primeiroNome = nome ? nome.split(' ')[0] : 'Cliente';
+          mensagemWhatsApp = `Olá, ${primeiroNome}! Recebemos seu contato no site da Sichel & Duboc. Um de nossos especialistas vai analisar seu caso e entrará em contato. Qual o melhor horário para falarmos?`;
         }
 
         // 3.2 Enviar via Z-API
