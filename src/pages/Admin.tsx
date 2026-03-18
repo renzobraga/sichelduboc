@@ -90,6 +90,7 @@ export default function Admin() {
   
   // Fluxos states
   const [fluxoTab, setFluxoTab] = useState<'prompts' | 'timers' | 'videos'>('prompts');
+  const [flowView, setFlowView] = useState<'list' | 'editor'>('list');
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiChatPrompt, setAiChatPrompt] = useState('');
   const [savingPrompt, setSavingPrompt] = useState(false);
@@ -326,9 +327,27 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
 
   if (!user) {
     return (
-      <div className={`admin-panel min-h-screen flex flex-col items-center justify-center p-4 ${isDarkMode ? 'dark bg-[#121212]' : 'bg-slate-50'}`}>
+      <div className={`admin-panel min-h-screen flex flex-col items-center justify-center p-4 relative ${isDarkMode ? 'dark bg-[#121212]' : 'bg-slate-50'}`}>
+        <div className="absolute top-4 right-4">
+          <button 
+            onClick={() => {
+              const newMode = !isDarkMode;
+              setIsDarkMode(newMode);
+              localStorage.setItem('adminDarkMode', String(newMode));
+            }}
+            className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+            title={isDarkMode ? "Mudar para tema claro" : "Mudar para tema escuro"}
+          >
+            {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+        </div>
         <div className="bg-white p-8 rounded-xl shadow-md max-w-md w-full">
-          <h1 className="text-2xl font-bold text-[#38383a] mb-2 text-center">Painel Administrativo</h1>
+          <div className="flex justify-center mb-6">
+            <div className="w-20 h-20 rounded-xl overflow-hidden shadow-sm border border-slate-100">
+              <img src="https://i.imgur.com/pgCrkrr.jpeg" alt="Logo" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            </div>
+          </div>
+          <h1 className="text-2xl font-bold text-slate-800 mb-2 text-center">Painel Administrativo</h1>
           <p className="text-slate-600 mb-6 text-center">Faça login para acessar os leads e gerenciar os atendimentos.</p>
           
           {loginError && (
@@ -360,7 +379,7 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
             </div>
             <button 
               type="submit"
-              className="w-full bg-[#38383a] text-white font-bold py-3 px-4 rounded-lg hover:bg-black transition-colors mt-2"
+              className="w-full bg-slate-800 text-white font-bold py-3 px-4 rounded-lg hover:bg-slate-900 transition-colors mt-2"
             >
               Entrar
             </button>
@@ -391,7 +410,20 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
 
   if (!isAdmin) {
     return (
-      <div className={`admin-panel min-h-screen flex flex-col items-center justify-center p-4 ${isDarkMode ? 'dark bg-[#121212]' : 'bg-slate-50'}`}>
+      <div className={`admin-panel min-h-screen flex flex-col items-center justify-center p-4 relative ${isDarkMode ? 'dark bg-[#121212]' : 'bg-slate-50'}`}>
+        <div className="absolute top-4 right-4">
+          <button 
+            onClick={() => {
+              const newMode = !isDarkMode;
+              setIsDarkMode(newMode);
+              localStorage.setItem('adminDarkMode', String(newMode));
+            }}
+            className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+            title={isDarkMode ? "Mudar para tema claro" : "Mudar para tema escuro"}
+          >
+            {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+        </div>
         <div className="bg-white p-8 rounded-xl shadow-md max-w-md w-full text-center">
           <h1 className="text-2xl font-bold text-red-600 mb-4">Acesso Negado</h1>
           <p className="text-slate-600 mb-8">Sua conta não tem permissão de administrador.</p>
@@ -412,8 +444,8 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
       {/* Sidebar Navigation */}
       <aside className="w-64 bg-white border-r border-slate-200 flex flex-col shrink-0">
         <div className="p-6 border-b border-slate-100 flex items-center gap-3">
-          <div className="w-8 h-8 bg-indigo-600 rounded flex items-center justify-center shrink-0">
-            <span className="text-white font-bold text-sm">S&D</span>
+          <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 shadow-sm border border-slate-100">
+            <img src="https://i.imgur.com/pgCrkrr.jpeg" alt="Logo" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
           </div>
           <h1 className="font-bold text-slate-800 text-lg leading-tight">Painel<br/>Administrativo</h1>
         </div>
@@ -453,7 +485,20 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
         </nav>
 
         <div className="p-4 border-t border-slate-100 flex flex-col gap-2">
-          <div className="text-xs text-slate-400 mb-2 px-4 truncate">{user.email}</div>
+          <div className="flex items-center justify-between mb-2 px-2">
+            <div className="text-xs text-slate-400 truncate max-w-[150px]">{user.email}</div>
+            <button 
+              onClick={() => {
+                const newMode = !isDarkMode;
+                setIsDarkMode(newMode);
+                localStorage.setItem('adminDarkMode', String(newMode));
+              }}
+              className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+              title={isDarkMode ? "Mudar para tema claro" : "Mudar para tema escuro"}
+            >
+              {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
+          </div>
           <button 
             onClick={handleLogout}
             className="flex items-center gap-3 px-4 py-2 w-full rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition-colors"
@@ -788,55 +833,120 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
         {/* FLUXOS TAB */}
         {activeTab === 'fluxos' && (
           <div className="flex-1 overflow-y-auto p-8 bg-slate-50">
-            <div className="max-w-4xl mx-auto">
-              <div className="mb-8">
-                <h2 className="text-2xl font-bold text-slate-800 mb-2">Configurações do Robô</h2>
-                <p className="text-slate-600">Gerencie a inteligência artificial, regras de follow-up e mídias.</p>
-              </div>
-
-              {/* Sub-tabs Navigation */}
-              <div className="flex gap-2 mb-6 border-b border-slate-200">
-                <button
-                  onClick={() => setFluxoTab('prompts')}
-                  className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${fluxoTab === 'prompts' ? 'border-[#dcb366] text-[#dcb366]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-                >
-                  Prompts da IA
-                </button>
-                <button
-                  onClick={() => setFluxoTab('timers')}
-                  className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${fluxoTab === 'timers' ? 'border-[#dcb366] text-[#dcb366]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-                >
-                  Temporizadores (Follow-ups)
-                </button>
-                <button
-                  onClick={() => setFluxoTab('videos')}
-                  className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${fluxoTab === 'videos' ? 'border-[#dcb366] text-[#dcb366]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-                >
-                  Vídeos e Mídias
-                </button>
-              </div>
-
-              {fluxoTab === 'prompts' && (
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  <div className="p-6 border-b border-slate-200 bg-slate-50">
-                    <h3 className="font-bold text-slate-800 text-lg">Fluxo de Conversação da IA</h3>
-                    <p className="text-sm text-slate-500 mt-1">Configure o comportamento da IA em cada etapa do atendimento.</p>
+            <div className="max-w-6xl mx-auto">
+              
+              {flowView === 'list' ? (
+                <div className="animate-in fade-in duration-300">
+                  <div className="flex justify-between items-start mb-8">
+                    <div>
+                      <h2 className="text-2xl font-bold text-slate-800 mb-2">Fluxos de Automação</h2>
+                      <p className="text-slate-600">Gerencie as respostas automáticas e integrações da IA.</p>
+                    </div>
+                    <button 
+                      onClick={() => setFlowView('editor')}
+                      className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg font-medium transition-colors shadow-sm"
+                    >
+                      <Sparkles size={18} />
+                      Criar com IA
+                    </button>
                   </div>
-                  
-                  <div className="p-0">
-                    <PromptsFlow 
-                      aiPrompt={aiPrompt}
-                      setAiPrompt={setAiPrompt}
-                      aiChatPrompt={aiChatPrompt}
-                      setAiChatPrompt={setAiChatPrompt}
-                      onSave={handleSavePrompt}
-                      saving={savingPrompt}
-                      saved={promptSaved}
-                      expertPrompt={EXPERT_PROMPT}
-                    />
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {/* Create New Flow Card */}
+                    <button 
+                      onClick={() => setFlowView('editor')}
+                      className="flex flex-col items-center justify-center p-8 bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl hover:bg-slate-100 hover:border-indigo-400 transition-all group h-64"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-400 group-hover:text-indigo-500 group-hover:border-indigo-200 group-hover:bg-indigo-50 transition-colors mb-4">
+                        <Sparkles size={24} />
+                      </div>
+                      <h3 className="text-lg font-bold text-slate-700 group-hover:text-indigo-700 mb-2 transition-colors">Gerar Novo Fluxo</h3>
+                      <p className="text-sm text-slate-500 text-center max-w-[200px]">
+                        Descreva o que você precisa e a IA criará a automação
+                      </p>
+                    </button>
+                    
+                    {/* Existing Flow Card (Example) */}
+                    <div 
+                      onClick={() => setFlowView('editor')}
+                      className="flex flex-col p-6 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md cursor-pointer transition-all group h-64"
+                    >
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="w-10 h-10 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+                          <Workflow size={20} />
+                        </div>
+                        <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-full border border-emerald-100">Ativo</span>
+                      </div>
+                      <h3 className="text-lg font-bold text-slate-800 mb-2 group-hover:text-indigo-600 transition-colors">Triagem de Restituição IR</h3>
+                      <p className="text-sm text-slate-500 mb-auto line-clamp-3">
+                        Qualifica leads para a tese de "Restituição de IR por Bitributação", coleta dados e envia o contrato automaticamente.
+                      </p>
+                      <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+                        <span>Atualizado há 2 dias</span>
+                        <span className="flex items-center gap-1"><Bot size={14} /> IA Ativa</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              )}
+              ) : (
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="mb-8 flex items-center gap-4">
+                    <button 
+                      onClick={() => setFlowView('list')}
+                      className="p-2 bg-white border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors shadow-sm"
+                      title="Voltar para a lista"
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    </button>
+                    <div>
+                      <h2 className="text-2xl font-bold text-slate-800 mb-1">Configurações do Robô</h2>
+                      <p className="text-slate-600">Gerencie a inteligência artificial, regras de follow-up e mídias.</p>
+                    </div>
+                  </div>
+
+                  {/* Sub-tabs Navigation */}
+                  <div className="flex gap-2 mb-6 border-b border-slate-200">
+                    <button
+                      onClick={() => setFluxoTab('prompts')}
+                      className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${fluxoTab === 'prompts' ? 'border-[#dcb366] text-[#dcb366]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                    >
+                      Prompts da IA
+                    </button>
+                    <button
+                      onClick={() => setFluxoTab('timers')}
+                      className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${fluxoTab === 'timers' ? 'border-[#dcb366] text-[#dcb366]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                    >
+                      Temporizadores (Follow-ups)
+                    </button>
+                    <button
+                      onClick={() => setFluxoTab('videos')}
+                      className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${fluxoTab === 'videos' ? 'border-[#dcb366] text-[#dcb366]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                    >
+                      Vídeos e Mídias
+                    </button>
+                  </div>
+
+                  {fluxoTab === 'prompts' && (
+                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                      <div className="p-6 border-b border-slate-200 bg-slate-50">
+                        <h3 className="font-bold text-slate-800 text-lg">Fluxo de Conversação da IA</h3>
+                        <p className="text-sm text-slate-500 mt-1">Configure o comportamento da IA em cada etapa do atendimento.</p>
+                      </div>
+                      
+                      <div className="p-0">
+                        <PromptsFlow 
+                          aiPrompt={aiPrompt}
+                          setAiPrompt={setAiPrompt}
+                          aiChatPrompt={aiChatPrompt}
+                          setAiChatPrompt={setAiChatPrompt}
+                          onSave={handleSavePrompt}
+                          saving={savingPrompt}
+                          saved={promptSaved}
+                          expertPrompt={EXPERT_PROMPT}
+                        />
+                      </div>
+                    </div>
+                  )}
 
               {fluxoTab === 'timers' && (
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -928,6 +1038,8 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
                       Recurso em Desenvolvimento
                     </button>
                   </div>
+                </div>
+              )}
                 </div>
               )}
 
