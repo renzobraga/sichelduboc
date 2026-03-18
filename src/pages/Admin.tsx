@@ -2,7 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
-import { LogOut, MessageCircle, LayoutDashboard, Workflow, Save, Bot, User, Kanban, List, BarChart3, Users, CheckCircle, XCircle, Clock, Moon, Sun, Sparkles, Calendar, Maximize, Minimize } from 'lucide-react';
+import { LogOut, MessageCircle, LayoutDashboard, Workflow, Save, Bot, User, Kanban, List, BarChart3, Users, CheckCircle, XCircle, Clock, Moon, Sun, Sparkles, Calendar, Maximize, Minimize, TrendingUp, PieChart, Activity, ArrowRight, MapPin, Mail, Phone, FileText, ExternalLink, MoreVertical, Search, Filter, ChevronRight, ChevronLeft } from 'lucide-react';
+import { PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, AreaChart, Area } from 'recharts';
+import { motion, AnimatePresence } from 'motion/react';
 import PromptsFlow from '../components/PromptsFlow';
 import GoogleCalendar from '../components/GoogleCalendar';
 
@@ -86,6 +88,8 @@ export default function Admin() {
   
   // Layout states
   const [activeTab, setActiveTab] = useState<'dashboard' | 'chat' | 'fluxos' | 'calendario'>('dashboard');
+  const [dashboardView, setDashboardView] = useState<'kanban' | 'analytics'>('analytics');
+  const [selectedLeadForProfile, setSelectedLeadForProfile] = useState<any>(null);
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('adminDarkMode');
@@ -95,6 +99,47 @@ export default function Admin() {
   // Fluxos states
   const [fluxoTab, setFluxoTab] = useState<'prompts' | 'timers' | 'videos'>('prompts');
   const [flowView, setFlowView] = useState<'list' | 'editor'>('list');
+
+  // Chart data helpers
+  const getStatusData = () => {
+    const statusMap: any = {
+      novo: 'Novos',
+      em_atendimento: 'Em Atendimento',
+      qualificado: 'Qualificados',
+      dados_coletados: 'Dados Coletados',
+      contrato_enviado: 'Contrato Enviado',
+      fechado: 'Fechados',
+      descartado: 'Descartados'
+    };
+    const counts: any = {};
+    leads.forEach(l => {
+      const label = statusMap[l.status] || l.status;
+      counts[label] = (counts[label] || 0) + 1;
+    });
+    return Object.entries(counts).map(([name, value]) => ({ name, value }));
+  };
+
+  const getTimelineData = () => {
+    const groups: any = {};
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      return d.toLocaleDateString('pt-BR');
+    }).reverse();
+
+    last7Days.forEach(date => groups[date] = 0);
+    
+    leads.forEach(l => {
+      const date = new Date(l.createdAt).toLocaleDateString('pt-BR');
+      if (groups[date] !== undefined) {
+        groups[date]++;
+      }
+    });
+    return Object.entries(groups).map(([date, count]) => ({ date, count }));
+  };
+
+  const COLORS = ['#6366f1', '#f59e0b', '#10b981', '#8b5cf6', '#a855f7', '#059669', '#64748b'];
+
   const [prompts, setPrompts] = useState({
     prompt1: 'Olá! Sou o assistente virtual do escritório Sichel & Duboc. Vi que você tem interesse na restituição de Imposto de Renda sobre previdência complementar. Para começar, você recebe ou recebeu aposentadoria de fundo de previdência privada (como PREVI, PETROS, FUNCEF, etc)? [BUTTONS: Sim | Não]',
     prompt2: 'Ótimo! Segunda pergunta: Você contribuiu para esse fundo de previdência entre os anos de 1989 e 1995? [BUTTONS: Sim | Não]',
@@ -550,99 +595,354 @@ export default function Admin() {
         
         {/* DASHBOARD TAB */}
         {activeTab === 'dashboard' && (
-          <div className="flex flex-col flex-1 overflow-hidden">
+          <div className="flex flex-col flex-1 overflow-hidden bg-slate-50/30">
             
-            {/* Metrics & Controls Header */}
+            {/* Dashboard Header */}
             <div className="bg-white border-b border-slate-200 p-6 shrink-0">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-slate-800">Visão Geral</h2>
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-800">Dashboard</h2>
+                  <p className="text-slate-500 text-sm">Acompanhe o desempenho e a saúde do seu funil de vendas.</p>
+                </div>
+                <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+                  <button 
+                    onClick={() => setDashboardView('analytics')}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${dashboardView === 'analytics' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                  >
+                    <BarChart3 size={16} />
+                    Analytics
+                  </button>
+                  <button 
+                    onClick={() => setDashboardView('kanban')}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${dashboardView === 'kanban' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                  >
+                    <Kanban size={16} />
+                    Kanban
+                  </button>
+                </div>
               </div>
               
-              <div className="grid grid-cols-5 gap-4">
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col">
-                  <span className="text-slate-500 text-sm font-medium flex items-center gap-2 mb-2"><Users size={16} /> Total de Leads</span>
-                  <span className="text-3xl font-bold text-slate-800">{leads.length}</span>
-                </div>
-                <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex flex-col">
-                  <span className="text-blue-600 text-sm font-medium flex items-center gap-2 mb-2"><BarChart3 size={16} /> Novos</span>
-                  <span className="text-3xl font-bold text-blue-700">{leads.filter(l => l.status === 'novo').length}</span>
-                </div>
-                <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 flex flex-col">
-                  <span className="text-amber-600 text-sm font-medium flex items-center gap-2 mb-2"><Clock size={16} /> Em Atendimento</span>
-                  <span className="text-3xl font-bold text-amber-700">{leads.filter(l => l.status === 'em_atendimento').length}</span>
-                </div>
-                <div className="bg-green-50 border border-green-100 rounded-xl p-4 flex flex-col">
-                  <span className="text-green-600 text-sm font-medium flex items-center gap-2 mb-2"><CheckCircle size={16} /> Qualificados</span>
-                  <span className="text-3xl font-bold text-green-700">{leads.filter(l => l.status === 'qualificado').length}</span>
-                </div>
-                <div className="bg-slate-100 border border-slate-200 rounded-xl p-4 flex flex-col">
-                  <span className="text-slate-500 text-sm font-medium flex items-center gap-2 mb-2"><XCircle size={16} /> Descartados</span>
-                  <span className="text-3xl font-bold text-slate-700">{leads.filter(l => l.status === 'descartado').length}</span>
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                      <Users size={20} />
+                    </div>
+                    <span className="text-emerald-500 text-xs font-bold bg-emerald-50 px-2 py-1 rounded-full flex items-center gap-1">
+                      <TrendingUp size={12} /> +12%
+                    </span>
+                  </div>
+                  <span className="text-slate-500 text-sm font-medium">Total de Leads</span>
+                  <div className="text-3xl font-bold text-slate-800 mt-1">{leads.length}</div>
+                </motion.div>
+
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
+                      <Activity size={20} />
+                    </div>
+                    <span className="text-amber-500 text-xs font-bold bg-amber-50 px-2 py-1 rounded-full">Ativos</span>
+                  </div>
+                  <span className="text-slate-500 text-sm font-medium">Em Atendimento</span>
+                  <div className="text-3xl font-bold text-slate-800 mt-1">{leads.filter(l => l.status === 'em_atendimento').length}</div>
+                </motion.div>
+
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+                      <CheckCircle size={20} />
+                    </div>
+                    <span className="text-emerald-500 text-xs font-bold bg-emerald-50 px-2 py-1 rounded-full">Sucesso</span>
+                  </div>
+                  <span className="text-slate-500 text-sm font-medium">Contratos Fechados</span>
+                  <div className="text-3xl font-bold text-slate-800 mt-1">{leads.filter(l => l.status === 'fechado').length}</div>
+                </motion.div>
+
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600">
+                      <FileText size={20} />
+                    </div>
+                    <span className="text-purple-500 text-xs font-bold bg-purple-50 px-2 py-1 rounded-full">Conversão</span>
+                  </div>
+                  <span className="text-slate-500 text-sm font-medium">Taxa de Conversão</span>
+                  <div className="text-3xl font-bold text-slate-800 mt-1">
+                    {leads.length > 0 ? ((leads.filter(l => l.status === 'fechado').length / leads.length) * 100).toFixed(1) : 0}%
+                  </div>
+                </motion.div>
               </div>
             </div>
 
-            {/* Kanban View (Dashboard) */}
-            <div className="flex-1 overflow-x-auto p-6 bg-slate-50/50">
-              <div className="flex gap-6 h-full min-w-max">
-                {[
-                  { id: 'novo', title: 'Novos', color: 'bg-blue-100 text-blue-700 border-blue-200' },
-                  { id: 'em_atendimento', title: 'Em Atendimento', color: 'bg-amber-100 text-amber-700 border-amber-200' },
-                  { id: 'qualificado', title: 'Qualificados', color: 'bg-green-100 text-green-700 border-green-200' },
-                  { id: 'dados_coletados', title: 'Dados Coletados', color: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
-                  { id: 'contrato_enviado', title: 'Contrato Enviado', color: 'bg-purple-100 text-purple-700 border-purple-200' },
-                  { id: 'fechado', title: 'Fechados', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
-                  { id: 'descartado', title: 'Descartados', color: 'bg-slate-100 text-slate-700 border-slate-200' },
-                ].map(col => (
-                  <div 
-                    key={col.id} 
-                    className="w-80 flex flex-col bg-slate-100/50 rounded-xl border border-slate-200"
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      if (draggedLeadId) {
-                        updateLeadStatus(draggedLeadId, col.id);
-                        setDraggedLeadId(null);
-                      }
-                    }}
+            {/* View Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {dashboardView === 'analytics' ? (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Status Distribution Chart */}
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="lg:col-span-1 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm"
                   >
-                    <div className={`p-3 m-3 rounded-lg border font-bold text-sm flex justify-between items-center ${col.color}`}>
-                      {col.title}
-                      <span className="bg-white/50 px-2 py-0.5 rounded-full text-xs">
-                        {leads.filter(l => l.status === col.id).length}
-                      </span>
+                    <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
+                      <PieChart size={18} className="text-indigo-500" />
+                      Distribuição por Status
+                    </h3>
+                    <div className="h-[300px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RePieChart>
+                          <Pie
+                            data={getStatusData()}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={80}
+                            paddingAngle={5}
+                            dataKey="value"
+                          >
+                            {getStatusData().map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip 
+                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                          />
+                          <Legend verticalAlign="bottom" height={36}/>
+                        </RePieChart>
+                      </ResponsiveContainer>
                     </div>
-                    <div className="flex-1 overflow-y-auto p-3 pt-0 space-y-3">
-                      {leads.filter(l => l.status === col.id).map(lead => (
-                        <div 
-                          key={lead.id} 
-                          draggable
-                          onDragStart={() => setDraggedLeadId(lead.id)}
-                          onDragEnd={() => setDraggedLeadId(null)}
-                          onClick={() => { setSelectedLead(lead); setActiveTab('chat'); }}
-                          className={`bg-white p-4 rounded-lg shadow-sm border border-slate-200 cursor-pointer hover:shadow-md transition-shadow ${draggedLeadId === lead.id ? 'opacity-50' : ''}`}
+                  </motion.div>
+
+                  {/* Growth Chart */}
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.1 }}
+                    className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm"
+                  >
+                    <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
+                      <TrendingUp size={18} className="text-indigo-500" />
+                      Novos Leads (Últimos 7 dias)
+                    </h3>
+                    <div className="h-[300px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={getTimelineData()}>
+                          <defs>
+                            <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#6366f1" stopOpacity={0.1}/>
+                              <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                          <XAxis 
+                            dataKey="date" 
+                            axisLine={false} 
+                            tickLine={false} 
+                            tick={{ fontSize: 12, fill: '#94a3b8' }}
+                            dy={10}
+                          />
+                          <YAxis 
+                            axisLine={false} 
+                            tickLine={false} 
+                            tick={{ fontSize: 12, fill: '#94a3b8' }}
+                          />
+                          <Tooltip 
+                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                          />
+                          <Area 
+                            type="monotone" 
+                            dataKey="count" 
+                            stroke="#6366f1" 
+                            strokeWidth={3}
+                            fillOpacity={1} 
+                            fill="url(#colorCount)" 
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </motion.div>
+
+                  {/* Recent Activity / Bento Style */}
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6"
+                  >
+                    {/* Recent Leads List */}
+                    <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                      <div className="flex justify-between items-center mb-6">
+                        <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                          <Clock size={18} className="text-indigo-500" />
+                          Leads Recentes
+                        </h3>
+                        <button 
+                          onClick={() => setActiveTab('chat')}
+                          className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
                         >
-                          <div className="flex justify-between items-start mb-2">
-                            <div className="font-bold text-slate-800 truncate pr-2">{lead.nome}</div>
-                            {lead.aiEnabled !== false ? (
-                              <span title="IA Ativa"><Bot size={14} className="text-indigo-500 shrink-0" /></span>
-                            ) : (
-                              <span title="Atendimento Humano"><User size={14} className="text-slate-400 shrink-0" /></span>
-                            )}
+                          Ver todos <ArrowRight size={12} />
+                        </button>
+                      </div>
+                      <div className="space-y-4">
+                        {leads.slice(0, 5).map(lead => (
+                          <div 
+                            key={lead.id}
+                            onClick={() => setSelectedLeadForProfile(lead)}
+                            className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
+                                <User size={18} />
+                              </div>
+                              <div>
+                                <div className="font-bold text-slate-800 text-sm">{lead.nome}</div>
+                                <div className="text-xs text-slate-400">{lead.cidade || 'Cidade não informada'}</div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider ${
+                                lead.status === 'novo' ? 'bg-blue-50 text-blue-600' :
+                                lead.status === 'qualificado' ? 'bg-green-50 text-green-600' :
+                                'bg-slate-50 text-slate-500'
+                              }`}>
+                                {lead.status}
+                              </span>
+                              <ChevronRight size={14} className="text-slate-300 group-hover:text-indigo-400 transition-colors" />
+                            </div>
                           </div>
-                          <div className="text-xs text-slate-500 mb-3 flex items-center gap-1">
-                            <MessageCircle size={12} /> {lead.telefone}
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Quick Insights */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-indigo-600 rounded-2xl p-6 text-white shadow-lg shadow-indigo-200 flex flex-col justify-between">
+                        <Sparkles size={24} className="mb-4 opacity-80" />
+                        <div>
+                          <div className="text-indigo-100 text-sm font-medium">IA Performance</div>
+                          <div className="text-2xl font-bold mt-1">94%</div>
+                          <div className="text-indigo-200 text-[10px] mt-2">Taxa de acerto nas qualificações</div>
+                        </div>
+                      </div>
+                      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 mb-4">
+                          <FileText size={20} />
+                        </div>
+                        <div>
+                          <div className="text-slate-500 text-sm font-medium">Contratos</div>
+                          <div className="text-2xl font-bold text-slate-800 mt-1">
+                            {leads.filter(l => l.contractStatus === 'signed').length}
                           </div>
-                          <div className="text-xs text-slate-400 flex items-center gap-1">
-                            <Clock size={12} />
-                            {new Date(lead.createdAt).toLocaleDateString('pt-BR')}
+                          <div className="text-slate-400 text-[10px] mt-2">Assinados este mês</div>
+                        </div>
+                      </div>
+                      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col justify-between col-span-2">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <div className="text-slate-500 text-sm font-medium">Tempo Médio de Resposta</div>
+                            <div className="text-2xl font-bold text-slate-800 mt-1">2.4 min</div>
+                          </div>
+                          <div className="w-12 h-12 rounded-full border-4 border-indigo-100 border-t-indigo-600 flex items-center justify-center text-[10px] font-bold text-indigo-600">
+                            -15%
                           </div>
                         </div>
-                      ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  </motion.div>
+                </div>
+              ) : (
+                /* Kanban View (Dashboard) */
+                <div className="flex gap-6 h-full min-w-max pb-4">
+                  {[
+                    { id: 'novo', title: 'Novos', color: 'bg-blue-50 text-blue-700 border-blue-100' },
+                    { id: 'em_atendimento', title: 'Em Atendimento', color: 'bg-amber-50 text-amber-700 border-amber-100' },
+                    { id: 'qualificado', title: 'Qualificados', color: 'bg-green-50 text-green-700 border-green-100' },
+                    { id: 'dados_coletados', title: 'Dados Coletados', color: 'bg-indigo-50 text-indigo-700 border-indigo-100' },
+                    { id: 'contrato_enviado', title: 'Contrato Enviado', color: 'bg-purple-50 text-purple-700 border-purple-100' },
+                    { id: 'fechado', title: 'Fechados', color: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
+                    { id: 'descartado', title: 'Descartados', color: 'bg-slate-50 text-slate-700 border-slate-100' },
+                  ].map(col => (
+                    <div 
+                      key={col.id} 
+                      className="w-80 flex flex-col bg-slate-100/30 rounded-2xl border border-slate-200/60"
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        if (draggedLeadId) {
+                          updateLeadStatus(draggedLeadId, col.id);
+                          setDraggedLeadId(null);
+                        }
+                      }}
+                    >
+                      <div className={`p-4 m-3 rounded-xl border font-bold text-sm flex justify-between items-center shadow-sm ${col.color}`}>
+                        {col.title}
+                        <span className="bg-white/80 px-2 py-0.5 rounded-full text-[10px]">
+                          {leads.filter(l => l.status === col.id).length}
+                        </span>
+                      </div>
+                      <div className="flex-1 overflow-y-auto p-3 pt-0 space-y-3">
+                        {leads.filter(l => l.status === col.id).map(lead => (
+                          <motion.div 
+                            key={lead.id} 
+                            layoutId={lead.id}
+                            draggable
+                            onDragStart={() => setDraggedLeadId(lead.id)}
+                            onDragEnd={() => setDraggedLeadId(null)}
+                            onClick={() => setSelectedLeadForProfile(lead)}
+                            className={`bg-white p-4 rounded-xl shadow-sm border border-slate-200 cursor-pointer hover:shadow-md hover:border-indigo-200 transition-all group ${draggedLeadId === lead.id ? 'opacity-50 scale-95' : ''}`}
+                          >
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="font-bold text-slate-800 truncate pr-2 group-hover:text-indigo-600 transition-colors">{lead.nome}</div>
+                              {lead.aiEnabled !== false ? (
+                                <span title="IA Ativa" className="p-1 bg-indigo-50 rounded-lg"><Bot size={12} className="text-indigo-500 shrink-0" /></span>
+                              ) : (
+                                <span title="Atendimento Humano" className="p-1 bg-slate-50 rounded-lg"><User size={12} className="text-slate-400 shrink-0" /></span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-slate-500 mb-3 flex items-center gap-1.5">
+                              <Phone size={10} className="text-slate-300" /> {lead.telefone}
+                            </div>
+                            <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-50">
+                              <div className="text-[10px] text-slate-400 flex items-center gap-1">
+                                <Clock size={10} />
+                                {new Date(lead.createdAt).toLocaleDateString('pt-BR')}
+                              </div>
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedLead(lead);
+                                  setActiveTab('chat');
+                                }}
+                                className="p-1.5 rounded-lg text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
+                              >
+                                <MessageCircle size={14} />
+                              </button>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1166,6 +1466,197 @@ export default function Admin() {
           </div>
         </div>
       )}
+
+      {/* Lead Profile Modal */}
+      <AnimatePresence>
+        {selectedLeadForProfile && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+            >
+              {/* Modal Header */}
+              <div className="p-8 bg-slate-900 text-white flex justify-between items-start shrink-0 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
+                <div className="relative z-10 flex items-center gap-6">
+                  <div className="w-20 h-20 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center text-3xl font-bold border border-white/20">
+                    {selectedLeadForProfile.nome.charAt(0)}
+                  </div>
+                  <div>
+                    <h2 className="text-3xl font-bold mb-2">{selectedLeadForProfile.nome}</h2>
+                    <div className="flex flex-wrap gap-3">
+                      <span className="flex items-center gap-1.5 text-indigo-200 text-sm">
+                        <Phone size={14} /> {selectedLeadForProfile.telefone}
+                      </span>
+                      {selectedLeadForProfile.email && (
+                        <span className="flex items-center gap-1.5 text-indigo-200 text-sm">
+                          <Mail size={14} /> {selectedLeadForProfile.email}
+                        </span>
+                      )}
+                      <span className="flex items-center gap-1.5 text-indigo-200 text-sm">
+                        <MapPin size={14} /> {selectedLeadForProfile.cidade || 'Cidade não informada'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setSelectedLeadForProfile(null)}
+                  className="relative z-10 p-2 hover:bg-white/10 rounded-full transition-colors"
+                >
+                  <XCircle size={24} />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="flex-1 overflow-y-auto p-8 bg-slate-50">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  
+                  {/* Left Column: Status & Quick Actions */}
+                  <div className="lg:col-span-1 space-y-6">
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Status Atual</h4>
+                      <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm mb-6 ${
+                        selectedLeadForProfile.status === 'novo' ? 'bg-blue-50 text-blue-600' :
+                        selectedLeadForProfile.status === 'qualificado' ? 'bg-green-50 text-green-600' :
+                        selectedLeadForProfile.status === 'fechado' ? 'bg-emerald-50 text-emerald-600' :
+                        'bg-slate-50 text-slate-500'
+                      }`}>
+                        <div className={`w-2 h-2 rounded-full animate-pulse ${
+                          selectedLeadForProfile.status === 'novo' ? 'bg-blue-600' :
+                          selectedLeadForProfile.status === 'qualificado' ? 'bg-green-600' :
+                          selectedLeadForProfile.status === 'fechado' ? 'bg-emerald-600' :
+                          'bg-slate-400'
+                        }`}></div>
+                        {selectedLeadForProfile.status.replace('_', ' ')}
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <button 
+                          onClick={() => {
+                            setSelectedLead(selectedLeadForProfile);
+                            setActiveTab('chat');
+                            setSelectedLeadForProfile(null);
+                          }}
+                          className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
+                        >
+                          <MessageCircle size={18} /> Abrir Chat
+                        </button>
+                        <button 
+                          className="w-full flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-600 py-3 rounded-xl font-bold hover:bg-slate-50 transition-all"
+                        >
+                          <Calendar size={18} /> Agendar Reunião
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Atendimento</h4>
+                      <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                        <div className="flex items-center gap-3">
+                          <Bot size={18} className="text-indigo-500" />
+                          <span className="text-sm font-medium text-slate-700">Automação IA</span>
+                        </div>
+                        <div className={`w-10 h-6 rounded-full relative cursor-pointer transition-colors ${selectedLeadForProfile.aiEnabled !== false ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                             onClick={() => toggleAI(selectedLeadForProfile.id, selectedLeadForProfile.aiEnabled)}>
+                          <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${selectedLeadForProfile.aiEnabled !== false ? 'left-5' : 'left-1'}`}></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Detailed Info */}
+                  <div className="lg:col-span-2 space-y-6">
+                    <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+                      <h4 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+                        <FileText size={20} className="text-indigo-500" />
+                        Informações Coletadas
+                      </h4>
+                      
+                      <div className="grid grid-cols-2 gap-6">
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Aposentadoria Complementar</span>
+                          <p className="text-slate-700 font-medium">{selectedLeadForProfile.aposentadoriaComplementar || 'Não informado'}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Contribuição 89-95</span>
+                          <p className="text-slate-700 font-medium">{selectedLeadForProfile.contribuicao89a95 || 'Não informado'}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Paga IR Atualmente</span>
+                          <p className="text-slate-700 font-medium">{selectedLeadForProfile.pagaIrAtualmente || 'Não informado'}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Fundo de Previdência</span>
+                          <p className="text-slate-700 font-medium">{selectedLeadForProfile.fundoPrevidencia || 'Não informado'}</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-8 pt-8 border-t border-slate-100">
+                        <h5 className="text-sm font-bold text-slate-800 mb-4">Documentação e Contrato</h5>
+                        {selectedLeadForProfile.contractUrl ? (
+                          <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600">
+                                <FileText size={20} />
+                              </div>
+                              <div>
+                                <div className="text-sm font-bold text-emerald-900">Contrato ZapSign</div>
+                                <div className="text-xs text-emerald-600 uppercase font-bold tracking-tighter">
+                                  {selectedLeadForProfile.contractStatus === 'signed' ? '✅ Assinado' : '⏳ Pendente de Assinatura'}
+                                </div>
+                              </div>
+                            </div>
+                            <a 
+                              href={selectedLeadForProfile.contractUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-4 py-2 bg-white border border-emerald-200 text-emerald-700 rounded-lg text-xs font-bold hover:bg-emerald-100 transition-colors flex items-center gap-2"
+                            >
+                              Ver Documento <ExternalLink size={14} />
+                            </a>
+                          </div>
+                        ) : (
+                          <div className="bg-slate-50 border border-dashed border-slate-300 p-6 rounded-xl text-center">
+                            <p className="text-slate-400 text-sm">Nenhum contrato gerado para este lead.</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Timeline / History */}
+                    <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+                      <h4 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+                        <Activity size={20} className="text-indigo-500" />
+                        Histórico de Atividades
+                      </h4>
+                      <div className="space-y-6">
+                        <div className="flex gap-4">
+                          <div className="w-2 h-2 rounded-full bg-indigo-500 mt-1.5 shrink-0"></div>
+                          <div>
+                            <p className="text-sm font-bold text-slate-800">Lead criado no sistema</p>
+                            <p className="text-xs text-slate-400">{new Date(selectedLeadForProfile.createdAt).toLocaleString('pt-BR')}</p>
+                          </div>
+                        </div>
+                        {selectedLeadForProfile.updatedAt && (
+                          <div className="flex gap-4">
+                            <div className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 shrink-0"></div>
+                            <div>
+                              <p className="text-sm font-bold text-slate-800">Última atualização de status</p>
+                              <p className="text-xs text-slate-400">{new Date(selectedLeadForProfile.updatedAt).toLocaleString('pt-BR')}</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
