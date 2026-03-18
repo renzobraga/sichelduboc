@@ -86,13 +86,27 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
         const leadId = leadDoc.id;
         const leadData = leadDoc.data();
 
-        // 2. Salvar a mensagem recebida
-        await dbAdmin.collection('messages').add({
-          leadId,
-          text: messageText,
-          sender: 'user',
-          createdAt: new Date().toISOString()
-        });
+        // 2. Salvar a mensagem recebida com deduplicação
+        const messageId = data.messageId;
+        const msgDocId = messageId ? `zapi_${messageId}` : `msg_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+        
+        try {
+          await dbAdmin.collection('messages').doc(msgDocId).create({
+            leadId,
+            text: messageText,
+            sender: 'user',
+            messageId: messageId || null,
+            createdAt: new Date().toISOString()
+          });
+        } catch (e: any) {
+          // Se o documento já existe (código 6 no gRPC do Firebase Admin), ignorar
+          if (e.code === 6 || e.message.includes('ALREADY_EXISTS')) {
+            console.log(`Mensagem duplicada recebida e ignorada (messageId: ${messageId})`);
+            return res.status(200).json({ success: true, message: "Already processed" });
+          }
+          console.error("Erro ao salvar mensagem:", e);
+          throw e;
+        }
 
         // 3. Atualizar o status do lead se for 'novo'
         if (leadData.status === 'novo') {

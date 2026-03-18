@@ -3,6 +3,7 @@ import { auth, db } from '../firebase';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
 import { LogOut, MessageCircle, LayoutDashboard, Workflow, Save, Bot, User, Kanban, List, BarChart3, Users, CheckCircle, XCircle, Clock, Moon, Sun, Sparkles } from 'lucide-react';
+import PromptsFlow from '../components/PromptsFlow';
 
 const EXPERT_PROMPT = `Você é o assistente virtual do escritório de advocacia Sichel & Duboc, especialista em direito previdenciário e tributário.
 Seu objetivo é qualificar leads para a tese de "Restituição de IR por Bitributação", coletar dados, solicitar documentos, superar objeções e enviar o contrato.
@@ -759,80 +760,22 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
 
               {fluxoTab === 'prompts' && (
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  <div className="p-6 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
-                    <div>
-                      <h3 className="font-bold text-slate-800 text-lg">Prompt do WhatsApp (Primeiro Contato)</h3>
-                      <p className="text-sm text-slate-500 mt-1">Este é o comando que a IA recebe para gerar a primeira mensagem do lead.</p>
-                    </div>
-                    <button 
-                      onClick={handleSavePrompt}
-                      disabled={savingPrompt}
-                      className="flex items-center gap-2 bg-[#38383a] text-white px-4 py-2 rounded-lg font-medium hover:bg-black transition-colors disabled:opacity-70"
-                    >
-                      <Save size={18} />
-                      {savingPrompt ? 'Salvando...' : 'Salvar Alterações'}
-                    </button>
+                  <div className="p-6 border-b border-slate-200 bg-slate-50">
+                    <h3 className="font-bold text-slate-800 text-lg">Fluxo de Conversação da IA</h3>
+                    <p className="text-sm text-slate-500 mt-1">Configure o comportamento da IA em cada etapa do atendimento.</p>
                   </div>
                   
-                  <div className="p-6">
-                    {promptSaved && (
-                      <div className="mb-4 p-3 bg-green-50 text-green-700 border border-green-200 rounded-lg text-sm font-medium flex items-center gap-2">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        Prompt salvo com sucesso!
-                      </div>
-                    )}
-                    
-                    <textarea 
-                      value={aiPrompt}
-                      onChange={(e) => setAiPrompt(e.target.value)}
-                      className="w-full h-48 p-4 border border-slate-200 rounded-lg font-mono text-sm leading-relaxed focus:ring-2 focus:ring-[#dcb366] focus:border-transparent outline-none resize-y mb-6"
-                      placeholder="Digite o prompt da primeira mensagem aqui..."
+                  <div className="p-0">
+                    <PromptsFlow 
+                      aiPrompt={aiPrompt}
+                      setAiPrompt={setAiPrompt}
+                      aiChatPrompt={aiChatPrompt}
+                      setAiChatPrompt={setAiChatPrompt}
+                      onSave={handleSavePrompt}
+                      saving={savingPrompt}
+                      saved={promptSaved}
+                      expertPrompt={EXPERT_PROMPT}
                     />
-
-                    <div className="border-t border-slate-200 pt-6 mb-6">
-                      <div className="flex justify-between items-center mb-1">
-                        <h3 className="font-bold text-slate-800 text-lg">Prompt do Chatbot (Respostas Contínuas)</h3>
-                        <button 
-                          onClick={() => setAiChatPrompt(EXPERT_PROMPT)}
-                          className="flex items-center gap-2 text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded-lg transition-colors shadow-sm"
-                        >
-                          <Sparkles size={16} />
-                          Carregar Prompt Especialista
-                        </button>
-                      </div>
-                      <p className="text-sm text-slate-500 mb-4">Este é o comando que a IA recebe sempre que o cliente responder a mensagem no WhatsApp. O histórico da conversa será enviado automaticamente junto com este prompt.</p>
-                      
-                      <textarea 
-                        value={aiChatPrompt}
-                        onChange={(e) => setAiChatPrompt(e.target.value)}
-                        className="w-full h-96 p-4 border border-slate-200 rounded-lg font-mono text-sm leading-relaxed focus:ring-2 focus:ring-[#dcb366] focus:border-transparent outline-none resize-y"
-                        placeholder="Digite o prompt de conversação contínua aqui..."
-                      />
-                    </div>
-                    
-                    <div className="mt-6">
-                      <h4 className="font-bold text-slate-700 text-sm mb-3 uppercase tracking-wider">Variáveis Disponíveis</h4>
-                      <p className="text-sm text-slate-500 mb-4">Você pode usar estas variáveis no texto acima. Elas serão substituídas automaticamente pelas respostas do formulário do cliente.</p>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div className="bg-slate-50 p-3 rounded border border-slate-200 flex items-center gap-3">
-                          <code className="text-[#dcb366] font-bold bg-white px-2 py-1 rounded border border-slate-100">{'{nome}'}</code>
-                          <span className="text-sm text-slate-600">Nome do lead</span>
-                        </div>
-                        <div className="bg-slate-50 p-3 rounded border border-slate-200 flex items-center gap-3">
-                          <code className="text-[#dcb366] font-bold bg-white px-2 py-1 rounded border border-slate-100">{'{aposentadoriaComplementar}'}</code>
-                          <span className="text-sm text-slate-600">Sim / Não</span>
-                        </div>
-                        <div className="bg-slate-50 p-3 rounded border border-slate-200 flex items-center gap-3">
-                          <code className="text-[#dcb366] font-bold bg-white px-2 py-1 rounded border border-slate-100">{'{contribuicao89a95}'}</code>
-                          <span className="text-sm text-slate-600">Sim / Não</span>
-                        </div>
-                        <div className="bg-slate-50 p-3 rounded border border-slate-200 flex items-center gap-3">
-                          <code className="text-[#dcb366] font-bold bg-white px-2 py-1 rounded border border-slate-100">{'{pagaIrAtualmente}'}</code>
-                          <span className="text-sm text-slate-600">Sim / Não</span>
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 </div>
               )}
