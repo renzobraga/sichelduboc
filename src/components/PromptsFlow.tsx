@@ -151,90 +151,230 @@ export default function PromptsFlow({
   expertPrompt
 }: PromptsFlowProps) {
   
+  const [prompt2, setPrompt2] = useState('Ótimo! Segunda pergunta: Você contribuiu para esse fundo de previdência entre os anos de 1989 e 1995? [BUTTONS: Sim | Não]');
+  const [prompt3, setPrompt3] = useState('Quase lá! Última pergunta: Atualmente, é descontado Imposto de Renda diretamente na fonte sobre o valor da sua aposentadoria complementar? [BUTTONS: Sim | Não]');
+  const [promptDesq, setPromptDesq] = useState('Compreendo. Analisando as suas respostas, verificamos que o seu perfil não se enquadra nos requisitos para esta ação. Agradecemos o contato!');
+  const [prompt4, setPrompt4] = useState('Excelente notícia! Você preenche os requisitos para buscar a restituição. Nossa equipe vai preparar sua análise. Qual é o seu nome completo?');
+  const [prompt5, setPrompt5] = useState('Tudo anotado! Precisaremos de alguns documentos: RG, Comprovante de Residência, Contracheque e Declaração de IR. Consegue me enviar hoje? [BUTTONS: Sim, envio hoje | Envio depois]');
+
   const initialNodes = [
     {
       id: 'trigger-1',
       type: 'trigger',
-      position: { x: 240, y: 50 },
+      position: { x: 400, y: 50 },
       data: { 
         label: 'Contato gatilho de inscrição', 
-        title: 'Assinatura de e-mail',
-        description: 'optou por receber Customer Service Communication' 
-      },
-    },
-    {
-      id: 'event-1',
-      type: 'event',
-      position: { x: 240, y: 250 },
-      data: { 
-        label: '1. Atrasar por uma quantidade def...', 
-        description: '5 minutos'
-      },
-    },
-    {
-      id: 'condition-1',
-      type: 'condition',
-      position: { x: 240, y: 400 },
-      data: { 
-        label: '2. Ramificação se/então', 
-        title: 'Primeiro, verifique Ad Interaction',
-        description: 'Pelo menos uma interação de anúncios associada tem Facebook ad type é qualquer de Business, Image, Post, ou Product'
+        title: 'Novo Lead',
+        description: 'Cliente entra em contato via WhatsApp ou Site.' 
       },
     },
     {
       id: 'prompt-1',
       type: 'prompt',
-      position: { x: 0, y: 650 },
+      position: { x: 360, y: 200 },
       data: { 
-        label: '3. Enviar notificação (Interagiu)',
-        description: 'Prompt usado para gerar a primeira mensagem de contato.',
+        label: '1. Triagem: Previdência',
+        description: 'Pergunta 1: Recebe previdência complementar?',
         value: aiPrompt,
         onChange: setAiPrompt,
-        placeholder: 'Digite o prompt da primeira mensagem...'
+        placeholder: 'Digite a primeira pergunta...'
+      },
+    },
+    {
+      id: 'event-1',
+      type: 'event',
+      position: { x: 400, y: 500 },
+      data: { 
+        label: 'Aguardar Resposta', 
+        description: 'Espera o cliente clicar em Sim ou Não'
+      },
+    },
+    {
+      id: 'condition-1',
+      type: 'condition',
+      position: { x: 400, y: 650 },
+      data: { 
+        label: 'Analisar Resposta 1', 
+        title: 'Recebe Previdência?',
+        description: 'Verifica se o cliente respondeu Sim.'
+      },
+    },
+    {
+      id: 'prompt-desq',
+      type: 'prompt',
+      position: { x: 50, y: 850 },
+      data: { 
+        label: 'Desqualificação',
+        description: 'Enviada quando o cliente não cumpre os requisitos.',
+        value: promptDesq,
+        onChange: setPromptDesq,
+        placeholder: 'Mensagem de recusa...'
       },
     },
     {
       id: 'prompt-2',
       type: 'prompt',
-      position: { x: 440, y: 650 },
+      position: { x: 750, y: 850 },
       data: { 
-        label: '4. Chatbot Contínuo (Não interagiu)',
-        description: 'Prompt usado para todas as respostas subsequentes.',
+        label: '2. Triagem: Período',
+        description: 'Pergunta 2: Contribuiu entre 1989 e 1995?',
+        value: prompt2,
+        onChange: setPrompt2,
+        placeholder: 'Digite a segunda pergunta...'
+      },
+    },
+    {
+      id: 'event-2',
+      type: 'event',
+      position: { x: 790, y: 1150 },
+      data: { 
+        label: 'Aguardar Resposta', 
+        description: 'Espera o cliente clicar em Sim ou Não'
+      },
+    },
+    {
+      id: 'condition-2',
+      type: 'condition',
+      position: { x: 790, y: 1300 },
+      data: { 
+        label: 'Analisar Resposta 2', 
+        title: 'Contribuiu 89-95?',
+        description: 'Verifica se o cliente respondeu Sim.'
+      },
+    },
+    {
+      id: 'prompt-3',
+      type: 'prompt',
+      position: { x: 750, y: 1500 },
+      data: { 
+        label: '3. Triagem: Retenção IR',
+        description: 'Pergunta 3: Tem desconto de IR na fonte?',
+        value: prompt3,
+        onChange: setPrompt3,
+        placeholder: 'Digite a terceira pergunta...'
+      },
+    },
+    {
+      id: 'event-3',
+      type: 'event',
+      position: { x: 790, y: 1800 },
+      data: { 
+        label: 'Aguardar Resposta', 
+        description: 'Espera o cliente clicar em Sim ou Não'
+      },
+    },
+    {
+      id: 'condition-3',
+      type: 'condition',
+      position: { x: 790, y: 1950 },
+      data: { 
+        label: 'Analisar Resposta 3', 
+        title: 'Retém IR atualmente?',
+        description: 'Verifica se o cliente respondeu Sim.'
+      },
+    },
+    {
+      id: 'prompt-4',
+      type: 'prompt',
+      position: { x: 750, y: 2150 },
+      data: { 
+        label: '4. Qualificação e Dados',
+        description: 'Informa o direito e pede dados básicos.',
+        value: prompt4,
+        onChange: setPrompt4,
+        placeholder: 'Mensagem de qualificação...'
+      },
+    },
+    {
+      id: 'event-4',
+      type: 'event',
+      position: { x: 790, y: 2450 },
+      data: { 
+        label: 'Aguardar Dados', 
+        description: 'Espera o cliente enviar nome, cidade, etc.'
+      },
+    },
+    {
+      id: 'prompt-5',
+      type: 'prompt',
+      position: { x: 750, y: 2600 },
+      data: { 
+        label: '5. Solicitar Documentos',
+        description: 'Pede RG, Comprovante, Contracheque e IR.',
+        value: prompt5,
+        onChange: setPrompt5,
+        placeholder: 'Mensagem pedindo documentos...'
+      },
+    },
+    {
+      id: 'event-5',
+      type: 'event',
+      position: { x: 790, y: 2900 },
+      data: { 
+        label: 'Aguardar Documentos', 
+        description: 'Espera o cliente enviar os arquivos.'
+      },
+    },
+    {
+      id: 'prompt-expert',
+      type: 'prompt',
+      position: { x: 750, y: 3050 },
+      data: { 
+        label: '6. Chatbot Contínuo (Objeções/Contrato)',
+        description: 'Assume a conversa para quebrar objeções e enviar contrato.',
         value: aiChatPrompt,
         onChange: setAiChatPrompt,
-        placeholder: 'Digite o prompt do chatbot...',
+        placeholder: 'Prompt do especialista...',
         showExpertButton: true,
         onLoadExpert: () => setAiChatPrompt(expertPrompt)
       },
-    },
+    }
   ];
 
   const initialEdges: any[] = [
-    { id: 'e1-2', source: 'trigger-1', target: 'event-1', type: 'smoothstep', style: { stroke: '#cbd5e1', strokeWidth: 2 } },
-    { id: 'e2-3', source: 'event-1', target: 'condition-1', type: 'smoothstep', style: { stroke: '#cbd5e1', strokeWidth: 2 } },
+    { id: 'e1-2', source: 'trigger-1', target: 'prompt-1', type: 'smoothstep', style: { stroke: '#cbd5e1', strokeWidth: 2 } },
+    { id: 'e2-3', source: 'prompt-1', target: 'event-1', type: 'smoothstep', style: { stroke: '#cbd5e1', strokeWidth: 2 } },
+    { id: 'e3-4', source: 'event-1', target: 'condition-1', type: 'smoothstep', style: { stroke: '#cbd5e1', strokeWidth: 2 } },
+    
+    // Condition 1
+    { id: 'c1-false', source: 'condition-1', sourceHandle: 'false', target: 'prompt-desq', type: 'smoothstep', style: { stroke: '#f43f5e', strokeWidth: 2 }, label: 'Não', labelStyle: { fill: '#be123c', fontWeight: 600, fontSize: 11 }, labelBgStyle: { fill: '#ffe4e6', fillOpacity: 1 }, labelBgPadding: [8, 4], labelBgBorderRadius: 4 },
+    { id: 'c1-true', source: 'condition-1', sourceHandle: 'true', target: 'prompt-2', type: 'smoothstep', style: { stroke: '#10b981', strokeWidth: 2 }, label: 'Sim', labelStyle: { fill: '#047857', fontWeight: 600, fontSize: 11 }, labelBgStyle: { fill: '#d1fae5', fillOpacity: 1 }, labelBgPadding: [8, 4], labelBgBorderRadius: 4 },
+
+    // Prompt 2 -> Event 2 -> Condition 2
+    { id: 'e4-5', source: 'prompt-2', target: 'event-2', type: 'smoothstep', style: { stroke: '#cbd5e1', strokeWidth: 2 } },
+    { id: 'e5-6', source: 'event-2', target: 'condition-2', type: 'smoothstep', style: { stroke: '#cbd5e1', strokeWidth: 2 } },
+
+    // Condition 2
+    { id: 'c2-false', source: 'condition-2', sourceHandle: 'false', target: 'prompt-desq', type: 'smoothstep', style: { stroke: '#f43f5e', strokeWidth: 2 }, label: 'Não', labelStyle: { fill: '#be123c', fontWeight: 600, fontSize: 11 }, labelBgStyle: { fill: '#ffe4e6', fillOpacity: 1 }, labelBgPadding: [8, 4], labelBgBorderRadius: 4 },
+    { id: 'c2-true', source: 'condition-2', sourceHandle: 'true', target: 'prompt-3', type: 'smoothstep', style: { stroke: '#10b981', strokeWidth: 2 }, label: 'Sim', labelStyle: { fill: '#047857', fontWeight: 600, fontSize: 11 }, labelBgStyle: { fill: '#d1fae5', fillOpacity: 1 }, labelBgPadding: [8, 4], labelBgBorderRadius: 4 },
+
+    // Prompt 3 -> Event 3 -> Condition 3
+    { id: 'e6-7', source: 'prompt-3', target: 'event-3', type: 'smoothstep', style: { stroke: '#cbd5e1', strokeWidth: 2 } },
+    { id: 'e7-8', source: 'event-3', target: 'condition-3', type: 'smoothstep', style: { stroke: '#cbd5e1', strokeWidth: 2 } },
+
+    // Condition 3
+    { id: 'c3-false', source: 'condition-3', sourceHandle: 'false', target: 'prompt-desq', type: 'smoothstep', style: { stroke: '#f43f5e', strokeWidth: 2 }, label: 'Não', labelStyle: { fill: '#be123c', fontWeight: 600, fontSize: 11 }, labelBgStyle: { fill: '#ffe4e6', fillOpacity: 1 }, labelBgPadding: [8, 4], labelBgBorderRadius: 4 },
+    { id: 'c3-true', source: 'condition-3', sourceHandle: 'true', target: 'prompt-4', type: 'smoothstep', style: { stroke: '#10b981', strokeWidth: 2 }, label: 'Sim', labelStyle: { fill: '#047857', fontWeight: 600, fontSize: 11 }, labelBgStyle: { fill: '#d1fae5', fillOpacity: 1 }, labelBgPadding: [8, 4], labelBgBorderRadius: 4 },
+
+    // Prompt 4 -> Event 4 -> Prompt 5 -> Event 5 -> Expert
+    { id: 'e8-9', source: 'prompt-4', target: 'event-4', type: 'smoothstep', style: { stroke: '#cbd5e1', strokeWidth: 2 } },
+    { id: 'e9-10', source: 'event-4', target: 'prompt-5', type: 'smoothstep', style: { stroke: '#cbd5e1', strokeWidth: 2 } },
+    { id: 'e10-11', source: 'prompt-5', target: 'event-5', type: 'smoothstep', style: { stroke: '#cbd5e1', strokeWidth: 2 } },
+    { id: 'e11-12', source: 'event-5', target: 'prompt-expert', type: 'smoothstep', style: { stroke: '#cbd5e1', strokeWidth: 2 } },
+    
+    // Loop back edge for expert
     { 
-      id: 'e3-4', 
-      source: 'condition-1', 
-      sourceHandle: 'true',
-      target: 'prompt-1', 
-      type: 'smoothstep', 
-      style: { stroke: '#10b981', strokeWidth: 2 },
-      label: 'Ad Interaction',
-      labelStyle: { fill: '#047857', fontWeight: 600, fontSize: 11 },
-      labelBgStyle: { fill: '#d1fae5', fillOpacity: 1 },
-      labelBgPadding: [8, 4] as [number, number],
-      labelBgBorderRadius: 4,
-    },
-    { 
-      id: 'e3-5', 
-      source: 'condition-1', 
-      sourceHandle: 'false',
-      target: 'prompt-2', 
-      type: 'smoothstep', 
-      style: { stroke: '#f43f5e', strokeWidth: 2 },
-      label: 'Did Not Interact',
-      labelStyle: { fill: '#be123c', fontWeight: 600, fontSize: 11 },
-      labelBgStyle: { fill: '#ffe4e6', fillOpacity: 1 },
+      id: 'e12-11', 
+      source: 'prompt-expert', 
+      target: 'event-5', 
+      type: 'smoothstep',
+      sourceHandle: 'bottom',
+      targetHandle: 'top',
+      animated: true, 
+      style: { stroke: '#94a3b8', strokeWidth: 2, strokeDasharray: '5,5' },
+      label: 'Loop de Conversa',
+      labelStyle: { fill: '#64748b', fontWeight: 600, fontSize: 11 },
+      labelBgStyle: { fill: '#f8fafc', fillOpacity: 0.9 },
       labelBgPadding: [8, 4] as [number, number],
       labelBgBorderRadius: 4,
     },
@@ -251,12 +391,27 @@ export default function PromptsFlow({
           node.data = { ...node.data, value: aiPrompt, onChange: setAiPrompt };
         }
         if (node.id === 'prompt-2') {
+          node.data = { ...node.data, value: prompt2, onChange: setPrompt2 };
+        }
+        if (node.id === 'prompt-3') {
+          node.data = { ...node.data, value: prompt3, onChange: setPrompt3 };
+        }
+        if (node.id === 'prompt-4') {
+          node.data = { ...node.data, value: prompt4, onChange: setPrompt4 };
+        }
+        if (node.id === 'prompt-5') {
+          node.data = { ...node.data, value: prompt5, onChange: setPrompt5 };
+        }
+        if (node.id === 'prompt-desq') {
+          node.data = { ...node.data, value: promptDesq, onChange: setPromptDesq };
+        }
+        if (node.id === 'prompt-expert') {
           node.data = { ...node.data, value: aiChatPrompt, onChange: setAiChatPrompt, onLoadExpert: () => setAiChatPrompt(expertPrompt) };
         }
         return node;
       })
     );
-  }, [aiPrompt, aiChatPrompt, setAiPrompt, setAiChatPrompt, expertPrompt, setNodes]);
+  }, [aiPrompt, aiChatPrompt, prompt2, prompt3, prompt4, prompt5, promptDesq, setAiPrompt, setAiChatPrompt, expertPrompt, setNodes]);
 
   return (
     <div className="h-[800px] w-full bg-slate-50 border border-slate-200 rounded-xl overflow-hidden relative flex flex-col">
