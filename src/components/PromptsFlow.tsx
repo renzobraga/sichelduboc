@@ -198,7 +198,7 @@ export default function PromptsFlow({
     {
       id: 'prompt-1',
       type: 'prompt',
-      position: { x: 360, y: 200 },
+      position: { x: 360, y: 450 },
       data: { 
         label: '1. Triagem: Previdência',
         description: 'Pergunta 1: Recebe previdência complementar?',
@@ -210,7 +210,7 @@ export default function PromptsFlow({
     {
       id: 'condition-1',
       type: 'condition',
-      position: { x: 400, y: 500 },
+      position: { x: 400, y: 950 },
       data: { 
         label: 'Aguardar Resposta', 
         title: 'Recebe Previdência?',
@@ -220,7 +220,7 @@ export default function PromptsFlow({
     {
       id: 'prompt-desq',
       type: 'prompt',
-      position: { x: 50, y: 700 },
+      position: { x: 50, y: 1350 },
       data: { 
         label: 'Desqualificação',
         description: 'Enviada quando o cliente não cumpre os requisitos.',
@@ -232,7 +232,7 @@ export default function PromptsFlow({
     {
       id: 'prompt-2',
       type: 'prompt',
-      position: { x: 750, y: 700 },
+      position: { x: 750, y: 1350 },
       data: { 
         label: '2. Triagem: Período',
         description: 'Pergunta 2: Contribuiu entre 1989 e 1995?',
@@ -244,7 +244,7 @@ export default function PromptsFlow({
     {
       id: 'condition-2',
       type: 'condition',
-      position: { x: 790, y: 1000 },
+      position: { x: 790, y: 1850 },
       data: { 
         label: 'Aguardar Resposta', 
         title: 'Contribuiu 89-95?',
@@ -254,7 +254,7 @@ export default function PromptsFlow({
     {
       id: 'prompt-3',
       type: 'prompt',
-      position: { x: 750, y: 1200 },
+      position: { x: 750, y: 2250 },
       data: { 
         label: '3. Triagem: Retenção IR',
         description: 'Pergunta 3: Tem desconto de IR na fonte?',
@@ -266,7 +266,7 @@ export default function PromptsFlow({
     {
       id: 'condition-3',
       type: 'condition',
-      position: { x: 790, y: 1500 },
+      position: { x: 790, y: 2750 },
       data: { 
         label: 'Aguardar Resposta', 
         title: 'Retém IR atualmente?',
@@ -276,7 +276,7 @@ export default function PromptsFlow({
     {
       id: 'prompt-4',
       type: 'prompt',
-      position: { x: 750, y: 1700 },
+      position: { x: 750, y: 3150 },
       data: { 
         label: '4. Qualificação e Dados',
         description: 'Informa o direito e pede dados básicos.',
@@ -288,7 +288,7 @@ export default function PromptsFlow({
     {
       id: 'event-4',
       type: 'event',
-      position: { x: 790, y: 2000 },
+      position: { x: 790, y: 3650 },
       data: { 
         label: 'Aguardar Dados', 
         description: 'Espera o cliente enviar nome, cidade, etc.'
@@ -297,7 +297,7 @@ export default function PromptsFlow({
     {
       id: 'prompt-5',
       type: 'prompt',
-      position: { x: 750, y: 2150 },
+      position: { x: 750, y: 4050 },
       data: { 
         label: '5. Solicitar Documentos',
         description: 'Pede RG, Comprovante, Contracheque e IR.',
@@ -309,7 +309,7 @@ export default function PromptsFlow({
     {
       id: 'condition-docs',
       type: 'condition',
-      position: { x: 790, y: 2450 },
+      position: { x: 790, y: 4550 },
       data: { 
         label: 'Aguardar Documentos', 
         title: 'Enviou Documentos?',
@@ -319,7 +319,7 @@ export default function PromptsFlow({
     {
       id: 'prompt-trust',
       type: 'prompt',
-      position: { x: 50, y: 2650 },
+      position: { x: 50, y: 5050 },
       data: { 
         label: 'Dúvida: É Seguro?',
         description: 'Explica sobre a OAB e a validade jurídica.',
@@ -331,7 +331,7 @@ export default function PromptsFlow({
     {
       id: 'prompt-fees',
       type: 'prompt',
-      position: { x: 50, y: 2850 },
+      position: { x: 50, y: 5550 },
       data: { 
         label: 'Dúvida: Honorários',
         description: 'Explica que só cobra no êxito.',
@@ -343,7 +343,7 @@ export default function PromptsFlow({
     {
       id: 'prompt-objections',
       type: 'prompt',
-      position: { x: 400, y: 2650 },
+      position: { x: 400, y: 5050 },
       data: { 
         label: '6. Superação de Objeções',
         description: 'Oferece reunião ou tira dúvidas por chat.',
@@ -355,7 +355,7 @@ export default function PromptsFlow({
     {
       id: 'condition-objections',
       type: 'condition',
-      position: { x: 440, y: 2950 },
+      position: { x: 440, y: 5550 },
       data: { 
         label: 'Aguardar Resposta', 
         title: 'Agendar ou Dúvidas?',
@@ -365,7 +365,7 @@ export default function PromptsFlow({
     {
       id: 'prompt-schedule',
       type: 'prompt',
-      position: { x: 50, y: 3150 },
+      position: { x: 50, y: 6050 },
       data: { 
         label: '7. Agendamento (Calendar)',
         description: 'Envia o link do Google Calendar.',
@@ -377,7 +377,7 @@ export default function PromptsFlow({
     {
       id: 'prompt-expert',
       type: 'prompt',
-      position: { x: 750, y: 3150 },
+      position: { x: 750, y: 6050 },
       data: { 
         label: '7. Chatbot Contínuo (Dúvidas)',
         description: 'Assume a conversa para tirar dúvidas específicas.',
@@ -391,7 +391,7 @@ export default function PromptsFlow({
     {
       id: 'prompt-contract',
       type: 'prompt',
-      position: { x: 1100, y: 2650 },
+      position: { x: 1100, y: 5050 },
       data: { 
         label: '6. Envio do Contrato',
         description: 'Envia o link para assinatura digital.',
@@ -403,7 +403,7 @@ export default function PromptsFlow({
     {
       id: 'condition-contract',
       type: 'condition',
-      position: { x: 1140, y: 2950 },
+      position: { x: 1140, y: 5550 },
       data: { 
         label: 'Aguardar Assinatura', 
         title: 'Assinou o Contrato?',
@@ -413,7 +413,7 @@ export default function PromptsFlow({
     {
       id: 'prompt-closing',
       type: 'prompt',
-      position: { x: 1100, y: 3150 },
+      position: { x: 1100, y: 6050 },
       data: { 
         label: '8. Fechamento / Sucesso',
         description: 'Mensagem de boas-vindas após assinatura.',

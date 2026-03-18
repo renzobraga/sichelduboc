@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
-import { LogOut, MessageCircle, LayoutDashboard, Workflow, Save, Bot, User, Kanban, List, BarChart3, Users, CheckCircle, XCircle, Clock, Moon, Sun, Sparkles, Calendar } from 'lucide-react';
+import { LogOut, MessageCircle, LayoutDashboard, Workflow, Save, Bot, User, Kanban, List, BarChart3, Users, CheckCircle, XCircle, Clock, Moon, Sun, Sparkles, Calendar, Maximize, Minimize } from 'lucide-react';
 import PromptsFlow from '../components/PromptsFlow';
 import GoogleCalendar from '../components/GoogleCalendar';
 
@@ -112,6 +112,7 @@ export default function Admin() {
   });
   const [savingPrompt, setSavingPrompt] = useState(false);
   const [promptSaved, setPromptSaved] = useState(false);
+  const [isFlowFullScreen, setIsFlowFullScreen] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
@@ -1010,13 +1011,22 @@ export default function Admin() {
                   </div>
 
                   {fluxoTab === 'prompts' && (
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                      <div className="p-6 border-b border-slate-200 bg-slate-50">
-                        <h3 className="font-bold text-slate-800 text-lg">Fluxo de Conversação da IA</h3>
-                        <p className="text-sm text-slate-500 mt-1">Configure o comportamento da IA em cada etapa do atendimento.</p>
+                    <div className={`${isFlowFullScreen ? 'fixed inset-0 z-[100] bg-white' : 'bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden'}`}>
+                      <div className="p-6 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+                        <div>
+                          <h3 className="font-bold text-slate-800 text-lg">Fluxo de Conversação da IA</h3>
+                          <p className="text-sm text-slate-500 mt-1">Configure o comportamento da IA em cada etapa do atendimento.</p>
+                        </div>
+                        <button 
+                          onClick={() => setIsFlowFullScreen(!isFlowFullScreen)}
+                          className="p-2 hover:bg-slate-200 rounded-lg transition-colors text-slate-600"
+                          title={isFlowFullScreen ? "Sair da tela cheia" : "Abrir em tela cheia"}
+                        >
+                          {isFlowFullScreen ? <Minimize size={20} /> : <Maximize size={20} />}
+                        </button>
                       </div>
                       
-                      <div className="p-0">
+                      <div className={`${isFlowFullScreen ? 'h-[calc(100vh-88px)]' : 'p-0'}`}>
                         <PromptsFlow 
                           prompts={prompts}
                           setPrompts={setPrompts}
