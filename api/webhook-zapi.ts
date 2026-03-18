@@ -10,7 +10,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
     const data = req.body;
     
     // Z-API sends events like 'onMessage'
-    if (data && data.phone && !data.isGroup) {
+    if (data && data.phone && data.isGroup !== true && data.isGroup !== "true" && data.fromMe !== true && data.fromMe !== "true") {
       let messageText = "";
       
       // Prioritize button/interactive responses first
@@ -31,6 +31,8 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
         messageText = data.button.text;
       } else if (data.extendedTextMessage && data.extendedTextMessage.text) {
         messageText = data.extendedTextMessage.text;
+      } else if (data.text && typeof data.text === 'string') {
+        messageText = data.text;
       } else if (data.text && data.text.message) {
         messageText = data.text.message;
       }
@@ -52,11 +54,32 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
       console.log(`Mensagem recebida de ${phone}: ${messageText}`);
 
       // 1. Encontrar o Lead pelo telefone usando dbAdmin (bypassa regras de segurança)
-      const leadsSnapshot = await dbAdmin.collection('leads')
+      let leadsSnapshot = await dbAdmin.collection('leads')
         .where('telefone', '==', phone)
         .orderBy('createdAt', 'desc')
         .limit(1)
         .get();
+
+      // Se não encontrou, tentar com ou sem o 9 (para números do Brasil)
+      if (leadsSnapshot.empty && phone.startsWith('55') && phone.length >= 12) {
+        let altPhone = '';
+        if (phone.length === 13) {
+          // Remover o 9 (ex: 5511999999999 -> 551199999999)
+          altPhone = phone.substring(0, 4) + phone.substring(5);
+        } else if (phone.length === 12) {
+          // Adicionar o 9 (ex: 551199999999 -> 5511999999999)
+          altPhone = phone.substring(0, 4) + '9' + phone.substring(4);
+        }
+        
+        if (altPhone) {
+          console.log(`Tentando buscar lead com telefone alternativo: ${altPhone}`);
+          leadsSnapshot = await dbAdmin.collection('leads')
+            .where('telefone', '==', altPhone)
+            .orderBy('createdAt', 'desc')
+            .limit(1)
+            .get();
+        }
+      }
 
       if (!leadsSnapshot.empty) {
         const leadDoc = leadsSnapshot.docs[0];
