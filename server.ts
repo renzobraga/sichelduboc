@@ -5,6 +5,7 @@ import submitFormHandler from "./api/submit-form.js";
 import webhookZapiHandler from "./api/webhook-zapi.js";
 import sendMessageHandler from "./api/send-message.js";
 import cronFollowupsHandler from "./api/cron-followups.js";
+import { getGoogleAuthUrl, handleGoogleCallback, getGoogleEvents } from "./api/google-calendar.js";
 
 dotenv.config();
 
@@ -26,6 +27,11 @@ async function startServer() {
   // Cron job para follow-ups
   app.get("/api/cron-followups", cronFollowupsHandler);
   app.post("/api/cron-followups", cronFollowupsHandler);
+
+  // Google Calendar OAuth & API
+  app.get("/api/auth/google/url", getGoogleAuthUrl);
+  app.get("/api/auth/google/callback", handleGoogleCallback);
+  app.get("/api/auth/google/events", getGoogleEvents);
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {

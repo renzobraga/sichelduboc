@@ -479,7 +479,7 @@ const Home: React.FC = () => {
                 <CheckCircle2 className="w-20 h-20 text-emerald-500 mx-auto mb-6" />
                 <h5 className="text-2xl font-bold text-emerald-900 mb-4">Análise Solicitada com Sucesso!</h5>
                 <p className="text-emerald-700 text-lg mb-6">
-                  Excelente! Você atende aos requisitos iniciais. Nossa equipe de especialistas jurídicos entrará em contato em até 24 horas para dar andamento ao seu caso.
+                  Excelente! Você atende aos requisitos iniciais. Nossa equipe de especialistas jurídicos entrará em contato <strong>com você pelo WhatsApp</strong> em até 24 horas para dar andamento ao seu caso.
                 </p>
                 <p className="text-sm text-emerald-600 font-medium">
                   Por favor, separe seus comprovantes de rendimento e extratos do fundo de pensão.
@@ -602,7 +602,7 @@ const Home: React.FC = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-bold text-[#38383a]">WhatsApp / Telefone</label>
+                      <label className="text-sm font-bold text-[#38383a]">Número do WhatsApp</label>
                       <input 
                         type="tel" 
                         name="telefone"
@@ -612,6 +612,7 @@ const Home: React.FC = () => {
                         className="w-full p-3 border border-slate-200 rounded-md focus:ring-2 focus:ring-[#dcb366] focus:border-transparent outline-none transition-all"
                         placeholder="(00) 00000-0000"
                       />
+                      <p className="text-xs text-slate-500">É por este número que nossa equipe fará o atendimento.</p>
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-bold text-[#38383a]">E-mail</label>
@@ -669,7 +670,7 @@ const Home: React.FC = () => {
                   )}
                 </button>
                 <p className="text-center text-xs text-slate-400">
-                  Seus dados estão protegidos de acordo com a LGPD e serão utilizados exclusivamente para esta análise.
+                  Seus dados estão protegidos de acordo com a LGPD. Ao solicitar a análise, você concorda em receber nosso contato via WhatsApp.
                 </p>
               </form>
             )}
@@ -741,7 +742,7 @@ const Home: React.FC = () => {
 
       {/* Floating WhatsApp Button */}
       <a
-        href="https://wa.me/5522981469517?text=Olá,%20gostaria%20de%20uma%20análise%20gratuita%20sobre%20a%20restituição%20do%20Imposto%20de%20Renda."
+        href="https://wa.me/5522981469517?text=Olá!%20Vim%20pelo%20site%20e%20quero%20iniciar%20minha%20análise%20gratuita%20sobre%20a%20restituição%20do%20Imposto%20de%20Renda."
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-6 right-6 z-50 bg-[#25D366] text-white p-4 rounded-full shadow-lg hover:bg-[#20bd5a] hover:scale-110 transition-all duration-300 flex items-center justify-center group"

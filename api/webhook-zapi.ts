@@ -81,11 +81,38 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
         }
       }
 
-      if (!leadsSnapshot.empty) {
-        const leadDoc = leadsSnapshot.docs[0];
-        const leadId = leadDoc.id;
-        const leadData = leadDoc.data();
+      let leadDoc;
+      let leadId;
+      let leadData;
 
+      if (!leadsSnapshot.empty) {
+        leadDoc = leadsSnapshot.docs[0];
+        leadId = leadDoc.id;
+        leadData = leadDoc.data();
+      } else {
+        const triggerMessage = "quero iniciar minha análise gratuita";
+        if (messageText.toLowerCase().includes(triggerMessage)) {
+          console.log(`Mensagem de gatilho detectada! Criando novo lead para ${phone}`);
+          const newLead = {
+            telefone: phone,
+            nome: "Cliente (Via WhatsApp)",
+            status: "novo",
+            aiEnabled: true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            origem: "Botão WhatsApp Site"
+          };
+          const leadRef = await dbAdmin.collection('leads').add(newLead);
+          leadDoc = await leadRef.get();
+          leadId = leadDoc.id;
+          leadData = leadDoc.data();
+        } else {
+          console.log(`Lead não encontrado e não é mensagem de gatilho: ${phone}`);
+          return res.status(200).json({ success: true, message: "Ignored" });
+        }
+      }
+
+      if (leadDoc && leadData) {
         // 2. Salvar a mensagem recebida com deduplicação
         const messageId = data.messageId;
         const msgDocId = messageId ? `zapi_${messageId}` : `msg_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
@@ -307,8 +334,6 @@ Quando os documentos forem recebidos ou o lead confirmar interesse:
             console.error("Erro ao gerar/enviar resposta da IA no webhook:", aiError);
           }
         }
-      } else {
-        console.log(`Lead não encontrado para o telefone: ${phone}`);
       }
     }
 

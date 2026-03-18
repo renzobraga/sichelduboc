@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
-import { LogOut, MessageCircle, LayoutDashboard, Workflow, Save, Bot, User, Kanban, List, BarChart3, Users, CheckCircle, XCircle, Clock, Moon, Sun, Sparkles } from 'lucide-react';
+import { LogOut, MessageCircle, LayoutDashboard, Workflow, Save, Bot, User, Kanban, List, BarChart3, Users, CheckCircle, XCircle, Clock, Moon, Sun, Sparkles, Calendar } from 'lucide-react';
 import PromptsFlow from '../components/PromptsFlow';
+import GoogleCalendar from '../components/GoogleCalendar';
 
 const EXPERT_PROMPT = `Você é o assistente virtual do escritório de advocacia Sichel & Duboc, especialista em direito previdenciário e tributário.
 Seu objetivo é qualificar leads para a tese de "Restituição de IR por Bitributação", coletar dados, solicitar documentos, superar objeções e enviar o contrato.
@@ -80,7 +81,7 @@ export default function Admin() {
   const [newMessage, setNewMessage] = useState('');
   
   // Layout states
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'chat' | 'fluxos'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'chat' | 'fluxos' | 'calendario'>('dashboard');
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('adminDarkMode');
@@ -432,6 +433,14 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
           </button>
           
           <button 
+            onClick={() => setActiveTab('calendario')}
+            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium ${activeTab === 'calendario' ? 'bg-[#dcb366] text-[#1a1a1a]' : 'text-slate-300 hover:bg-white/5 hover:text-white'}`}
+          >
+            <Calendar size={18} />
+            Calendário
+          </button>
+          
+          <button 
             onClick={() => setActiveTab('fluxos')}
             className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium ${activeTab === 'fluxos' ? 'bg-[#dcb366] text-[#1a1a1a]' : 'text-slate-300 hover:bg-white/5 hover:text-white'}`}
           >
@@ -610,11 +619,12 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
             </div>
 
             {/* Lead Details & Chat */}
-            <div className="flex-1 flex flex-col bg-white">
+            <div className="flex-1 flex bg-white">
               {selectedLead ? (
                 <>
-                  <div className="bg-white p-6 border-b border-slate-200 shrink-0 shadow-sm z-10">
-                    <div className="flex justify-between items-start mb-4">
+                  {/* Chat Area */}
+                  <div className="flex-1 flex flex-col border-r border-slate-200">
+                    <div className="p-4 border-b border-slate-200 bg-white shrink-0 flex justify-between items-center z-10 shadow-sm">
                       <div>
                         <h2 className="text-xl font-bold text-slate-800 mb-1">{selectedLead.nome}</h2>
                         <p className="text-sm text-slate-500 flex items-center gap-2">
@@ -629,92 +639,107 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
                         >
                           {selectedLead.aiEnabled !== false ? <><Bot size={16} /> IA Ativa</> : <><User size={16} /> Humano</>}
                         </button>
-                        <div className="w-px bg-slate-200 mx-1"></div>
+                      </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4 bg-slate-50/50">
+                      {messages.length === 0 ? (
+                        <div className="text-center text-slate-400 my-auto">
+                          Nenhuma mensagem registrada.
+                        </div>
+                      ) : (
+                        messages.map(msg => (
+                          <div 
+                            key={msg.id} 
+                            className={`max-w-[80%] rounded-2xl p-4 shadow-sm ${
+                              msg.sender === 'user' 
+                                ? 'bg-white border border-slate-200 self-start rounded-tl-none' 
+                                : msg.sender === 'bot'
+                                  ? 'bg-slate-800 text-white self-end rounded-tr-none'
+                                  : 'bg-[#dcb366] text-white self-end rounded-tr-none'
+                            }`}
+                          >
+                            <div className="text-[10px] opacity-70 mb-1.5 font-bold uppercase tracking-wider flex justify-between items-center gap-4">
+                              <span>{msg.sender === 'user' ? selectedLead.nome : msg.sender === 'bot' ? 'Robô IA' : 'Você (Admin)'}</span>
+                              <span>{new Date(msg.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                            </div>
+                            <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.text}</p>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    <div className="p-4 bg-white border-t border-slate-200 shrink-0">
+                      <form onSubmit={sendMessage} className="flex gap-2">
+                        <input
+                          type="text"
+                          value={newMessage}
+                          onChange={(e) => setNewMessage(e.target.value)}
+                          placeholder="Digite uma mensagem manual..."
+                          className="flex-1 p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#dcb366] focus:border-transparent outline-none"
+                        />
+                        <button 
+                          type="submit"
+                          disabled={!newMessage.trim()}
+                          className="bg-[#38383a] text-white px-6 py-3 rounded-lg font-bold hover:bg-black transition-colors disabled:opacity-50"
+                        >
+                          Enviar
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+
+                  {/* Right Sidebar: Lead Details */}
+                  <div className="w-80 bg-white flex flex-col shrink-0 overflow-y-auto">
+                    <div className="p-6">
+                      <h3 className="font-bold text-slate-800 mb-4">Detalhes do Lead</h3>
+                      
+                      {/* Action Buttons */}
+                      <div className="flex flex-col gap-2 mb-6">
                         <button 
                           onClick={() => updateLeadStatus(selectedLead.id, 'em_atendimento')}
-                          className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${selectedLead.status === 'em_atendimento' ? 'bg-amber-100 text-amber-800 shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}
+                          className={`px-3 py-2 rounded text-sm font-medium transition-colors text-left ${selectedLead.status === 'em_atendimento' ? 'bg-amber-100 text-amber-800 shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'}`}
                         >
-                          Em Atend.
+                          Em Atendimento
                         </button>
                         <button 
                           onClick={() => updateLeadStatus(selectedLead.id, 'qualificado')}
-                          className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${selectedLead.status === 'qualificado' ? 'bg-green-100 text-green-800 shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}
+                          className={`px-3 py-2 rounded text-sm font-medium transition-colors text-left ${selectedLead.status === 'qualificado' ? 'bg-green-100 text-green-800 shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'}`}
                         >
                           Qualificar
                         </button>
                         <button 
                           onClick={() => updateLeadStatus(selectedLead.id, 'descartado')}
-                          className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${selectedLead.status === 'descartado' ? 'bg-red-100 text-red-800 shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}
+                          className={`px-3 py-2 rounded text-sm font-medium transition-colors text-left ${selectedLead.status === 'descartado' ? 'bg-red-100 text-red-800 shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'}`}
                         >
                           Descartar
                         </button>
                       </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4 text-xs">
-                      <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
-                        <span className="block text-slate-400 text-[9px] uppercase font-bold mb-1 tracking-wider">Aposentadoria</span>
-                        <span className="font-medium text-slate-700 capitalize">{selectedLead.aposentadoriaComplementar || '-'}</span>
-                      </div>
-                      <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
-                        <span className="block text-slate-400 text-[9px] uppercase font-bold mb-1 tracking-wider">Contribuiu 89-95</span>
-                        <span className="font-medium text-slate-700 capitalize">{selectedLead.contribuicao89a95 || '-'}</span>
-                      </div>
-                      <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
-                        <span className="block text-slate-400 text-[9px] uppercase font-bold mb-1 tracking-wider">Paga IR</span>
-                        <span className="font-medium text-slate-700 capitalize">{selectedLead.pagaIrAtualmente || '-'}</span>
-                      </div>
-                      <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
-                        <span className="block text-slate-400 text-[9px] uppercase font-bold mb-1 tracking-wider">Localização</span>
-                        <span className="font-medium text-slate-700">{selectedLead.cidade || '-'} / {selectedLead.estado || '-'}</span>
-                      </div>
-                    </div>
-                  </div>
 
-                  <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4 bg-slate-50/50">
-                    {messages.length === 0 ? (
-                      <div className="text-center text-slate-400 my-auto">
-                        Nenhuma mensagem registrada.
-                      </div>
-                    ) : (
-                      messages.map(msg => (
-                        <div 
-                          key={msg.id} 
-                          className={`max-w-[80%] rounded-2xl p-4 shadow-sm ${
-                            msg.sender === 'user' 
-                              ? 'bg-white border border-slate-200 self-start rounded-tl-none' 
-                              : msg.sender === 'bot'
-                                ? 'bg-slate-800 text-white self-end rounded-tr-none'
-                                : 'bg-[#dcb366] text-white self-end rounded-tr-none'
-                          }`}
-                        >
-                          <div className="text-[10px] opacity-70 mb-1.5 font-bold uppercase tracking-wider flex justify-between items-center gap-4">
-                            <span>{msg.sender === 'user' ? selectedLead.nome : msg.sender === 'bot' ? 'Robô IA' : 'Você (Admin)'}</span>
-                            <span>{new Date(msg.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
-                          </div>
-                          <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.text}</p>
+                      {/* Details Grid (Vertical) */}
+                      <div className="flex flex-col gap-3 text-xs">
+                        <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                          <span className="block text-slate-400 text-[9px] uppercase font-bold mb-1 tracking-wider">Aposentadoria</span>
+                          <span className="font-medium text-slate-700 capitalize">{selectedLead.aposentadoriaComplementar || '-'}</span>
                         </div>
-                      ))
-                    )}
-                  </div>
-
-                  <div className="p-4 bg-white border-t border-slate-200 shrink-0">
-                    <form onSubmit={sendMessage} className="flex gap-2">
-                      <input
-                        type="text"
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        placeholder="Digite uma mensagem manual..."
-                        className="flex-1 p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#dcb366] focus:border-transparent outline-none"
-                      />
-                      <button 
-                        type="submit"
-                        disabled={!newMessage.trim()}
-                        className="bg-[#38383a] text-white px-6 py-3 rounded-lg font-bold hover:bg-black transition-colors disabled:opacity-50"
-                      >
-                        Enviar
-                      </button>
-                    </form>
+                        <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                          <span className="block text-slate-400 text-[9px] uppercase font-bold mb-1 tracking-wider">Contribuiu 89-95</span>
+                          <span className="font-medium text-slate-700 capitalize">{selectedLead.contribuicao89a95 || '-'}</span>
+                        </div>
+                        <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                          <span className="block text-slate-400 text-[9px] uppercase font-bold mb-1 tracking-wider">Paga IR</span>
+                          <span className="font-medium text-slate-700 capitalize">{selectedLead.pagaIrAtualmente || '-'}</span>
+                        </div>
+                        <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                          <span className="block text-slate-400 text-[9px] uppercase font-bold mb-1 tracking-wider">Localização</span>
+                          <span className="font-medium text-slate-700">{selectedLead.cidade || '-'} / {selectedLead.estado || '-'}</span>
+                        </div>
+                        <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                          <span className="block text-slate-400 text-[9px] uppercase font-bold mb-1 tracking-wider">Email</span>
+                          <span className="font-medium text-slate-700 break-all">{selectedLead.email || '-'}</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </>
               ) : (
@@ -725,6 +750,11 @@ Não invente informações jurídicas complexas, apenas colete dados e seja acol
               )}
             </div>
           </div>
+        )}
+
+        {/* CALENDARIO TAB */}
+        {activeTab === 'calendario' && (
+          <GoogleCalendar />
         )}
 
         {/* FLUXOS TAB */}
