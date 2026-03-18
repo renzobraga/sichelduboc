@@ -95,13 +95,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (followUpText) {
         try {
           // Send message via Z-API
-          const zapiToken = process.env.ZAPI_CLIENT_TOKEN;
-          const zapiInstance = process.env.ZAPI_INSTANCE || '3C0826E23793700E211A41D099516668';
+          const zApiInstance = process.env.ZAPI_INSTANCE || "3F04463B905D722D1841026B50D22DF4";
+          const zApiToken = process.env.ZAPI_TOKEN || "DA7B3B0DBC0D106EAB56DF63";
           
-          if (zapiToken) {
-            const response = await fetch(`https://api.z-api.io/instances/${zapiInstance}/token/${zapiToken}/send-text`, {
+          if (zApiToken) {
+            const zApiHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+            if (process.env.ZAPI_CLIENT_TOKEN) {
+              zApiHeaders["Client-Token"] = process.env.ZAPI_CLIENT_TOKEN;
+            }
+
+            const response = await fetch(`https://api.z-api.io/instances/${zApiInstance}/token/${zApiToken}/send-text`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: zApiHeaders,
               body: JSON.stringify({
                 phone: lead.telefone,
                 message: followUpText

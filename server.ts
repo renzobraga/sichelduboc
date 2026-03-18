@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import submitFormHandler from "./api/submit-form.js";
 import webhookZapiHandler from "./api/webhook-zapi.js";
 import sendMessageHandler from "./api/send-message.js";
+import cronFollowupsHandler from "./api/cron-followups.js";
 
 dotenv.config();
 
@@ -21,6 +22,10 @@ async function startServer() {
 
   // Envio manual de mensagem
   app.post("/api/send-message", sendMessageHandler);
+
+  // Cron job para follow-ups
+  app.get("/api/cron-followups", cronFollowupsHandler);
+  app.post("/api/cron-followups", cronFollowupsHandler);
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
