@@ -2,10 +2,11 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { dbAdmin } from "./firebase-admin.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Verify cron secret if needed (Vercel sends a header)
-  // if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
-  //   return res.status(401).end('Unauthorized');
-  // }
+  // Segurança: verifica se a requisição tem a senha correta (para evitar que curiosos disparem o cron)
+  const cronSecret = process.env.CRON_SECRET;
+  if (cronSecret && req.headers.authorization !== `Bearer ${cronSecret}`) {
+    return res.status(401).json({ error: 'Não autorizado' });
+  }
 
   try {
     const now = new Date();
