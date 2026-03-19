@@ -6,7 +6,12 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || '';
 
 // Helper to get the redirect URI dynamically based on the request origin
 function getRedirectUri(req: Request) {
-  const appUrl = process.env.APP_URL || `http://localhost:${process.env.PORT || 3000}`;
+  let appUrl = process.env.APP_URL;
+  if (!appUrl && req && req.headers && req.headers.host) {
+    const protocol = req.headers['x-forwarded-proto'] || 'http';
+    appUrl = `${protocol}://${req.headers.host}`;
+  }
+  appUrl = appUrl || `http://localhost:${process.env.PORT || 3000}`;
   // Ensure no trailing slash
   const baseUrl = appUrl.endsWith('/') ? appUrl.slice(0, -1) : appUrl;
   return `${baseUrl}/api/auth/google/callback`;
