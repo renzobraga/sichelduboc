@@ -6,6 +6,7 @@ import { LogOut, MessageCircle, LayoutDashboard, Workflow, Save, Bot, User, Kanb
 import { PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, AreaChart, Area } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
 import PromptsFlow from '../components/PromptsFlow';
+import FlowSimulator from '../components/FlowSimulator';
 import GoogleCalendar from '../components/GoogleCalendar';
 
 const EXPERT_PROMPT = `Você é o assistente virtual do escritório de advocacia Sichel & Duboc, especialista em direito previdenciário e tributário.
@@ -98,7 +99,9 @@ export default function Admin() {
   
   // Fluxos states
   const [fluxoTab, setFluxoTab] = useState<'prompts' | 'timers' | 'videos'>('prompts');
+  const [promptsSubTab, setPromptsSubTab] = useState<'visual' | 'simulator'>('visual');
   const [flowView, setFlowView] = useState<'list' | 'editor'>('list');
+  const [isFlowFullScreen, setIsFlowFullScreen] = useState(false);
 
   // Chart data helpers
   const getStatusData = () => {
@@ -157,7 +160,6 @@ export default function Admin() {
   });
   const [savingPrompt, setSavingPrompt] = useState(false);
   const [promptSaved, setPromptSaved] = useState(false);
-  const [isFlowFullScreen, setIsFlowFullScreen] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -1486,28 +1488,112 @@ export default function Admin() {
                   {fluxoTab === 'prompts' && (
                     <div className={`${isFlowFullScreen ? 'fixed inset-0 z-[100] bg-white' : 'bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden'}`}>
                       <div className="p-6 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
-                        <div>
-                          <h3 className="font-bold text-slate-800 text-lg">Fluxo de Conversação da IA</h3>
-                          <p className="text-sm text-slate-500 mt-1">Configure o comportamento da IA em cada etapa do atendimento.</p>
+                        <div className="flex items-center gap-6">
+                          <div>
+                            <h3 className="font-bold text-slate-800 text-lg">Fluxo de Conversação da IA</h3>
+                            <p className="text-sm text-slate-500 mt-1">Configure o comportamento da IA em cada etapa do atendimento.</p>
+                          </div>
+                          
+                          <div className="flex bg-slate-200 p-1 rounded-xl ml-4">
+                            <button 
+                              onClick={() => setPromptsSubTab('visual')}
+                              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${promptsSubTab === 'visual' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                            >
+                              Editor Visual
+                            </button>
+                            <button 
+                              onClick={() => setPromptsSubTab('simulator')}
+                              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${promptsSubTab === 'simulator' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                            >
+                              Simulador
+                            </button>
+                          </div>
                         </div>
-                        <button 
-                          onClick={() => setIsFlowFullScreen(!isFlowFullScreen)}
-                          className="p-2 hover:bg-slate-200 rounded-lg transition-colors text-slate-600"
-                          title={isFlowFullScreen ? "Sair da tela cheia" : "Abrir em tela cheia"}
-                        >
-                          {isFlowFullScreen ? <Minimize size={20} /> : <Maximize size={20} />}
-                        </button>
+                        <div className="flex items-center gap-3">
+                          <button 
+                            onClick={() => setIsFlowFullScreen(!isFlowFullScreen)}
+                            className="p-2 hover:bg-slate-200 rounded-lg transition-colors text-slate-600"
+                            title={isFlowFullScreen ? "Sair da tela cheia" : "Abrir em tela cheia"}
+                          >
+                            {isFlowFullScreen ? <Minimize size={20} /> : <Maximize size={20} />}
+                          </button>
+                        </div>
                       </div>
                       
                       <div className={`${isFlowFullScreen ? 'h-[calc(100vh-88px)]' : 'p-0'}`}>
-                        <PromptsFlow 
-                          prompts={prompts}
-                          setPrompts={setPrompts}
-                          onSave={handleSavePrompt}
-                          saving={savingPrompt}
-                          saved={promptSaved}
-                          expertPrompt={EXPERT_PROMPT}
-                        />
+                        {promptsSubTab === 'visual' ? (
+                          <div className="flex flex-col lg:flex-row">
+                            <div className="flex-1">
+                              <PromptsFlow 
+                                prompts={prompts}
+                                setPrompts={setPrompts}
+                                onSave={handleSavePrompt}
+                                saving={savingPrompt}
+                                saved={promptSaved}
+                                expertPrompt={EXPERT_PROMPT}
+                              />
+                            </div>
+                            
+                            {/* Quick Guide Sidebar */}
+                            {!isFlowFullScreen && (
+                              <div className="w-full lg:w-80 bg-slate-50 border-l border-slate-200 p-6 overflow-y-auto max-h-[800px]">
+                                <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                  <Sparkles size={18} className="text-indigo-500" />
+                                  Guia Rápido
+                                </h4>
+                                <div className="space-y-6">
+                                  <div className="relative pl-6 border-l-2 border-indigo-200">
+                                    <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-indigo-500 border-4 border-white shadow-sm" />
+                                    <h5 className="text-xs font-bold text-slate-700 uppercase mb-1">1. Triagem</h5>
+                                    <p className="text-xs text-slate-500 leading-relaxed">
+                                      O robô faz 3 perguntas chave para saber se o cliente tem direito à restituição.
+                                    </p>
+                                  </div>
+                                  
+                                  <div className="relative pl-6 border-l-2 border-indigo-200">
+                                    <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-indigo-500 border-4 border-white shadow-sm" />
+                                    <h5 className="text-xs font-bold text-slate-700 uppercase mb-1">2. Qualificação</h5>
+                                    <p className="text-xs text-slate-500 leading-relaxed">
+                                      Se aprovado, o robô explica o direito e coleta nome e cidade do lead.
+                                    </p>
+                                  </div>
+                                  
+                                  <div className="relative pl-6 border-l-2 border-indigo-200">
+                                    <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-indigo-500 border-4 border-white shadow-sm" />
+                                    <h5 className="text-xs font-bold text-slate-700 uppercase mb-1">3. Documentos</h5>
+                                    <p className="text-xs text-slate-500 leading-relaxed">
+                                      Solicita fotos dos documentos necessários para a análise jurídica.
+                                    </p>
+                                  </div>
+                                  
+                                  <div className="relative pl-6 border-l-2 border-slate-200">
+                                    <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-slate-400 border-4 border-white shadow-sm" />
+                                    <h5 className="text-xs font-bold text-slate-700 uppercase mb-1">4. Fechamento</h5>
+                                    <p className="text-xs text-slate-500 leading-relaxed">
+                                      Supera dúvidas e envia o link do contrato para assinatura digital.
+                                    </p>
+                                  </div>
+                                </div>
+                                
+                                <div className="mt-8 p-4 bg-indigo-600 rounded-2xl text-white shadow-lg shadow-indigo-200">
+                                  <h5 className="font-bold text-sm mb-2 flex items-center gap-2">
+                                    <Bot size={16} />
+                                    Dica de Ouro
+                                  </h5>
+                                  <p className="text-[11px] leading-relaxed opacity-90">
+                                    Use o <strong>Simulador</strong> ao lado para testar as respostas do robô antes de salvar as alterações.
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="p-8 bg-slate-100 min-h-[600px] flex items-center justify-center">
+                            <div className="w-full max-w-2xl">
+                              <FlowSimulator prompts={prompts} />
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
