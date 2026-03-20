@@ -46,10 +46,16 @@ export default function FlowSimulator({ prompts }: FlowSimulatorProps) {
     setLoading(true);
 
     try {
-      const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey) throw new Error("API Key não encontrada");
-
-      const genAI = new GoogleGenAI({ apiKey });
+      const apiKey = process.env.GEMINI_API_KEY || (import.meta as any).env.VITE_GEMINI_API_KEY;
+      if (!apiKey) {
+        setMessages(prev => [...prev, { 
+          role: 'bot', 
+          content: "Erro: API Key do Gemini não encontrada. Verifique as configurações do ambiente (VITE_GEMINI_API_KEY ou process.env.GEMINI_API_KEY)." 
+        }]);
+        setLoading(false);
+        return;
+      }
+      const genAI = new GoogleGenAI({ apiKey: apiKey as string });
       
       // Construct the simulator prompt
       const simulatorSystemInstruction = `
@@ -86,13 +92,15 @@ export default function FlowSimulator({ prompts }: FlowSimulatorProps) {
       const response = await genAI.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: [
-          { role: 'user', parts: [{ text: simulatorSystemInstruction }] },
           ...messages.map(m => ({
             role: m.role === 'user' ? 'user' : 'model',
             parts: [{ text: m.content }]
           })),
           { role: 'user', parts: [{ text: userMsg }] }
         ],
+        config: {
+          systemInstruction: simulatorSystemInstruction,
+        }
       });
 
       const botResponse = response.text || "Desculpe, não consegui processar a resposta.";

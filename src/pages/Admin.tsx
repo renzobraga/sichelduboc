@@ -103,6 +103,7 @@ export default function Admin() {
   // Fluxos states
   const [promptsSubTab, setPromptsSubTab] = useState<'text' | 'visual' | 'simulator' | 'edit'>('visual');
   const [flowView, setFlowView] = useState<'list' | 'editor'>('list');
+  const [configTab, setConfigTab] = useState<'prompts' | 'followups' | 'videos'>('prompts');
   const [isFlowFullScreen, setIsFlowFullScreen] = useState(false);
   
   // Video Upload States
@@ -1482,74 +1483,197 @@ export default function Admin() {
               
               {flowView === 'list' ? (
                 <div className="animate-in fade-in duration-300">
-                  <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-8">
-                    <div>
-                      <h2 className="text-2xl lg:text-3xl font-bold text-slate-800 mb-2">Instruções da IA (Fluxos)</h2>
-                      <p className="text-sm lg:text-base text-slate-600">Defina como a Inteligência Artificial deve conduzir o atendimento.</p>
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                  <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6">
+                    <div className="flex items-center gap-4">
                       <button 
-                        onClick={() => setFlowView('editor')}
-                        className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-medium transition-all shadow-sm"
+                        onClick={() => setActiveTab('dashboard')}
+                        className="p-2 bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-slate-700 hover:bg-slate-50 shadow-sm transition-colors"
                       >
-                        <Plus size={18} />
-                        Novo Fluxo
+                        <ChevronLeft size={20} />
                       </button>
+                      <div>
+                        <h2 className="text-2xl lg:text-3xl font-bold text-slate-800 mb-1">Configurações do Robô</h2>
+                        <p className="text-sm lg:text-base text-slate-600">Gerencie a inteligência artificial, regras de follow-up e mídias.</p>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {/* Existing Flow Card */}
-                    <div 
-                      onClick={() => setFlowView('editor')}
-                      className="flex flex-col p-6 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md cursor-pointer transition-all group h-72 relative"
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="text-lg font-bold text-slate-800 group-hover:text-indigo-600 transition-colors line-clamp-2">Qualificação e Agendamento - Resguarde</h3>
-                        <button className="text-slate-400 hover:text-slate-600 p-1">
-                          <MoreVertical size={20} />
-                        </button>
-                      </div>
-                      <p className="text-xs font-medium text-slate-500 mb-4">Gatilho: Início de conversa com novo lead</p>
-                      
-                      <p className="text-sm text-slate-600 mb-auto line-clamp-4">
-                        Você é um assistente comercial da Resguarde Imunização. Seu objetivo é qualificar leads e levá-los ao agendamento de reunião. REGRAS DE COMPORTAMENTO: - Faça apenas UMA pergunta por vez. - Mantenha...
-                      </p>
-                      
-                      <div className="pt-4 mt-4 border-t border-slate-100 flex items-end justify-between">
-                        <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-medium rounded-full border border-emerald-100">
-                          <Play size={12} fill="currentColor" /> Ativo
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-bold text-slate-800">0 disparos</p>
-                          <p className="text-xs text-slate-500">Último: Nunca</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Create New Flow Card */}
+                  <div className="flex border-b border-slate-200 mb-8">
                     <button 
-                      onClick={() => setFlowView('editor')}
-                      className="flex flex-col items-center justify-center p-6 bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl hover:bg-slate-100 hover:border-indigo-400 transition-all group h-72"
+                      onClick={() => setConfigTab('prompts')}
+                      className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${configTab === 'prompts' ? 'border-amber-400 text-amber-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
                     >
-                      <div className="w-12 h-12 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-400 group-hover:text-indigo-500 group-hover:border-indigo-300 transition-all mb-4">
-                        <Plus size={24} />
-                      </div>
-                      <h3 className="text-lg font-bold text-slate-700 group-hover:text-indigo-700 mb-1 transition-colors">Criar Novo Fluxo</h3>
-                      <p className="text-sm text-slate-500 text-center">
-                        Adicione novas instruções para a IA seguir
-                      </p>
+                      Prompts da IA
+                    </button>
+                    <button 
+                      onClick={() => setConfigTab('followups')}
+                      className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${configTab === 'followups' ? 'border-amber-400 text-amber-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                    >
+                      Temporizadores (Follow-ups)
+                    </button>
+                    <button 
+                      onClick={() => setConfigTab('videos')}
+                      className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${configTab === 'videos' ? 'border-amber-400 text-amber-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                    >
+                      Vídeos e Mídias
                     </button>
                   </div>
+
+                  {configTab === 'prompts' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {/* Existing Flow Card */}
+                      <div 
+                        onClick={() => setFlowView('editor')}
+                        className="flex flex-col p-6 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md cursor-pointer transition-all group h-72 relative"
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <h3 className="text-lg font-bold text-slate-800 group-hover:text-indigo-600 transition-colors line-clamp-2">Qualificação e Agendamento - Resguarde</h3>
+                          <button className="text-slate-400 hover:text-slate-600 p-1">
+                            <MoreVertical size={20} />
+                          </button>
+                        </div>
+                        <p className="text-xs font-medium text-slate-500 mb-4">Gatilho: Início de conversa com novo lead</p>
+                        
+                        <p className="text-sm text-slate-600 mb-auto line-clamp-4">
+                          Você é um assistente comercial da Resguarde Imunização. Seu objetivo é qualificar leads e levá-los ao agendamento de reunião. REGRAS DE COMPORTAMENTO: - Faça apenas UMA pergunta por vez. - Mantenha...
+                        </p>
+                        
+                        <div className="pt-4 mt-4 border-t border-slate-100 flex items-end justify-between">
+                          <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-medium rounded-full border border-emerald-100">
+                            <Play size={12} fill="currentColor" /> Ativo
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-bold text-slate-800">0 disparos</p>
+                            <p className="text-xs text-slate-500">Último: Nunca</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Create New Flow Card */}
+                      <button 
+                        onClick={() => setFlowView('editor')}
+                        className="flex flex-col items-center justify-center p-6 bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl hover:bg-slate-100 hover:border-indigo-400 transition-all group h-72"
+                      >
+                        <div className="w-12 h-12 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-400 group-hover:text-indigo-500 group-hover:border-indigo-300 transition-all mb-4">
+                          <Plus size={24} />
+                        </div>
+                        <h3 className="text-lg font-bold text-slate-700 group-hover:text-indigo-700 mb-1 transition-colors">Criar Novo Fluxo</h3>
+                        <p className="text-sm text-slate-500 text-center">
+                          Adicione novas instruções para a IA seguir
+                        </p>
+                      </button>
+                    </div>
+                  )}
+
+                  {configTab === 'followups' && (
+                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
+                      <Clock size={48} className="mx-auto mb-4 text-slate-300" />
+                      <h3 className="text-lg font-bold text-slate-700 mb-2">Temporizadores (Em Breve)</h3>
+                      <p className="text-sm text-slate-500 max-w-md mx-auto">
+                        Configure regras de follow-up automático para leads que pararam de responder.
+                      </p>
+                    </div>
+                  )}
+
+                  {configTab === 'videos' && (
+                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                      <div className="p-6 border-b border-slate-100">
+                        <h3 className="text-lg font-bold text-slate-800 mb-1">Biblioteca de Vídeos</h3>
+                        <p className="text-sm text-slate-500">Faça upload de vídeos explicativos para a IA enviar automaticamente aos clientes.</p>
+                      </div>
+                      
+                      <div className="p-6">
+                        {/* Upload Section */}
+                        <div className="mb-8 bg-slate-50 border border-dashed border-slate-300 rounded-xl p-8 text-center">
+                          <input 
+                            type="file" 
+                            ref={fileInputRef}
+                            onChange={handleFileUpload}
+                            accept="video/*,image/*,audio/*"
+                            className="hidden"
+                          />
+                          
+                          {uploadingVideo ? (
+                            <div className="max-w-xs mx-auto">
+                              <div className="flex justify-between text-sm font-bold text-slate-700 mb-2">
+                                <span>Enviando arquivo...</span>
+                                <span>{Math.round(uploadProgress)}%</span>
+                              </div>
+                              <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                                <div 
+                                  className="bg-indigo-600 h-2.5 rounded-full transition-all duration-300" 
+                                  style={{ width: `${uploadProgress}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-center">
+                              <div className="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mb-4">
+                                <Video size={24} />
+                              </div>
+                              <h3 className="text-lg font-bold text-slate-700 mb-2">Envio de Vídeos Nativos</h3>
+                              <p className="text-sm text-slate-500 mb-6 max-w-lg">
+                                Você pode cadastrar vídeos curtos (ex: "Como funciona a tese", "O escritório é confiável?") e a IA enviará o vídeo nativamente no WhatsApp quando o cliente perguntar.
+                              </p>
+                              <button 
+                                onClick={() => fileInputRef.current?.click()}
+                                className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-6 py-2.5 rounded-xl font-medium transition-all shadow-sm flex items-center gap-2"
+                              >
+                                Fazer Upload de Mídia
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Media Library */}
+                        <div>
+                          <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4">Arquivos Disponíveis</h3>
+                          
+                          {videosList.length === 0 ? (
+                            <div className="text-center py-8 text-slate-500 bg-slate-50 rounded-xl border border-slate-100">
+                              Nenhuma mídia enviada ainda.
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                              {videosList.map((video) => (
+                                <div key={video.id} className="border border-slate-200 rounded-xl overflow-hidden group hover:border-indigo-300 transition-all cursor-pointer">
+                                  <div className="aspect-video bg-slate-100 flex items-center justify-center relative">
+                                    {video.type.startsWith('video/') ? (
+                                      <Video size={32} className="text-slate-400 group-hover:text-indigo-500 transition-colors" />
+                                    ) : video.type.startsWith('image/') ? (
+                                      <Image size={32} className="text-slate-400 group-hover:text-indigo-500 transition-colors" />
+                                    ) : (
+                                      <Music size={32} className="text-slate-400 group-hover:text-indigo-500 transition-colors" />
+                                    )}
+                                  </div>
+                                  <div className="p-3 bg-white">
+                                    <p className="text-xs font-bold text-slate-700 truncate" title={video.name}>{video.name}</p>
+                                    <p className="text-[10px] text-slate-500 mt-1">
+                                      {video.createdAt ? new Date(video.createdAt.toDate()).toLocaleDateString('pt-BR') : 'Agora'} • {(video.size / (1024 * 1024)).toFixed(2)} MB
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 h-full flex flex-col">
                   <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden flex flex-col flex-1 min-h-[600px]">
                     {/* Header */}
                     <div className="p-4 lg:p-6 border-b border-slate-200 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white z-10">
-                      <div>
-                        <h2 className="text-xl lg:text-2xl font-bold text-slate-800 mb-1">Qualificação e Agendamento - Resguarde</h2>
-                        <p className="text-xs lg:text-sm font-medium text-slate-500">Gatilho: Início de conversa com novo lead</p>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+                          <Bot size={24} />
+                        </div>
+                        <div>
+                          <h2 className="text-xl lg:text-2xl font-bold text-slate-800 mb-1">Qualificação e Agendamento - Resguarde</h2>
+                          <p className="text-xs lg:text-sm font-medium text-slate-500">Gatilho: Início de conversa com novo lead</p>
+                        </div>
                       </div>
                       <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
                         <div className="flex bg-slate-100 p-1 rounded-xl w-full sm:w-auto overflow-x-auto no-scrollbar">
@@ -1592,78 +1716,80 @@ export default function Admin() {
                       {promptsSubTab === 'visual' && (
                         <>
                           {/* Left Side: Workflow */}
-                          <div className="flex-1 overflow-y-auto p-4 lg:p-8">
-                            <div className="max-w-3xl mx-auto space-y-6">
-                              {/* Step 1 */}
-                              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                                <div className="bg-slate-100 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
-                                  <h3 className="font-bold text-slate-700 flex items-center gap-2">
-                                    <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs">1</span>
-                                    Boas-vindas
-                                  </h3>
-                                  <button className="text-slate-400 hover:text-indigo-600 transition-colors"><Edit2 size={16} /></button>
-                                </div>
-                                <div className="p-4">
-                                  <p className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-100">
-                                    "Olá [Nome], tudo bem? Posso te fazer 3 perguntas rápidas?"
-                                  </p>
-                                </div>
-                              </div>
+                          <div className="flex-1 overflow-y-auto p-4 lg:p-8 relative">
+                            <div className="max-w-3xl mx-auto relative pl-8">
+                              {/* Vertical Timeline Line */}
+                              <div className="absolute left-4 top-6 bottom-6 w-0.5 bg-slate-200"></div>
 
-                              {/* Add Video Button between steps */}
-                              <div className="flex justify-center -my-2 relative z-10">
-                                <button 
-                                  onClick={() => setIsVideoModalOpen(true)}
-                                  className="flex items-center gap-2 bg-white border border-slate-200 shadow-sm text-indigo-600 px-4 py-1.5 rounded-full text-xs font-bold hover:bg-indigo-50 hover:border-indigo-200 transition-all group"
-                                >
-                                  <Plus size={14} className="group-hover:scale-110 transition-transform" />
-                                  <Video size={14} />
-                                  Adicionar Vídeo
-                                </button>
+                              {/* Step 1 */}
+                              <div className="relative mb-8">
+                                <div className="absolute -left-[21px] top-6 w-4 h-4 rounded-full bg-indigo-600 border-4 border-slate-50 shadow-sm z-10"></div>
+                                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                                  <div className="px-6 py-5">
+                                    <h3 className="font-bold text-indigo-900 text-lg mb-4">
+                                      1. Boas-vindas
+                                    </h3>
+                                    <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                                      <p className="text-sm text-blue-800 italic font-medium">
+                                        "Olá [Nome], tudo bem? Posso te fazer 3 perguntas rápidas?"
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
 
                               {/* Step 2 */}
-                              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                                <div className="bg-slate-100 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
-                                  <h3 className="font-bold text-slate-700 flex items-center gap-2">
-                                    <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs">2</span>
-                                    Qualificação (Faça uma por vez)
-                                  </h3>
-                                  <button className="text-slate-400 hover:text-indigo-600 transition-colors"><Edit2 size={16} /></button>
-                                </div>
-                                <div className="p-4 space-y-3">
-                                  <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                                    <p className="text-xs font-bold text-slate-500 mb-1">Pergunta 1:</p>
-                                    <p className="text-sm text-slate-700">"O que chamou sua atenção? (1 Renda / 2 Saúde / 3 Sem gestão / 4 Diversificação)"</p>
-                                  </div>
-                                  <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                                    <p className="text-xs font-bold text-slate-500 mb-1">Pergunta 2:</p>
-                                    <p className="text-sm text-slate-700">"Você já investe? (1 Renda fixa / 2 Outros / 3 Iniciante)"</p>
-                                  </div>
-                                  <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                                    <p className="text-xs font-bold text-slate-500 mb-1">Pergunta 3:</p>
-                                    <p className="text-sm text-slate-700">"Busca o quê? (1 Segurança / 2 Rentabilidade / 3 Equilíbrio)"</p>
-                                  </div>
-                                  <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                                    <p className="text-xs font-bold text-slate-500 mb-1">Pergunta 4:</p>
-                                    <p className="text-sm text-slate-700">"Qual sua faixa de investimento? (1 100-150k / 2 150-300k / 3 300k+)"</p>
+                              <div className="relative mb-8">
+                                <div className="absolute -left-[21px] top-6 w-4 h-4 rounded-full bg-indigo-600 border-4 border-slate-50 shadow-sm z-10"></div>
+                                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                                  <div className="px-6 py-5">
+                                    <h3 className="font-bold text-indigo-900 text-lg mb-4">
+                                      2. Qualificação (Faça uma por vez)
+                                    </h3>
+                                    <div className="space-y-3">
+                                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex gap-3 items-start">
+                                        <ArrowRight size={16} className="text-slate-400 mt-0.5 shrink-0" />
+                                        <p className="text-sm text-slate-600">
+                                          Pergunta 1: "O que chamou sua atenção? (1 Renda / 2 Saúde / 3 Sem gestão / 4 Diversificação)"
+                                        </p>
+                                      </div>
+                                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex gap-3 items-start">
+                                        <ArrowRight size={16} className="text-slate-400 mt-0.5 shrink-0" />
+                                        <p className="text-sm text-slate-600">
+                                          Pergunta 2: "Você já investe? (1 Renda fixa / 2 Outros / 3 Iniciante)"
+                                        </p>
+                                      </div>
+                                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex gap-3 items-start">
+                                        <ArrowRight size={16} className="text-slate-400 mt-0.5 shrink-0" />
+                                        <p className="text-sm text-slate-600">
+                                          Pergunta 3: "Busca o quê? (1 Segurança / 2 Rentabilidade / 3 Equilíbrio)"
+                                        </p>
+                                      </div>
+                                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex gap-3 items-start">
+                                        <ArrowRight size={16} className="text-slate-400 mt-0.5 shrink-0" />
+                                        <p className="text-sm text-slate-600">
+                                          Pergunta 4: "Qual sua faixa de investimento? (1 100-150k / 2 150-300k / 3 300k+)"
+                                        </p>
+                                      </div>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
 
                               {/* Step 3 */}
-                              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                                <div className="bg-slate-100 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
-                                  <h3 className="font-bold text-slate-700 flex items-center gap-2">
-                                    <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs">3</span>
-                                    Resumo (Após as respostas)
-                                  </h3>
-                                  <button className="text-slate-400 hover:text-indigo-600 transition-colors"><Edit2 size={16} /></button>
-                                </div>
-                                <div className="p-4">
-                                  <p className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-100 italic">
-                                    A IA fará um resumo das respostas e conduzirá para o agendamento.
-                                  </p>
+                              <div className="relative mb-8">
+                                <div className="absolute -left-[21px] top-6 w-4 h-4 rounded-full bg-indigo-600 border-4 border-slate-50 shadow-sm z-10"></div>
+                                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                                  <div className="px-6 py-5">
+                                    <h3 className="font-bold text-indigo-900 text-lg mb-4">
+                                      3. Resumo (Após as respostas)
+                                    </h3>
+                                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                      <p className="text-sm text-slate-600 italic">
+                                        A IA fará um resumo das respostas e conduzirá para o agendamento.
+                                      </p>
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -1671,40 +1797,48 @@ export default function Admin() {
 
                           {/* Right Side: Guia Rápido */}
                           <div className="w-full lg:w-80 bg-white border-t lg:border-t-0 lg:border-l border-slate-200 p-6 overflow-y-auto shrink-0">
-                            <h4 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
-                              <Sparkles size={18} className="text-indigo-500" />
+                            <h4 className="font-bold text-slate-800 mb-6 flex items-center gap-2 text-sm">
+                              <Sparkles size={16} className="text-slate-400" />
                               Guia Rápido de Etapas
                             </h4>
-                            <div className="space-y-6">
-                              <div className="relative pl-6 border-l-2 border-blue-200">
-                                <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-blue-500 border-4 border-white shadow-sm" />
-                                <h5 className="text-xs font-bold text-slate-700 uppercase mb-1">1. Triagem</h5>
-                                <p className="text-xs text-slate-500 leading-relaxed">
-                                  O robô faz perguntas chave para saber se o cliente tem perfil.
+                            <div className="space-y-4">
+                              <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="w-5 h-5 rounded-full bg-blue-200 text-blue-700 flex items-center justify-center text-xs font-bold">1</span>
+                                  <h5 className="text-sm font-bold text-blue-900">Triagem</h5>
+                                </div>
+                                <p className="text-xs text-blue-700/80 leading-relaxed">
+                                  Entenda rapidamente o que o cliente busca e se faz sentido para o negócio.
                                 </p>
                               </div>
                               
-                              <div className="relative pl-6 border-l-2 border-purple-200">
-                                <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-purple-500 border-4 border-white shadow-sm" />
-                                <h5 className="text-xs font-bold text-slate-700 uppercase mb-1">2. Qualificação</h5>
-                                <p className="text-xs text-slate-500 leading-relaxed">
-                                  Se aprovado, o robô coleta dados específicos e entende a dor.
+                              <div className="bg-purple-50 rounded-xl p-4 border border-purple-100">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="w-5 h-5 rounded-full bg-purple-200 text-purple-700 flex items-center justify-center text-xs font-bold">2</span>
+                                  <h5 className="text-sm font-bold text-purple-900">Qualificação</h5>
+                                </div>
+                                <p className="text-xs text-purple-700/80 leading-relaxed">
+                                  Faça perguntas chave para entender o perfil e as necessidades reais.
                                 </p>
                               </div>
                               
-                              <div className="relative pl-6 border-l-2 border-yellow-200">
-                                <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-yellow-500 border-4 border-white shadow-sm" />
-                                <h5 className="text-xs font-bold text-slate-700 uppercase mb-1">3. Documentos</h5>
-                                <p className="text-xs text-slate-500 leading-relaxed">
-                                  Solicita informações ou documentos necessários para a proposta.
+                              <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="w-5 h-5 rounded-full bg-amber-200 text-amber-700 flex items-center justify-center text-xs font-bold">3</span>
+                                  <h5 className="text-sm font-bold text-amber-900">Documentos</h5>
+                                </div>
+                                <p className="text-xs text-amber-700/80 leading-relaxed">
+                                  Solicite informações ou documentos necessários para avançar.
                                 </p>
                               </div>
                               
-                              <div className="relative pl-6 border-l-2 border-emerald-200">
-                                <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-emerald-500 border-4 border-white shadow-sm" />
-                                <h5 className="text-xs font-bold text-slate-700 uppercase mb-1">4. Fechamento</h5>
-                                <p className="text-xs text-slate-500 leading-relaxed">
-                                  Conduz para o agendamento de reunião com o especialista.
+                              <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="w-5 h-5 rounded-full bg-emerald-200 text-emerald-700 flex items-center justify-center text-xs font-bold">4</span>
+                                  <h5 className="text-sm font-bold text-emerald-900">Fechamento</h5>
+                                </div>
+                                <p className="text-xs text-emerald-700/80 leading-relaxed">
+                                  Conduza para o agendamento, venda ou próximo passo concreto.
                                 </p>
                               </div>
                             </div>
