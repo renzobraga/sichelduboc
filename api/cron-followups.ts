@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { dbAdmin } from "./firebase-admin.js";
+import { dbAdmin } from "./_firebase-admin.js";
 
 export default async function handler(req: Request, res: Response) {
   // Segurança: verifica se a requisição tem a senha correta (para evitar que curiosos disparem o cron)

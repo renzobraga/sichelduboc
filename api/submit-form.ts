@@ -1,7 +1,7 @@
 import nodemailer from "nodemailer";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { GoogleGenAI } from "@google/genai";
-import { db } from "./firebase-client.js";
+import { db } from "./_firebase-client.js";
 import { collection, doc, setDoc, addDoc, getDoc } from "firebase/firestore";
 
 export default async function handler(req: VercelRequest | any, res: VercelResponse | any) {
