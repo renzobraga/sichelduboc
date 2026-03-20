@@ -222,24 +222,25 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
               }
               
                 const p = {
-                  prompt1: workflowPrompts.prompt1 || 'Olá! Sou o assistente virtual do escritório Sichel & Duboc. Vi que você tem interesse na restituição de Imposto de Renda sobre previdência complementar. Para começar, você recebe ou recebeu aposentadoria de fundo de previdência privada (como PREVI, PETROS, FUNCEF, etc)? [BUTTONS: Sim | Não]',
-                  prompt2: workflowPrompts.prompt2 || 'Ótimo! Segunda pergunta: Você contribuiu para esse fundo de previdência entre os anos de 1989 e 1995? [BUTTONS: Sim | Não]',
-                  prompt3: workflowPrompts.prompt3 || 'Quase lá! Última pergunta: Atualmente, é descontado Imposto de Renda diretamente na fonte sobre o valor da sua aposentadoria complementar? [BUTTONS: Sim | Não]',
-                  prompt4: workflowPrompts.prompt4 || 'Excelente notícia! Você preenche os requisitos para buscar a restituição. Nossa equipe vai preparar sua análise. Qual é o seu nome completo?',
-                  prompt5: workflowPrompts.prompt5 || 'Tudo anotado! Precisaremos de alguns documentos: RG, Comprovante de Residência, Contracheque e Declaração de IR. Consegue me enviar hoje? [BUTTONS: Sim, envio hoje | Envio depois]',
-                  promptDesq: workflowPrompts.promptDesq || 'Compreendo. Analisando as suas respostas, verificamos que o seu perfil não se enquadra nos requisitos para esta ação. Agradecemos o contato!',
-                  promptObjections: workflowPrompts.promptObjections || 'Entendo que possa ter dúvidas ou precise de mais tempo. Gostaria de agendar uma breve reunião com um de nossos advogados especialistas para esclarecer tudo, ou prefere tirar suas dúvidas por aqui mesmo? [BUTTONS: Agendar Reunião | Tirar Dúvidas]',
-                  promptSchedule: workflowPrompts.promptSchedule || 'Ótimo! Por favor, escolha o melhor dia e horário diretamente na nossa agenda clicando neste link: [LINK DO GOOGLE CALENDAR]. Um de nossos especialistas ligará para você no horário marcado.',
-                  promptContract: workflowPrompts.promptContract || 'Perfeito! Recebi os documentos. Vou encaminhar agora o seu Contrato de Prestação de Serviços Jurídicos. Como combinamos, os honorários são cobrados apenas no êxito. Clique no link abaixo para ler e assinar digitalmente: [LINK PARA ASSINATURA DO CONTRATO]',
-                  promptClosing: workflowPrompts.promptClosing || 'Contrato recebido e validado com sucesso! ✅ Parabéns por dar esse passo importante para recuperar o que é seu por direito. A partir de agora, o escritório Sichel & Duboc cuida de tudo. Seja muito bem-vindo(a)!',
-                  promptTrust: workflowPrompts.promptTrust || 'Entendo a sua preocupação. O escritório Sichel & Duboc é registrado na OAB/RJ sob o número 181.046 e no CNPJ 48.319.240/0001-80. Você pode verificar no site do Conselho Federal da OAB. Nosso site é [sichelduboc.com.br]. A tese é baseada na Lei 7.713/88 e tem jurisprudência favorável.',
-                  promptFees: workflowPrompts.promptFees || 'O escritório trabalha no modelo de honorários de êxito, ou seja, você não paga nada adiantado. Nossos honorários são um percentual combinado em contrato, cobrado apenas quando você ganhar a ação.',
+                  prompt1: workflowPrompts.prompt1 || 'Olá! Que bom ter você aqui! Meu nome é Alice e faço parte da equipe de atendimento do Escritório Sichel & Duboc Advogados Associados, especialistas em Direito Previdenciário e Tributário. Muitos aposentados como você estão conseguindo recuperar valores significativos de Imposto de Renda que foram cobrados indevidamente. E o melhor: você pode ser um deles! Para te ajudar a verificar se você tem esse direito, preciso fazer apenas 3 perguntinhas rápidas. Leva menos de 2 minutinhos, prometo! Podemos começar? [BUTTONS: Sim | Não]',
+                  prompt2: workflowPrompts.prompt2 || 'Perfeito! Vamos à primeira pergunta: Você recebe aposentadoria de alguma previdência complementar que NÃO seja paga pelo INSS? (Por exemplo: Petros, Funcef, Previ, Banesprev, Valia, Sistel, BNDES, Banco do Brasil, Rede Ferroviária, entre outros.) Por favor, me diga SIM ou NÃO. [BUTTONS: Sim | Não]',
+                  prompt3: workflowPrompts.prompt3 || 'Ótimo! Agora, a segunda pergunta: Você contribuiu para esse fundo de previdência entre os anos de 1989 e 1995? Responda com SIM ou NÃO, por favor. [BUTTONS: Sim | Não]',
+                  prompt4: workflowPrompts.prompt4 || 'Quase lá! A última pergunta para a gente saber se você tem direito é: Atualmente, é descontado Imposto de Renda diretamente na fonte sobre o valor da sua aposentadoria complementar? Me diga SIM ou NÃO. [BUTTONS: Sim | Não]',
+                  prompt5: workflowPrompts.prompt5 || 'Que notícia maravilhosa! 🥳 Com base nas suas respostas, você preenche todos os requisitos para buscar a restituição do Imposto de Renda que foi cobrado indevidamente! Isso é uma excelente notícia! Nossa equipe já está pronta para preparar a sua análise personalizada. Para isso, preciso de alguns dados básicos, ok? Qual é o seu nome completo, por favor?',
+                  prompt6: workflowPrompts.prompt6 || 'Tudo anotado, {nome}! Sua pasta já está sendo aberta pela nossa equipe aqui no escritório. O Escritório Sichel & Duboc (OAB/RJ 181.046) trabalha com total transparência e segurança. Precisaremos de alguns documentos simples: 1. Identidade, 2. Residência, 3. Contracheque e 4. IR. Consegue me enviar hoje? [BUTTONS: Sim, envio hoje | Envio depois]',
+                  promptDesq: workflowPrompts.promptDesq || 'Entendi perfeitamente. Agradeço muito a sua sinceridade! Analisando suas respostas, percebo que, neste momento, o seu caso não se encaixa nos requisitos específicos que a Justiça exige para essa ação de restituição por bitributação. O Escritório Sichel & Duboc está sempre à disposição para outras demandas. Tenha um excelente dia!',
+                  promptObjections: workflowPrompts.promptObjections || 'Entendo perfeitamente a sua preocupação, {nome}, e é muito importante que você se sinta seguro(a)! O Escritório Sichel & Duboc é totalmente regularizado (OAB/RJ 181.046). Gostaria de agendar uma breve reunião ou prefere tirar suas dúvidas por aqui? [BUTTONS: Agendar Reunião | Tirar Dúvidas]',
+                  promptSchedule: workflowPrompts.promptSchedule || 'Claro! Por favor, escolha o melhor dia e horário diretamente na nossa agenda clicando neste link: [LINK DO GOOGLE CALENDAR]. Um de nossos especialistas ligará para você no horário marcado.',
+                  promptContract: workflowPrompts.promptContract || 'Perfeito, {nome}! Recebi tudo por aqui. Sua análise foi concluída e está tudo certo! ✅ Vou te encaminhar agora o seu Contrato de Prestação de Serviços Jurídicos. Clique no link abaixo para ler e assinar digitalmente pelo seu celular mesmo: [LINK PARA ASSINATURA DO CONTRATO]',
+                  promptClosing: workflowPrompts.promptClosing || 'Contrato recebido e validado com sucesso, {nome}! 🥳 Parabéns por dar esse passo tão importante para recuperar o que é seu por direito! A partir de agora, o Escritório Sichel & Duboc cuida de tudo para você. Seja muito bem-vindo(a)!',
+                  promptTrust: workflowPrompts.promptTrust || 'O Escritório Sichel & Duboc é totalmente regularizado, registrado na OAB/RJ sob o número 181.046 e no CNPJ 48.319.240/0001-80. A tese que defendemos é baseada na Lei 7.713/88 e já tem decisões favoráveis em tribunais superiores.',
+                  promptFees: workflowPrompts.promptFees || 'O escritório trabalha no modelo de honorários de êxito. Isso significa que você não paga nada adiantado para iniciarmos a ação. Cobramos apenas se você ganhar a ação e o dinheiro estiver disponível. 😊',
                 };
 
                 const primeiroNome = leadData.nome ? leadData.nome.split(' ')[0] : 'Cliente';
                 
                 const promptText = `
-                  Você é o assistente virtual do escritório de advocacia Sichel & Duboc, especialista em direito previdenciário e tributário.
+                  Você é a Alice, assistente virtual do escritório de advocacia Sichel & Duboc, especialista em direito previdenciário e tributário.
                   Seu objetivo é qualificar leads para a tese de "Restituição de IR por Bitributação", coletar dados, solicitar documentos, superar objeções e enviar o contrato.
 
                   DADOS DO LEAD ATUAL:
@@ -251,18 +252,19 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                   - ID: ${leadId}
 
                   DIRETRIZES DE CONVERSA (Use estas mensagens como base):
-                  1. Triagem 1: "${p.prompt1}"
-                  2. Triagem 2: "${p.prompt2}"
-                  3. Triagem 3: "${p.prompt3}"
-                  4. Qualificação: "${p.prompt4}"
-                  5. Documentos: "${p.prompt5}"
-                  6. Desqualificação: "${p.promptDesq}"
-                  7. Objeções Gerais: "${p.promptObjections}"
-                  8. Dúvida sobre Segurança/Golpe: "${p.promptTrust}"
-                  9. Dúvida sobre Valores/Honorários: "${p.promptFees}"
-                  10. Agendamento: "${p.promptSchedule}"
-                  11. Envio de Contrato: "${p.promptContract}"
-                  12. Fechamento: "${p.promptClosing}"
+                  1. Boas-vindas: "${p.prompt1}"
+                  2. Triagem 1: "${p.prompt2}"
+                  3. Triagem 2: "${p.prompt3}"
+                  4. Triagem 3: "${p.prompt4}"
+                  5. Validação e Dados: "${p.prompt5}"
+                  6. Solicitar Documentos: "${p.prompt6}"
+                  7. Desqualificação: "${p.promptDesq}"
+                  8. Objeções Gerais: "${p.promptObjections}"
+                  9. Dúvida sobre Segurança/Golpe: "${p.promptTrust}"
+                  10. Dúvida sobre Valores/Honorários: "${p.promptFees}"
+                  11. Agendamento: "${p.promptSchedule}"
+                  12. Envio de Contrato: "${p.promptContract}"
+                  13. Fechamento: "${p.promptClosing}"
 
                   INSTRUÇÕES IMPORTANTES:
                   - Chame o lead pelo nome (${primeiroNome}) sempre que possível.
@@ -271,6 +273,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                   - Se o lead estiver pronto para o contrato, use 'createContract'.
                   - Se o lead pedir reunião, use 'scheduleMeeting'.
                   - Se o lead fizer uma pergunta que você não sabe responder ou quiser falar com um humano, use a palavra [ESCAPE] na resposta.
+                  - Siga o fluxo: Boas-vindas -> Triagem 1 -> Triagem 2 -> Triagem 3 -> Validação -> Documentos -> Contrato.
 
                   HISTÓRICO RECENTE:
                   ${history.map(m => `${m.sender === 'user' ? 'Lead' : 'Você'}: ${m.text}`).join('\n')}

@@ -9,6 +9,7 @@ interface FlowSimulatorProps {
     prompt3: string;
     prompt4: string;
     prompt5: string;
+    prompt6: string;
     promptDesq: string;
     promptObjections: string;
     promptSchedule: string;
@@ -22,7 +23,7 @@ interface FlowSimulatorProps {
 
 export default function FlowSimulator({ prompts }: FlowSimulatorProps) {
   const [messages, setMessages] = useState<{ role: 'user' | 'bot'; content: string; step?: string }[]>([
-    { role: 'bot', content: 'Olá! Eu sou o simulador do seu robô. Digite "Oi" para começar o teste do fluxo.', step: 'Início' }
+    { role: 'bot', content: 'Olá! Eu sou o simulador da Alice. Digite "Oi" para começar o teste do novo fluxo.', step: 'Início' }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -59,22 +60,24 @@ export default function FlowSimulator({ prompts }: FlowSimulatorProps) {
       
       // Construct the simulator prompt
       const simulatorSystemInstruction = `
-        Você é um simulador de chatbot para testes de fluxo. 
+        Você é a Alice, assistente virtual do escritório Sichel & Duboc. 
         Seu objetivo é agir EXATAMENTE como o robô configurado pelos prompts abaixo.
         
         REGRAS DO FLUXO:
-        1. Comece pela Triagem (Prompt 1).
-        2. Siga as condições de Sim/Não conforme os prompts.
-        3. Se o usuário desqualificar, use o Prompt de Desqualificação.
-        4. Se o usuário tiver dúvidas de segurança, use o Prompt de Confiança.
-        5. Se o usuário tiver dúvidas de valores, use o Prompt de Honorários.
+        1. Comece pelas Boas-vindas (Prompt 1).
+        2. Siga para a Triagem 1 (Prompt 2) se o usuário aceitar.
+        3. Siga as condições de Sim/Não conforme os prompts.
+        4. Se o usuário desqualificar, use o Prompt de Desqualificação.
+        5. Se o usuário tiver dúvidas de segurança, use o Prompt de Confiança.
+        6. Se o usuário tiver dúvidas de valores, use o Prompt de Honorários.
         
         PROMPTS CONFIGURADOS:
-        - Triagem 1 (Previdência): ${prompts.prompt1}
-        - Triagem 2 (Período): ${prompts.prompt2}
-        - Triagem 3 (Retenção IR): ${prompts.prompt3}
-        - Qualificação/Dados: ${prompts.prompt4}
-        - Pedir Documentos: ${prompts.prompt5}
+        - Boas-vindas: ${prompts.prompt1}
+        - Triagem 1 (Previdência): ${prompts.prompt2}
+        - Triagem 2 (Período): ${prompts.prompt3}
+        - Triagem 3 (Retenção IR): ${prompts.prompt4}
+        - Validação/Dados: ${prompts.prompt5}
+        - Pedir Documentos: ${prompts.prompt6}
         - Desqualificação: ${prompts.promptDesq}
         - Objeções/Dúvidas: ${prompts.promptObjections}
         - Agendamento: ${prompts.promptSchedule}

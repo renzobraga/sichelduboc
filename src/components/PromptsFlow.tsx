@@ -155,6 +155,7 @@ interface PromptsFlowProps {
     prompt3: string;
     prompt4: string;
     prompt5: string;
+    prompt6: string;
     promptDesq: string;
     promptObjections: string;
     promptSchedule: string;
@@ -200,17 +201,39 @@ export default function PromptsFlow({
       type: 'prompt',
       position: { x: 360, y: 450 },
       data: { 
-        label: '1. Triagem: Previdência',
-        description: 'Pergunta 1: Recebe previdência complementar?',
+        label: '1. Boas-vindas (Alice)',
+        description: 'Apresentação e convite para triagem.',
         value: prompts.prompt1,
         onChange: (val: string) => updatePrompt('prompt1', val),
-        placeholder: 'Digite a primeira pergunta...'
+        placeholder: 'Mensagem de boas-vindas...'
       },
     },
     {
       id: 'condition-1',
       type: 'condition',
       position: { x: 400, y: 950 },
+      data: { 
+        label: 'Aguardar Confirmação', 
+        title: 'Podemos começar?',
+        description: 'Espera o cliente aceitar a triagem.'
+      },
+    },
+    {
+      id: 'prompt-2',
+      type: 'prompt',
+      position: { x: 750, y: 1350 },
+      data: { 
+        label: '2. Triagem: Previdência',
+        description: 'Pergunta 1: Recebe previdência complementar?',
+        value: prompts.prompt2,
+        onChange: (val: string) => updatePrompt('prompt2', val),
+        placeholder: 'Digite a primeira pergunta...'
+      },
+    },
+    {
+      id: 'condition-2',
+      type: 'condition',
+      position: { x: 790, y: 1850 },
       data: { 
         label: 'Aguardar Resposta', 
         title: 'Recebe Previdência?',
@@ -230,37 +253,15 @@ export default function PromptsFlow({
       },
     },
     {
-      id: 'prompt-2',
-      type: 'prompt',
-      position: { x: 750, y: 1350 },
-      data: { 
-        label: '2. Triagem: Período',
-        description: 'Pergunta 2: Contribuiu entre 1989 e 1995?',
-        value: prompts.prompt2,
-        onChange: (val: string) => updatePrompt('prompt2', val),
-        placeholder: 'Digite a segunda pergunta...'
-      },
-    },
-    {
-      id: 'condition-2',
-      type: 'condition',
-      position: { x: 790, y: 1850 },
-      data: { 
-        label: 'Aguardar Resposta', 
-        title: 'Contribuiu 89-95?',
-        description: 'Espera o cliente clicar em Sim ou Não.'
-      },
-    },
-    {
       id: 'prompt-3',
       type: 'prompt',
       position: { x: 750, y: 2250 },
       data: { 
-        label: '3. Triagem: Retenção IR',
-        description: 'Pergunta 3: Tem desconto de IR na fonte?',
+        label: '3. Triagem: Período',
+        description: 'Pergunta 2: Contribuiu entre 1989 e 1995?',
         value: prompts.prompt3,
         onChange: (val: string) => updatePrompt('prompt3', val),
-        placeholder: 'Digite a terceira pergunta...'
+        placeholder: 'Digite a segunda pergunta...'
       },
     },
     {
@@ -269,7 +270,7 @@ export default function PromptsFlow({
       position: { x: 790, y: 2750 },
       data: { 
         label: 'Aguardar Resposta', 
-        title: 'Retém IR atualmente?',
+        title: 'Contribuiu 89-95?',
         description: 'Espera o cliente clicar em Sim ou Não.'
       },
     },
@@ -278,20 +279,21 @@ export default function PromptsFlow({
       type: 'prompt',
       position: { x: 750, y: 3150 },
       data: { 
-        label: '4. Qualificação e Dados',
-        description: 'Informa o direito e pede dados básicos.',
+        label: '4. Triagem: Retenção IR',
+        description: 'Pergunta 3: Tem desconto de IR na fonte?',
         value: prompts.prompt4,
         onChange: (val: string) => updatePrompt('prompt4', val),
-        placeholder: 'Mensagem de qualificação...'
+        placeholder: 'Digite a terceira pergunta...'
       },
     },
     {
-      id: 'event-4',
-      type: 'event',
+      id: 'condition-4',
+      type: 'condition',
       position: { x: 790, y: 3650 },
       data: { 
-        label: 'Aguardar Dados', 
-        description: 'Espera o cliente enviar nome, cidade, etc.'
+        label: 'Aguardar Resposta', 
+        title: 'Retém IR atualmente?',
+        description: 'Espera o cliente clicar em Sim ou Não.'
       },
     },
     {
@@ -299,17 +301,38 @@ export default function PromptsFlow({
       type: 'prompt',
       position: { x: 750, y: 4050 },
       data: { 
-        label: '5. Solicitar Documentos',
-        description: 'Pede RG, Comprovante, Contracheque e IR.',
+        label: '5. Validação e Dados',
+        description: 'Informa o direito e pede dados básicos.',
         value: prompts.prompt5,
         onChange: (val: string) => updatePrompt('prompt5', val),
+        placeholder: 'Mensagem de qualificação...'
+      },
+    },
+    {
+      id: 'event-5',
+      type: 'event',
+      position: { x: 790, y: 4550 },
+      data: { 
+        label: 'Aguardar Dados', 
+        description: 'Espera o cliente enviar nome, cidade, etc.'
+      },
+    },
+    {
+      id: 'prompt-6',
+      type: 'prompt',
+      position: { x: 750, y: 4950 },
+      data: { 
+        label: '6. Solicitar Documentos',
+        description: 'Pede RG, Comprovante, Contracheque e IR.',
+        value: prompts.prompt6,
+        onChange: (val: string) => updatePrompt('prompt6', val),
         placeholder: 'Mensagem pedindo documentos...'
       },
     },
     {
       id: 'condition-docs',
       type: 'condition',
-      position: { x: 790, y: 4550 },
+      position: { x: 790, y: 5450 },
       data: { 
         label: 'Aguardar Documentos', 
         title: 'Enviou Documentos?',
@@ -319,7 +342,7 @@ export default function PromptsFlow({
     {
       id: 'prompt-trust',
       type: 'prompt',
-      position: { x: 50, y: 5050 },
+      position: { x: 50, y: 5950 },
       data: { 
         label: 'Dúvida: É Seguro?',
         description: 'Explica sobre a OAB e a validade jurídica.',
@@ -331,7 +354,7 @@ export default function PromptsFlow({
     {
       id: 'prompt-fees',
       type: 'prompt',
-      position: { x: 50, y: 5550 },
+      position: { x: 50, y: 6450 },
       data: { 
         label: 'Dúvida: Honorários',
         description: 'Explica que só cobra no êxito.',
@@ -343,9 +366,9 @@ export default function PromptsFlow({
     {
       id: 'prompt-objections',
       type: 'prompt',
-      position: { x: 400, y: 5050 },
+      position: { x: 400, y: 5950 },
       data: { 
-        label: '6. Superação de Objeções',
+        label: '7. Superação de Objeções',
         description: 'Oferece reunião ou tira dúvidas por chat.',
         value: prompts.promptObjections,
         onChange: (val: string) => updatePrompt('promptObjections', val),
@@ -355,7 +378,7 @@ export default function PromptsFlow({
     {
       id: 'condition-objections',
       type: 'condition',
-      position: { x: 440, y: 5550 },
+      position: { x: 440, y: 6450 },
       data: { 
         label: 'Aguardar Resposta', 
         title: 'Agendar ou Dúvidas?',
@@ -365,9 +388,9 @@ export default function PromptsFlow({
     {
       id: 'prompt-schedule',
       type: 'prompt',
-      position: { x: 50, y: 6050 },
+      position: { x: 50, y: 6950 },
       data: { 
-        label: '7. Agendamento (Calendar)',
+        label: '8. Agendamento (Calendar)',
         description: 'Envia o link do Google Calendar.',
         value: prompts.promptSchedule,
         onChange: (val: string) => updatePrompt('promptSchedule', val),
@@ -377,9 +400,9 @@ export default function PromptsFlow({
     {
       id: 'prompt-expert',
       type: 'prompt',
-      position: { x: 750, y: 6050 },
+      position: { x: 750, y: 6950 },
       data: { 
-        label: '7. Chatbot Contínuo (Dúvidas)',
+        label: '8. Chatbot Contínuo (Dúvidas)',
         description: 'Assume a conversa para tirar dúvidas específicas.',
         value: prompts.aiChatPrompt,
         onChange: (val: string) => updatePrompt('aiChatPrompt', val),
@@ -391,9 +414,9 @@ export default function PromptsFlow({
     {
       id: 'prompt-contract',
       type: 'prompt',
-      position: { x: 1100, y: 5050 },
+      position: { x: 1100, y: 5950 },
       data: { 
-        label: '6. Envio do Contrato',
+        label: '7. Envio do Contrato',
         description: 'Envia o link para assinatura digital.',
         value: prompts.promptContract,
         onChange: (val: string) => updatePrompt('promptContract', val),
@@ -403,7 +426,7 @@ export default function PromptsFlow({
     {
       id: 'condition-contract',
       type: 'condition',
-      position: { x: 1140, y: 5550 },
+      position: { x: 1140, y: 6450 },
       data: { 
         label: 'Aguardar Assinatura', 
         title: 'Assinou o Contrato?',
@@ -413,9 +436,9 @@ export default function PromptsFlow({
     {
       id: 'prompt-closing',
       type: 'prompt',
-      position: { x: 1100, y: 6050 },
+      position: { x: 1100, y: 6950 },
       data: { 
-        label: '8. Fechamento / Sucesso',
+        label: '9. Fechamento / Sucesso',
         description: 'Mensagem de boas-vindas após assinatura.',
         value: prompts.promptClosing,
         onChange: (val: string) => updatePrompt('promptClosing', val),
@@ -429,28 +452,35 @@ export default function PromptsFlow({
     { id: 'e1-2', source: 'trigger-1', target: 'prompt-1', type: 'smoothstep', style: { stroke: '#cbd5e1', strokeWidth: 2 } },
     { id: 'e2-3', source: 'prompt-1', target: 'condition-1', type: 'smoothstep', style: { stroke: '#cbd5e1', strokeWidth: 2 } },
     
-    // Condition 1
+    // Condition 1 (Welcome)
     { id: 'c1-false', source: 'condition-1', sourceHandle: 'false', target: 'prompt-desq', type: 'smoothstep', style: { stroke: '#f43f5e', strokeWidth: 2 }, label: 'Não', labelStyle: { fill: '#be123c', fontWeight: 600, fontSize: 11 }, labelBgStyle: { fill: '#ffe4e6', fillOpacity: 1 }, labelBgPadding: [8, 4], labelBgBorderRadius: 4 },
     { id: 'c1-true', source: 'condition-1', sourceHandle: 'true', target: 'prompt-2', type: 'smoothstep', style: { stroke: '#10b981', strokeWidth: 2 }, label: 'Sim', labelStyle: { fill: '#047857', fontWeight: 600, fontSize: 11 }, labelBgStyle: { fill: '#d1fae5', fillOpacity: 1 }, labelBgPadding: [8, 4], labelBgBorderRadius: 4 },
 
-    // Prompt 2 -> Condition 2
+    // Prompt 2 -> Condition 2 (Q1)
     { id: 'e4-5', source: 'prompt-2', target: 'condition-2', type: 'smoothstep', style: { stroke: '#cbd5e1', strokeWidth: 2 } },
 
     // Condition 2
     { id: 'c2-false', source: 'condition-2', sourceHandle: 'false', target: 'prompt-desq', type: 'smoothstep', style: { stroke: '#f43f5e', strokeWidth: 2 }, label: 'Não', labelStyle: { fill: '#be123c', fontWeight: 600, fontSize: 11 }, labelBgStyle: { fill: '#ffe4e6', fillOpacity: 1 }, labelBgPadding: [8, 4], labelBgBorderRadius: 4 },
     { id: 'c2-true', source: 'condition-2', sourceHandle: 'true', target: 'prompt-3', type: 'smoothstep', style: { stroke: '#10b981', strokeWidth: 2 }, label: 'Sim', labelStyle: { fill: '#047857', fontWeight: 600, fontSize: 11 }, labelBgStyle: { fill: '#d1fae5', fillOpacity: 1 }, labelBgPadding: [8, 4], labelBgBorderRadius: 4 },
 
-    // Prompt 3 -> Condition 3
+    // Prompt 3 -> Condition 3 (Q2)
     { id: 'e6-7', source: 'prompt-3', target: 'condition-3', type: 'smoothstep', style: { stroke: '#cbd5e1', strokeWidth: 2 } },
 
     // Condition 3
     { id: 'c3-false', source: 'condition-3', sourceHandle: 'false', target: 'prompt-desq', type: 'smoothstep', style: { stroke: '#f43f5e', strokeWidth: 2 }, label: 'Não', labelStyle: { fill: '#be123c', fontWeight: 600, fontSize: 11 }, labelBgStyle: { fill: '#ffe4e6', fillOpacity: 1 }, labelBgPadding: [8, 4], labelBgBorderRadius: 4 },
     { id: 'c3-true', source: 'condition-3', sourceHandle: 'true', target: 'prompt-4', type: 'smoothstep', style: { stroke: '#10b981', strokeWidth: 2 }, label: 'Sim', labelStyle: { fill: '#047857', fontWeight: 600, fontSize: 11 }, labelBgStyle: { fill: '#d1fae5', fillOpacity: 1 }, labelBgPadding: [8, 4], labelBgBorderRadius: 4 },
 
-    // Prompt 4 -> Event 4 -> Prompt 5 -> Condition Docs
-    { id: 'e8-9', source: 'prompt-4', target: 'event-4', type: 'smoothstep', style: { stroke: '#cbd5e1', strokeWidth: 2 } },
-    { id: 'e9-10', source: 'event-4', target: 'prompt-5', type: 'smoothstep', style: { stroke: '#cbd5e1', strokeWidth: 2 } },
-    { id: 'e10-11', source: 'prompt-5', target: 'condition-docs', type: 'smoothstep', style: { stroke: '#cbd5e1', strokeWidth: 2 } },
+    // Prompt 4 -> Condition 4 (Q3)
+    { id: 'e8-9', source: 'prompt-4', target: 'condition-4', type: 'smoothstep', style: { stroke: '#cbd5e1', strokeWidth: 2 } },
+
+    // Condition 4
+    { id: 'c4-false', source: 'condition-4', sourceHandle: 'false', target: 'prompt-desq', type: 'smoothstep', style: { stroke: '#f43f5e', strokeWidth: 2 }, label: 'Não', labelStyle: { fill: '#be123c', fontWeight: 600, fontSize: 11 }, labelBgStyle: { fill: '#ffe4e6', fillOpacity: 1 }, labelBgPadding: [8, 4], labelBgBorderRadius: 4 },
+    { id: 'c4-true', source: 'condition-4', sourceHandle: 'true', target: 'prompt-5', type: 'smoothstep', style: { stroke: '#10b981', strokeWidth: 2 }, label: 'Sim', labelStyle: { fill: '#047857', fontWeight: 600, fontSize: 11 }, labelBgStyle: { fill: '#d1fae5', fillOpacity: 1 }, labelBgPadding: [8, 4], labelBgBorderRadius: 4 },
+
+    // Prompt 5 -> Event 5 -> Prompt 6 -> Condition Docs
+    { id: 'e10-11', source: 'prompt-5', target: 'event-5', type: 'smoothstep', style: { stroke: '#cbd5e1', strokeWidth: 2 } },
+    { id: 'e11-12', source: 'event-5', target: 'prompt-6', type: 'smoothstep', style: { stroke: '#cbd5e1', strokeWidth: 2 } },
+    { id: 'e12-13', source: 'prompt-6', target: 'condition-docs', type: 'smoothstep', style: { stroke: '#cbd5e1', strokeWidth: 2 } },
     
     // Condition Docs
     { id: 'cdocs-false', source: 'condition-docs', sourceHandle: 'false', target: 'prompt-objections', type: 'smoothstep', style: { stroke: '#f43f5e', strokeWidth: 2 }, label: 'Dúvidas', labelStyle: { fill: '#be123c', fontWeight: 600, fontSize: 11 }, labelBgStyle: { fill: '#ffe4e6', fillOpacity: 1 }, labelBgPadding: [8, 4], labelBgBorderRadius: 4 },
@@ -516,6 +546,9 @@ export default function PromptsFlow({
         if (node.id === 'prompt-5') {
           node.data = { ...node.data, value: prompts.prompt5, onChange: (val: string) => updatePrompt('prompt5', val) };
         }
+        if (node.id === 'prompt-6') {
+          node.data = { ...node.data, value: prompts.prompt6, onChange: (val: string) => updatePrompt('prompt6', val) };
+        }
         if (node.id === 'prompt-objections') {
           node.data = { ...node.data, value: prompts.promptObjections, onChange: (val: string) => updatePrompt('promptObjections', val) };
         }
@@ -533,6 +566,12 @@ export default function PromptsFlow({
         }
         if (node.id === 'prompt-expert') {
           node.data = { ...node.data, value: prompts.aiChatPrompt, onChange: (val: string) => updatePrompt('aiChatPrompt', val), onLoadExpert: () => updatePrompt('aiChatPrompt', expertPrompt) };
+        }
+        if (node.id === 'prompt-trust') {
+          node.data = { ...node.data, value: prompts.promptTrust, onChange: (val: string) => updatePrompt('promptTrust', val) };
+        }
+        if (node.id === 'prompt-fees') {
+          node.data = { ...node.data, value: prompts.promptFees, onChange: (val: string) => updatePrompt('promptFees', val) };
         }
         return node;
       })

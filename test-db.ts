@@ -1,4 +1,4 @@
-import { dbAdmin } from './api/firebase-admin.js';
+import { dbAdmin } from './api/_firebase-admin.js';
 
 async function test() {
   try {

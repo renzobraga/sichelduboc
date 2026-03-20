@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { dbAdmin } from './firebase-admin.js';
+import { dbAdmin } from './_firebase-admin.js';
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || '';

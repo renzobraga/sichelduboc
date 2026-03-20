@@ -5,7 +5,7 @@ import submitFormHandler from "./api/submit-form.js";
 import webhookZapiHandler from "./api/webhook-zapi.js";
 import sendMessageHandler from "./api/send-message.js";
 import cronFollowupsHandler from "./api/cron-followups.js";
-import { getGoogleAuthUrl, handleGoogleCallback, getGoogleEvents, handleGoogleDisconnect } from "./api/google-calendar.js";
+import { getGoogleAuthUrl, handleGoogleCallback, getGoogleEvents, handleGoogleDisconnect } from "./api/_google-calendar.js";
 
 dotenv.config();
 
