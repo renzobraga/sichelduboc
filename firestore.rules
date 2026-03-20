@@ -47,6 +47,10 @@ service cloud.firestore {
       );
     }
 
+    match /videos/{videoId} {
+      allow read, write: if isAdmin();
+    }
+
     match /messages/{messageId} {
       // Leitura e exclusão: APENAS ADMINS (Ninguém lê as conversas)
       allow read, delete: if isAdmin();

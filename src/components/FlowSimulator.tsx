@@ -46,7 +46,7 @@ export default function FlowSimulator({ prompts }: FlowSimulatorProps) {
     setLoading(true);
 
     try {
-      const apiKey = process.env.GEMINI_API_KEY || (import.meta as any).env.VITE_GEMINI_API_KEY;
+      const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) throw new Error("API Key não encontrada");
 
       const genAI = new GoogleGenAI({ apiKey });

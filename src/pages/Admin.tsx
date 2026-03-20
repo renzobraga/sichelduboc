@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
-import { LogOut, MessageCircle, LayoutDashboard, Workflow, Save, Bot, User, Kanban, List, BarChart3, Users, CheckCircle, XCircle, Clock, Moon, Sun, Sparkles, Calendar, Maximize, Minimize, TrendingUp, PieChart, Activity, ArrowRight, MapPin, Mail, Phone, FileText, ExternalLink, MoreVertical, Search, Filter, ChevronRight, ChevronLeft, Image, Video, Music, Download, Paperclip } from 'lucide-react';
+import { collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc, setDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { storage } from '../firebase';
+import { LogOut, MessageCircle, LayoutDashboard, Workflow, Save, Bot, User, Kanban, List, BarChart3, Users, CheckCircle, X, XCircle, Clock, Moon, Sun, Sparkles, Calendar, Maximize, Minimize, TrendingUp, PieChart, Activity, ArrowRight, MapPin, Mail, Phone, FileText, ExternalLink, MoreVertical, Search, Filter, ChevronRight, ChevronLeft, Image, Video, Music, Download, Paperclip, Box, Plus, Play, Edit2, Settings, Upload } from 'lucide-react';
 import { PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, AreaChart, Area } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
 import PromptsFlow from '../components/PromptsFlow';
@@ -90,6 +92,7 @@ export default function Admin() {
   // Layout states
   const [activeTab, setActiveTab] = useState<'dashboard' | 'chat' | 'fluxos' | 'calendario'>('dashboard');
   const [dashboardView, setDashboardView] = useState<'kanban' | 'analytics'>('analytics');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedLeadForProfile, setSelectedLeadForProfile] = useState<any>(null);
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -98,10 +101,16 @@ export default function Admin() {
   });
   
   // Fluxos states
-  const [fluxoTab, setFluxoTab] = useState<'prompts' | 'timers' | 'videos'>('prompts');
-  const [promptsSubTab, setPromptsSubTab] = useState<'visual' | 'simulator'>('visual');
+  const [promptsSubTab, setPromptsSubTab] = useState<'text' | 'visual' | 'simulator' | 'edit'>('visual');
   const [flowView, setFlowView] = useState<'list' | 'editor'>('list');
   const [isFlowFullScreen, setIsFlowFullScreen] = useState(false);
+  
+  // Video Upload States
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [videosList, setVideosList] = useState<any[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Chart data helpers
   const getStatusData = () => {
@@ -293,8 +302,70 @@ export default function Admin() {
         }
       };
       fetchPrompts();
+
+      // Fetch videos
+      const q = query(collection(db, 'videos'), orderBy('createdAt', 'desc'));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const vids = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setVideosList(vids);
+      });
+      return () => unsubscribe();
     }
   }, [user, isAdmin, activeTab]);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('video/') && !file.type.startsWith('image/') && !file.type.startsWith('audio/')) {
+      showToast('Por favor, selecione um arquivo de mídia válido (vídeo, imagem ou áudio).', 'error');
+      return;
+    }
+
+    setUploadingVideo(true);
+    setUploadProgress(0);
+
+    try {
+      const storageRef = ref(storage, `media/${Date.now()}_${file.name}`);
+      const uploadTask = uploadBytesResumable(storageRef, file);
+
+      uploadTask.on(
+        'state_changed',
+        (snapshot) => {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          setUploadProgress(progress);
+        },
+        (error) => {
+          console.error("Upload failed:", error);
+          showToast('Erro ao fazer upload do arquivo.', 'error');
+          setUploadingVideo(false);
+        },
+        async () => {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          
+          // Save metadata to Firestore
+          await addDoc(collection(db, 'videos'), {
+            name: file.name,
+            url: downloadURL,
+            type: file.type,
+            size: file.size,
+            createdAt: serverTimestamp(),
+            uploadedBy: user?.uid
+          });
+
+          showToast('Mídia adicionada com sucesso!', 'success');
+          setUploadingVideo(false);
+          setUploadProgress(0);
+          if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+      );
+    } catch (error) {
+      console.error("Error starting upload:", error);
+      showToast('Erro ao iniciar o upload.', 'error');
+      setUploadingVideo(false);
+    }
+  };
 
   const handleSavePrompt = async () => {
     setSavingPrompt(true);
@@ -536,18 +607,39 @@ export default function Admin() {
   return (
     <div className={`admin-panel min-h-screen flex h-screen overflow-hidden ${isDarkMode ? 'dark bg-[#121212]' : 'bg-slate-50'}`}>
       
+      {/* Mobile Sidebar Overlay */}
+      <AnimatePresence>
+        {isSidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsSidebarOpen(false)}
+            className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm"
+          />
+        )}
+      </AnimatePresence>
+
       {/* Sidebar Navigation */}
-      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col shrink-0">
-        <div className="p-6 border-b border-slate-100 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 shadow-sm border border-slate-100">
-            <img src="https://i.imgur.com/pgCrkrr.jpeg" alt="Logo" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+      <aside className={`
+        fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200 flex flex-col shrink-0 transition-transform duration-300 lg:relative lg:translate-x-0
+        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
+        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 shadow-sm border border-slate-100">
+              <img src="https://i.imgur.com/pgCrkrr.jpeg" alt="Logo" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            </div>
+            <h1 className="font-bold text-slate-800 text-lg leading-tight">Painel<br/>Administrativo</h1>
           </div>
-          <h1 className="font-bold text-slate-800 text-lg leading-tight">Painel<br/>Administrativo</h1>
+          <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2 text-slate-400 hover:text-slate-600">
+            <XCircle size={20} />
+          </button>
         </div>
         
         <nav className="flex-1 p-4 flex flex-col gap-2">
           <button 
-            onClick={() => setActiveTab('dashboard')}
+            onClick={() => { setActiveTab('dashboard'); setIsSidebarOpen(false); }}
             className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-sm font-medium ${activeTab === 'dashboard' ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}
           >
             <LayoutDashboard size={18} />
@@ -555,7 +647,7 @@ export default function Admin() {
           </button>
 
           <button 
-            onClick={() => setActiveTab('chat')}
+            onClick={() => { setActiveTab('chat'); setIsSidebarOpen(false); }}
             className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-sm font-medium ${activeTab === 'chat' ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}
           >
             <MessageCircle size={18} />
@@ -563,7 +655,7 @@ export default function Admin() {
           </button>
           
           <button 
-            onClick={() => setActiveTab('calendario')}
+            onClick={() => { setActiveTab('calendario'); setIsSidebarOpen(false); }}
             className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-sm font-medium ${activeTab === 'calendario' ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}
           >
             <Calendar size={18} />
@@ -571,7 +663,7 @@ export default function Admin() {
           </button>
           
           <button 
-            onClick={() => setActiveTab('fluxos')}
+            onClick={() => { setActiveTab('fluxos'); setIsSidebarOpen(false); }}
             className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-sm font-medium ${activeTab === 'fluxos' ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}
           >
             <Workflow size={18} />
@@ -605,38 +697,53 @@ export default function Admin() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0 bg-white">
+      <main className="flex-1 flex flex-col min-w-0 bg-white relative">
+        
+        {/* Mobile Header */}
+        <header className="lg:hidden bg-white border-b border-slate-200 p-4 flex items-center justify-between shrink-0 z-30">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setIsSidebarOpen(true)} className="p-2 -ml-2 text-slate-500 hover:text-slate-700">
+              <List size={24} />
+            </button>
+            <span className="font-bold text-slate-800 capitalize">
+              {activeTab === 'calendario' ? 'Calendário' : activeTab}
+            </span>
+          </div>
+          <div className="w-8 h-8 rounded-full overflow-hidden border border-slate-200">
+            <img src={user.photoURL || "https://i.imgur.com/pgCrkrr.jpeg"} alt="User" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+          </div>
+        </header>
         
         {/* DASHBOARD TAB */}
         {activeTab === 'dashboard' && (
           <div className="flex flex-col flex-1 overflow-hidden bg-slate-50/30">
             
             {/* Dashboard Header */}
-            <div className="bg-white border-b border-slate-200 p-6 shrink-0">
-              <div className="flex justify-between items-center mb-6">
+            <div className="bg-white border-b border-slate-200 p-4 lg:p-6 shrink-0">
+              <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-6">
                 <div>
-                  <h2 className="text-2xl font-bold text-slate-800">Dashboard</h2>
-                  <p className="text-slate-500 text-sm">Acompanhe o desempenho e a saúde do seu funil de vendas.</p>
+                  <h2 className="text-xl lg:text-2xl font-bold text-slate-800">Dashboard</h2>
+                  <p className="text-slate-500 text-xs lg:text-sm">Acompanhe o desempenho e a saúde do seu funil de vendas.</p>
                 </div>
-                <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+                <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 self-start lg:self-auto">
                   <button 
                     onClick={() => setDashboardView('analytics')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${dashboardView === 'analytics' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                    className={`flex items-center gap-2 px-3 py-1.5 lg:px-4 lg:py-2 rounded-lg text-xs lg:text-sm font-medium transition-all ${dashboardView === 'analytics' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                   >
-                    <BarChart3 size={16} />
+                    <BarChart3 size={14} className="lg:w-4 lg:h-4" />
                     Analytics
                   </button>
                   <button 
                     onClick={() => setDashboardView('kanban')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${dashboardView === 'kanban' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                    className={`flex items-center gap-2 px-3 py-1.5 lg:px-4 lg:py-2 rounded-lg text-xs lg:text-sm font-medium transition-all ${dashboardView === 'kanban' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                   >
-                    <Kanban size={16} />
+                    <Kanban size={14} className="lg:w-4 lg:h-4" />
                     Kanban
                   </button>
                 </div>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
                 <motion.div 
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -707,20 +814,20 @@ export default function Admin() {
             </div>
 
             {/* View Content */}
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-4 lg:p-6">
               {dashboardView === 'analytics' ? (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
                   {/* Status Distribution Chart */}
                   <motion.div 
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="lg:col-span-1 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm"
+                    className="lg:col-span-1 bg-white border border-slate-200 rounded-2xl p-4 lg:p-6 shadow-sm"
                   >
-                    <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
+                    <h3 className="font-bold text-slate-800 mb-4 lg:mb-6 flex items-center gap-2 text-sm lg:text-base">
                       <PieChart size={18} className="text-indigo-500" />
                       Distribuição por Status
                     </h3>
-                    <div className="h-[300px] w-full">
+                    <div className="h-[250px] lg:h-[300px] w-full">
                       <ResponsiveContainer width="100%" height="100%">
                         <RePieChart>
                           <Pie
@@ -750,13 +857,13 @@ export default function Admin() {
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.1 }}
-                    className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm"
+                    className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-4 lg:p-6 shadow-sm"
                   >
-                    <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
+                    <h3 className="font-bold text-slate-800 mb-4 lg:mb-6 flex items-center gap-2 text-sm lg:text-base">
                       <TrendingUp size={18} className="text-indigo-500" />
                       Novos Leads (Últimos 7 dias)
                     </h3>
-                    <div className="h-[300px] w-full">
+                    <div className="h-[250px] lg:h-[300px] w-full">
                       <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={getTimelineData()}>
                           <defs>
@@ -963,16 +1070,17 @@ export default function Admin() {
 
         {/* CHAT TAB */}
         {activeTab === 'chat' && (
-          <div className="flex flex-1 overflow-hidden bg-slate-50 p-6 gap-6">
+          <div className="flex flex-1 overflow-hidden bg-slate-50 p-0 lg:p-6 gap-0 lg:gap-6 relative">
             {/* Leads List (Compact) */}
-            <div className="w-80 bg-white border border-slate-200 rounded-2xl flex flex-col shrink-0 shadow-sm overflow-hidden">
-              <div className="p-5 border-b border-slate-100">
+            <div className={`
+              w-full lg:w-80 bg-white border-r lg:border border-slate-200 lg:rounded-2xl flex flex-col shrink-0 shadow-sm overflow-hidden transition-transform duration-300
+              ${selectedLead ? 'hidden lg:flex' : 'flex'}
+            `}>
+              <div className="p-4 lg:p-5 border-b border-slate-100">
                 <h2 className="font-bold text-slate-800 text-lg mb-4">Conversas</h2>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
+                    <Search className="h-4 w-4 text-slate-400" />
                   </div>
                   <input
                     type="text"
@@ -1021,36 +1129,42 @@ export default function Admin() {
             </div>
 
             {/* Lead Details & Chat */}
-            <div className="flex-1 flex bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+            <div className={`
+              flex-1 flex bg-white border-none lg:border border-slate-200 lg:rounded-2xl shadow-sm overflow-hidden
+              ${!selectedLead ? 'hidden lg:flex' : 'flex'}
+            `}>
               {selectedLead ? (
                 <>
                   {/* Chat Area */}
-                  <div className="flex-1 flex flex-col border-r border-slate-100">
-                    <div className="p-4 border-b border-slate-100 bg-white shrink-0 flex justify-between items-center z-10">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-500">
+                  <div className="flex-1 flex flex-col border-r border-slate-100 min-w-0">
+                    <div className="p-3 lg:p-4 border-b border-slate-100 bg-white shrink-0 flex justify-between items-center z-10">
+                      <div className="flex items-center gap-2 lg:gap-3 min-w-0">
+                        <button onClick={() => setSelectedLead(null)} className="lg:hidden p-2 -ml-2 text-slate-500 hover:text-slate-700">
+                          <ChevronLeft size={20} />
+                        </button>
+                        <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-500">
                           <User size={18} />
                         </div>
-                        <div>
-                          <h2 className="text-base font-bold text-slate-800 leading-tight">{selectedLead.nome}</h2>
-                          <p className="text-xs text-slate-500">
+                        <div className="min-w-0">
+                          <h2 className="text-sm lg:text-base font-bold text-slate-800 leading-tight truncate">{selectedLead.nome}</h2>
+                          <p className="text-[10px] lg:text-xs text-slate-500 truncate">
                             {selectedLead.telefone}
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2 lg:gap-4">
                         <button 
                           onClick={() => toggleAI(selectedLead.id, selectedLead.aiEnabled)}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${selectedLead.aiEnabled !== false ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                          className={`flex items-center gap-1.5 px-2 py-1 lg:px-3 lg:py-1.5 rounded-full text-[10px] lg:text-xs font-bold transition-colors ${selectedLead.aiEnabled !== false ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
                           title={selectedLead.aiEnabled !== false ? "Desativar IA e assumir atendimento" : "Reativar atendimento por IA"}
                         >
-                          {selectedLead.aiEnabled !== false ? <><Bot size={14} /> IA Ativa</> : <><User size={14} /> Humano</>}
+                          {selectedLead.aiEnabled !== false ? <><Bot size={12} className="lg:w-3.5 lg:h-3.5" /> <span className="hidden sm:inline">IA Ativa</span></> : <><User size={12} className="lg:w-3.5 lg:h-3.5" /> <span className="hidden sm:inline">Humano</span></>}
+                        </button>
+                        <button className="text-slate-400 hover:text-slate-600 transition-colors hidden sm:block">
+                          <Phone size={18} />
                         </button>
                         <button className="text-slate-400 hover:text-slate-600 transition-colors">
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-                        </button>
-                        <button className="text-slate-400 hover:text-slate-600 transition-colors">
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
+                          <MoreVertical size={18} />
                         </button>
                       </div>
                     </div>
@@ -1363,333 +1477,271 @@ export default function Admin() {
 
         {/* FLUXOS TAB */}
         {activeTab === 'fluxos' && (
-          <div className="flex-1 overflow-y-auto p-8 bg-slate-50">
+          <div className="flex-1 overflow-y-auto p-4 lg:p-8 bg-slate-50">
             <div className="max-w-6xl mx-auto">
               
               {flowView === 'list' ? (
                 <div className="animate-in fade-in duration-300">
-                  <div className="flex justify-between items-start mb-8">
+                  <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-8">
                     <div>
-                      <h2 className="text-3xl font-bold text-slate-800 mb-2">Fluxos de Automação</h2>
-                      <p className="text-slate-600">Gerencie as respostas automáticas e a inteligência do seu robô.</p>
+                      <h2 className="text-2xl lg:text-3xl font-bold text-slate-800 mb-2">Instruções da IA (Fluxos)</h2>
+                      <p className="text-sm lg:text-base text-slate-600">Defina como a Inteligência Artificial deve conduzir o atendimento.</p>
                     </div>
-                    <button 
-                      onClick={() => setFlowView('editor')}
-                      className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl font-bold transition-all shadow-lg shadow-indigo-100 hover:scale-[1.02] active:scale-[0.98]"
-                    >
-                      <Sparkles size={18} />
-                      Criar com IA
-                    </button>
-                  </div>
-
-                  {/* Stats Row */}
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-                    {[
-                      { label: 'Leads Atendidos', value: leads.length, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
-                      { label: 'IA Ativa', value: leads.filter(l => l.aiEnabled !== false).length, icon: Bot, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-                      { label: 'Conversão', value: '24%', icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-                      { label: 'Tempo Médio', value: '1.2m', icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
-                    ].map((stat, i) => (
-                      <div key={i} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-                        <div className={`w-12 h-12 rounded-xl ${stat.bg} ${stat.color} flex items-center justify-center shadow-inner`}>
-                          <stat.icon size={24} />
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{stat.label}</p>
-                          <p className="text-xl font-bold text-slate-800">{stat.value}</p>
-                        </div>
-                      </div>
-                    ))}
+                    <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                      <button 
+                        onClick={() => setFlowView('editor')}
+                        className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-medium transition-all shadow-sm"
+                      >
+                        <Plus size={18} />
+                        Novo Fluxo
+                      </button>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {/* Existing Flow Card */}
+                    <div 
+                      onClick={() => setFlowView('editor')}
+                      className="flex flex-col p-6 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md cursor-pointer transition-all group h-72 relative"
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="text-lg font-bold text-slate-800 group-hover:text-indigo-600 transition-colors line-clamp-2">Qualificação e Agendamento - Resguarde</h3>
+                        <button className="text-slate-400 hover:text-slate-600 p-1">
+                          <MoreVertical size={20} />
+                        </button>
+                      </div>
+                      <p className="text-xs font-medium text-slate-500 mb-4">Gatilho: Início de conversa com novo lead</p>
+                      
+                      <p className="text-sm text-slate-600 mb-auto line-clamp-4">
+                        Você é um assistente comercial da Resguarde Imunização. Seu objetivo é qualificar leads e levá-los ao agendamento de reunião. REGRAS DE COMPORTAMENTO: - Faça apenas UMA pergunta por vez. - Mantenha...
+                      </p>
+                      
+                      <div className="pt-4 mt-4 border-t border-slate-100 flex items-end justify-between">
+                        <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-medium rounded-full border border-emerald-100">
+                          <Play size={12} fill="currentColor" /> Ativo
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-bold text-slate-800">0 disparos</p>
+                          <p className="text-xs text-slate-500">Último: Nunca</p>
+                        </div>
+                      </div>
+                    </div>
+
                     {/* Create New Flow Card */}
                     <button 
                       onClick={() => setFlowView('editor')}
-                      className="flex flex-col items-center justify-center p-8 bg-white border-2 border-dashed border-slate-200 rounded-3xl hover:bg-slate-50 hover:border-indigo-400 transition-all group h-72"
+                      className="flex flex-col items-center justify-center p-6 bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl hover:bg-slate-100 hover:border-indigo-400 transition-all group h-72"
                     >
-                      <div className="w-16 h-16 rounded-2xl bg-slate-50 border border-slate-100 shadow-sm flex items-center justify-center text-slate-400 group-hover:text-indigo-500 group-hover:border-indigo-200 group-hover:bg-indigo-50 group-hover:scale-110 transition-all mb-6">
-                        <Sparkles size={32} />
+                      <div className="w-12 h-12 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-400 group-hover:text-indigo-500 group-hover:border-indigo-300 transition-all mb-4">
+                        <Plus size={24} />
                       </div>
-                      <h3 className="text-xl font-bold text-slate-700 group-hover:text-indigo-700 mb-2 transition-colors">Gerar Novo Fluxo</h3>
-                      <p className="text-sm text-slate-400 text-center max-w-[220px]">
-                        Descreva o que você precisa e nossa IA criará a automação completa para você.
+                      <h3 className="text-lg font-bold text-slate-700 group-hover:text-indigo-700 mb-1 transition-colors">Criar Novo Fluxo</h3>
+                      <p className="text-sm text-slate-500 text-center">
+                        Adicione novas instruções para a IA seguir
                       </p>
                     </button>
-                    
-                    {/* Existing Flow Card (Example) */}
-                    <div 
-                      onClick={() => setFlowView('editor')}
-                      className="flex flex-col p-8 bg-white border border-slate-200 rounded-3xl shadow-sm hover:shadow-xl cursor-pointer transition-all group h-72 relative overflow-hidden"
-                    >
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full -mr-16 -mt-16 opacity-50 group-hover:scale-150 transition-transform duration-500" />
-                      
-                      <div className="flex justify-between items-start mb-6 relative z-10">
-                        <div className="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-sm">
-                          <Workflow size={24} />
-                        </div>
-                        <span className="px-3 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-full border border-emerald-100 uppercase tracking-wider">Ativo</span>
-                      </div>
-                      
-                      <h3 className="text-xl font-bold text-slate-800 mb-3 group-hover:text-indigo-600 transition-colors relative z-10">Triagem de Restituição IR</h3>
-                      <p className="text-sm text-slate-500 mb-auto line-clamp-3 relative z-10">
-                        Qualifica leads para a tese de "Restituição de IR por Bitributação", coleta dados e envia o contrato automaticamente.
-                      </p>
-                      
-                      <div className="pt-6 mt-6 border-t border-slate-50 flex items-center justify-between text-[10px] text-slate-400 relative z-10">
-                        <div className="flex items-center gap-1.5 font-medium">
-                          <Clock size={12} /> Atualizado há 2 dias
-                        </div>
-                        <div className="flex items-center gap-1.5 font-bold text-indigo-500 bg-indigo-50 px-2 py-1 rounded-lg">
-                          <Bot size={12} /> IA ATIVA
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 </div>
               ) : (
-                <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  <div className="mb-8 flex items-center gap-4">
-                    <button 
-                      onClick={() => setFlowView('list')}
-                      className="p-2 bg-white border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors shadow-sm"
-                      title="Voltar para a lista"
-                    >
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                    </button>
-                    <div>
-                      <h2 className="text-2xl font-bold text-slate-800 mb-1">Configurações do Robô</h2>
-                      <p className="text-slate-600">Gerencie a inteligência artificial, regras de follow-up e mídias.</p>
-                    </div>
-                  </div>
-
-                  {/* Sub-tabs Navigation */}
-                  <div className="flex gap-2 mb-6 border-b border-slate-200">
-                    <button
-                      onClick={() => setFluxoTab('prompts')}
-                      className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${fluxoTab === 'prompts' ? 'border-[#dcb366] text-[#dcb366]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-                    >
-                      Prompts da IA
-                    </button>
-                    <button
-                      onClick={() => setFluxoTab('timers')}
-                      className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${fluxoTab === 'timers' ? 'border-[#dcb366] text-[#dcb366]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-                    >
-                      Temporizadores (Follow-ups)
-                    </button>
-                    <button
-                      onClick={() => setFluxoTab('videos')}
-                      className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${fluxoTab === 'videos' ? 'border-[#dcb366] text-[#dcb366]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-                    >
-                      Vídeos e Mídias
-                    </button>
-                  </div>
-
-                  {fluxoTab === 'prompts' && (
-                    <div className={`${isFlowFullScreen ? 'fixed inset-0 z-[100] bg-white' : 'bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden'}`}>
-                      <div className="p-6 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
-                        <div className="flex items-center gap-6">
-                          <div>
-                            <h3 className="font-bold text-slate-800 text-lg">Fluxo de Conversação da IA</h3>
-                            <p className="text-sm text-slate-500 mt-1">Configure o comportamento da IA em cada etapa do atendimento.</p>
-                          </div>
-                          
-                          <div className="flex bg-slate-200 p-1 rounded-xl ml-4">
-                            <button 
-                              onClick={() => setPromptsSubTab('visual')}
-                              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${promptsSubTab === 'visual' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                            >
-                              Editor Visual
-                            </button>
-                            <button 
-                              onClick={() => setPromptsSubTab('simulator')}
-                              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${promptsSubTab === 'simulator' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                            >
-                              Simulador
-                            </button>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 h-full flex flex-col">
+                  <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden flex flex-col flex-1 min-h-[600px]">
+                    {/* Header */}
+                    <div className="p-4 lg:p-6 border-b border-slate-200 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white z-10">
+                      <div>
+                        <h2 className="text-xl lg:text-2xl font-bold text-slate-800 mb-1">Qualificação e Agendamento - Resguarde</h2>
+                        <p className="text-xs lg:text-sm font-medium text-slate-500">Gatilho: Início de conversa com novo lead</p>
+                      </div>
+                      <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
+                        <div className="flex bg-slate-100 p-1 rounded-xl w-full sm:w-auto overflow-x-auto no-scrollbar">
                           <button 
-                            onClick={() => setIsFlowFullScreen(!isFlowFullScreen)}
-                            className="p-2 hover:bg-slate-200 rounded-lg transition-colors text-slate-600"
-                            title={isFlowFullScreen ? "Sair da tela cheia" : "Abrir em tela cheia"}
+                            onClick={() => setPromptsSubTab('text')}
+                            className={`px-3 lg:px-4 py-2 rounded-lg text-xs lg:text-sm font-medium transition-all whitespace-nowrap ${promptsSubTab === 'text' ? 'bg-white text-indigo-600 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-800'}`}
                           >
-                            {isFlowFullScreen ? <Minimize size={20} /> : <Maximize size={20} />}
+                            Texto
+                          </button>
+                          <button 
+                            onClick={() => setPromptsSubTab('visual')}
+                            className={`px-3 lg:px-4 py-2 rounded-lg text-xs lg:text-sm font-medium transition-all whitespace-nowrap ${promptsSubTab === 'visual' ? 'bg-white text-indigo-600 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-800'}`}
+                          >
+                            Workflow
+                          </button>
+                          <button 
+                            onClick={() => setPromptsSubTab('simulator')}
+                            className={`px-3 lg:px-4 py-2 rounded-lg text-xs lg:text-sm font-medium transition-all whitespace-nowrap ${promptsSubTab === 'simulator' ? 'bg-white text-indigo-600 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-800'}`}
+                          >
+                            Simulador
+                          </button>
+                          <button 
+                            onClick={() => setPromptsSubTab('edit')}
+                            className={`px-3 lg:px-4 py-2 rounded-lg text-xs lg:text-sm font-medium transition-all whitespace-nowrap ${promptsSubTab === 'edit' ? 'bg-white text-indigo-600 shadow-sm font-bold' : 'text-slate-600 hover:text-slate-800'}`}
+                          >
+                            Editar
                           </button>
                         </div>
-                      </div>
-                      
-                      <div className={`${isFlowFullScreen ? 'h-[calc(100vh-88px)]' : 'p-0'}`}>
-                        {promptsSubTab === 'visual' ? (
-                          <div className="flex flex-col lg:flex-row">
-                            <div className="flex-1">
-                              <PromptsFlow 
-                                prompts={prompts}
-                                setPrompts={setPrompts}
-                                onSave={handleSavePrompt}
-                                saving={savingPrompt}
-                                saved={promptSaved}
-                                expertPrompt={EXPERT_PROMPT}
-                              />
-                            </div>
-                            
-                            {/* Quick Guide Sidebar */}
-                            {!isFlowFullScreen && (
-                              <div className="w-full lg:w-80 bg-slate-50 border-l border-slate-200 p-6 overflow-y-auto max-h-[800px]">
-                                <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                  <Sparkles size={18} className="text-indigo-500" />
-                                  Guia Rápido
-                                </h4>
-                                <div className="space-y-6">
-                                  <div className="relative pl-6 border-l-2 border-indigo-200">
-                                    <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-indigo-500 border-4 border-white shadow-sm" />
-                                    <h5 className="text-xs font-bold text-slate-700 uppercase mb-1">1. Triagem</h5>
-                                    <p className="text-xs text-slate-500 leading-relaxed">
-                                      O robô faz 3 perguntas chave para saber se o cliente tem direito à restituição.
-                                    </p>
-                                  </div>
-                                  
-                                  <div className="relative pl-6 border-l-2 border-indigo-200">
-                                    <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-indigo-500 border-4 border-white shadow-sm" />
-                                    <h5 className="text-xs font-bold text-slate-700 uppercase mb-1">2. Qualificação</h5>
-                                    <p className="text-xs text-slate-500 leading-relaxed">
-                                      Se aprovado, o robô explica o direito e coleta nome e cidade do lead.
-                                    </p>
-                                  </div>
-                                  
-                                  <div className="relative pl-6 border-l-2 border-indigo-200">
-                                    <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-indigo-500 border-4 border-white shadow-sm" />
-                                    <h5 className="text-xs font-bold text-slate-700 uppercase mb-1">3. Documentos</h5>
-                                    <p className="text-xs text-slate-500 leading-relaxed">
-                                      Solicita fotos dos documentos necessários para a análise jurídica.
-                                    </p>
-                                  </div>
-                                  
-                                  <div className="relative pl-6 border-l-2 border-slate-200">
-                                    <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-slate-400 border-4 border-white shadow-sm" />
-                                    <h5 className="text-xs font-bold text-slate-700 uppercase mb-1">4. Fechamento</h5>
-                                    <p className="text-xs text-slate-500 leading-relaxed">
-                                      Supera dúvidas e envia o link do contrato para assinatura digital.
-                                    </p>
-                                  </div>
-                                </div>
-                                
-                                <div className="mt-8 p-4 bg-indigo-600 rounded-2xl text-white shadow-lg shadow-indigo-200">
-                                  <h5 className="font-bold text-sm mb-2 flex items-center gap-2">
-                                    <Bot size={16} />
-                                    Dica de Ouro
-                                  </h5>
-                                  <p className="text-[11px] leading-relaxed opacity-90">
-                                    Use o <strong>Simulador</strong> ao lado para testar as respostas do robô antes de salvar as alterações.
-                                  </p>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="p-8 bg-slate-100 min-h-[600px] flex items-center justify-center">
-                            <div className="w-full max-w-2xl">
-                              <FlowSimulator prompts={prompts} />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-              {fluxoTab === 'timers' && (
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  <div className="p-6 border-b border-slate-200 bg-slate-50">
-                    <h3 className="font-bold text-slate-800 text-lg">Regras de Follow-up (Temporizadores)</h3>
-                    <p className="text-sm text-slate-500 mt-1">Configure o tempo de espera para o robô enviar mensagens automáticas caso o cliente pare de responder.</p>
-                  </div>
-                  <div className="p-6">
-                    <div className="space-y-4">
-                      <div className="border border-slate-200 rounded-lg p-4 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-                        <div>
-                          <h4 className="font-bold text-slate-800">FU-1: Abandono na Triagem</h4>
-                          <p className="text-sm text-slate-500">Disparado quando o cliente não responde às primeiras perguntas.</p>
-                        </div>
-                        <div className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded border border-slate-200">
-                          <Clock size={16} className="text-slate-400" />
-                          <span className="font-mono font-bold text-slate-700">4 horas</span>
-                        </div>
-                      </div>
-
-                      <div className="border border-slate-200 rounded-lg p-4 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-                        <div>
-                          <h4 className="font-bold text-slate-800">FU-2: Qualificado, sem dados</h4>
-                          <p className="text-sm text-slate-500">Disparado quando o cliente passou na triagem mas não enviou o nome/cidade.</p>
-                        </div>
-                        <div className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded border border-slate-200">
-                          <Clock size={16} className="text-slate-400" />
-                          <span className="font-mono font-bold text-slate-700">24 horas</span>
-                        </div>
-                      </div>
-
-                      <div className="border border-slate-200 rounded-lg p-4 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-                        <div>
-                          <h4 className="font-bold text-slate-800">FU-3: Dados coletados, sem documentos</h4>
-                          <p className="text-sm text-slate-500">Disparado quando o cliente não enviou as fotos dos documentos.</p>
-                        </div>
-                        <div className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded border border-slate-200">
-                          <Clock size={16} className="text-slate-400" />
-                          <span className="font-mono font-bold text-slate-700">48 horas</span>
-                        </div>
-                      </div>
-
-                      <div className="border border-slate-200 rounded-lg p-4 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-                        <div>
-                          <h4 className="font-bold text-slate-800">FU-4: Contrato enviado, não assinado</h4>
-                          <p className="text-sm text-slate-500">Disparado quando o link do contrato foi enviado mas não houve confirmação.</p>
-                        </div>
-                        <div className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded border border-slate-200">
-                          <Clock size={16} className="text-slate-400" />
-                          <span className="font-mono font-bold text-slate-700">24 horas</span>
-                        </div>
-                      </div>
-
-                      <div className="border border-slate-200 rounded-lg p-4 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-                        <div>
-                          <h4 className="font-bold text-slate-800">FU-5: Sem resposta geral</h4>
-                          <p className="text-sm text-slate-500">Última tentativa de contato antes de congelar o lead.</p>
-                        </div>
-                        <div className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded border border-slate-200">
-                          <Clock size={16} className="text-slate-400" />
-                          <span className="font-mono font-bold text-slate-700">7 dias</span>
-                        </div>
+                        <button 
+                          onClick={() => setFlowView('list')} 
+                          className="hidden sm:flex p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 rounded-full transition-colors shrink-0"
+                        >
+                          <X size={24} />
+                        </button>
                       </div>
                     </div>
                     
-                    <div className="mt-6 p-4 bg-indigo-50 text-indigo-800 rounded-lg border border-indigo-100 text-sm">
-                      <p className="font-bold mb-1 flex items-center gap-2"><Sparkles size={16} /> Dica de Ouro</p>
-                      <p>Os textos exatos de cada Follow-up são definidos dentro do <strong>Prompt do Chatbot</strong>. A IA usa esses temporizadores apenas como gatilho para saber <em>quando</em> enviar a mensagem.</p>
-                    </div>
-                  </div>
-                </div>
-              )}
+                    {/* Content */}
+                    <div className="flex-1 flex flex-col lg:flex-row overflow-hidden bg-slate-50">
+                      {promptsSubTab === 'visual' && (
+                        <>
+                          {/* Left Side: Workflow */}
+                          <div className="flex-1 overflow-y-auto p-4 lg:p-8">
+                            <div className="max-w-3xl mx-auto space-y-6">
+                              {/* Step 1 */}
+                              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                                <div className="bg-slate-100 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
+                                  <h3 className="font-bold text-slate-700 flex items-center gap-2">
+                                    <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs">1</span>
+                                    Boas-vindas
+                                  </h3>
+                                  <button className="text-slate-400 hover:text-indigo-600 transition-colors"><Edit2 size={16} /></button>
+                                </div>
+                                <div className="p-4">
+                                  <p className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                    "Olá [Nome], tudo bem? Posso te fazer 3 perguntas rápidas?"
+                                  </p>
+                                </div>
+                              </div>
 
-              {fluxoTab === 'videos' && (
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  <div className="p-6 border-b border-slate-200 bg-slate-50">
-                    <h3 className="font-bold text-slate-800 text-lg">Biblioteca de Vídeos (Em Breve)</h3>
-                    <p className="text-sm text-slate-500 mt-1">Faça upload de vídeos explicativos para a IA enviar automaticamente aos clientes.</p>
-                  </div>
-                  <div className="p-12 flex flex-col items-center justify-center text-center">
-                    <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+                              {/* Add Video Button between steps */}
+                              <div className="flex justify-center -my-2 relative z-10">
+                                <button 
+                                  onClick={() => setIsVideoModalOpen(true)}
+                                  className="flex items-center gap-2 bg-white border border-slate-200 shadow-sm text-indigo-600 px-4 py-1.5 rounded-full text-xs font-bold hover:bg-indigo-50 hover:border-indigo-200 transition-all group"
+                                >
+                                  <Plus size={14} className="group-hover:scale-110 transition-transform" />
+                                  <Video size={14} />
+                                  Adicionar Vídeo
+                                </button>
+                              </div>
+
+                              {/* Step 2 */}
+                              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                                <div className="bg-slate-100 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
+                                  <h3 className="font-bold text-slate-700 flex items-center gap-2">
+                                    <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs">2</span>
+                                    Qualificação (Faça uma por vez)
+                                  </h3>
+                                  <button className="text-slate-400 hover:text-indigo-600 transition-colors"><Edit2 size={16} /></button>
+                                </div>
+                                <div className="p-4 space-y-3">
+                                  <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                    <p className="text-xs font-bold text-slate-500 mb-1">Pergunta 1:</p>
+                                    <p className="text-sm text-slate-700">"O que chamou sua atenção? (1 Renda / 2 Saúde / 3 Sem gestão / 4 Diversificação)"</p>
+                                  </div>
+                                  <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                    <p className="text-xs font-bold text-slate-500 mb-1">Pergunta 2:</p>
+                                    <p className="text-sm text-slate-700">"Você já investe? (1 Renda fixa / 2 Outros / 3 Iniciante)"</p>
+                                  </div>
+                                  <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                    <p className="text-xs font-bold text-slate-500 mb-1">Pergunta 3:</p>
+                                    <p className="text-sm text-slate-700">"Busca o quê? (1 Segurança / 2 Rentabilidade / 3 Equilíbrio)"</p>
+                                  </div>
+                                  <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                    <p className="text-xs font-bold text-slate-500 mb-1">Pergunta 4:</p>
+                                    <p className="text-sm text-slate-700">"Qual sua faixa de investimento? (1 100-150k / 2 150-300k / 3 300k+)"</p>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Step 3 */}
+                              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                                <div className="bg-slate-100 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
+                                  <h3 className="font-bold text-slate-700 flex items-center gap-2">
+                                    <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs">3</span>
+                                    Resumo (Após as respostas)
+                                  </h3>
+                                  <button className="text-slate-400 hover:text-indigo-600 transition-colors"><Edit2 size={16} /></button>
+                                </div>
+                                <div className="p-4">
+                                  <p className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-100 italic">
+                                    A IA fará um resumo das respostas e conduzirá para o agendamento.
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Right Side: Guia Rápido */}
+                          <div className="w-full lg:w-80 bg-white border-t lg:border-t-0 lg:border-l border-slate-200 p-6 overflow-y-auto shrink-0">
+                            <h4 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
+                              <Sparkles size={18} className="text-indigo-500" />
+                              Guia Rápido de Etapas
+                            </h4>
+                            <div className="space-y-6">
+                              <div className="relative pl-6 border-l-2 border-blue-200">
+                                <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-blue-500 border-4 border-white shadow-sm" />
+                                <h5 className="text-xs font-bold text-slate-700 uppercase mb-1">1. Triagem</h5>
+                                <p className="text-xs text-slate-500 leading-relaxed">
+                                  O robô faz perguntas chave para saber se o cliente tem perfil.
+                                </p>
+                              </div>
+                              
+                              <div className="relative pl-6 border-l-2 border-purple-200">
+                                <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-purple-500 border-4 border-white shadow-sm" />
+                                <h5 className="text-xs font-bold text-slate-700 uppercase mb-1">2. Qualificação</h5>
+                                <p className="text-xs text-slate-500 leading-relaxed">
+                                  Se aprovado, o robô coleta dados específicos e entende a dor.
+                                </p>
+                              </div>
+                              
+                              <div className="relative pl-6 border-l-2 border-yellow-200">
+                                <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-yellow-500 border-4 border-white shadow-sm" />
+                                <h5 className="text-xs font-bold text-slate-700 uppercase mb-1">3. Documentos</h5>
+                                <p className="text-xs text-slate-500 leading-relaxed">
+                                  Solicita informações ou documentos necessários para a proposta.
+                                </p>
+                              </div>
+                              
+                              <div className="relative pl-6 border-l-2 border-emerald-200">
+                                <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-emerald-500 border-4 border-white shadow-sm" />
+                                <h5 className="text-xs font-bold text-slate-700 uppercase mb-1">4. Fechamento</h5>
+                                <p className="text-xs text-slate-500 leading-relaxed">
+                                  Conduz para o agendamento de reunião com o especialista.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      {promptsSubTab === 'simulator' && (
+                        <div className="flex-1 overflow-hidden">
+                          <FlowSimulator prompts={prompts} />
+                        </div>
+                      )}
+
+                      {promptsSubTab === 'text' && (
+                        <div className="flex-1 overflow-y-auto p-4 lg:p-8">
+                          <PromptsFlow 
+                            prompts={prompts}
+                            setPrompts={setPrompts}
+                            onSave={handleSavePrompt}
+                            saving={savingPrompt}
+                            saved={promptSaved}
+                            expertPrompt={EXPERT_PROMPT}
+                          />
+                        </div>
+                      )}
+                      
+                      {promptsSubTab === 'edit' && (
+                        <div className="flex-1 flex items-center justify-center p-8 text-slate-500">
+                          <div className="text-center">
+                            <Settings size={48} className="mx-auto mb-4 text-slate-300" />
+                            <h3 className="text-lg font-bold text-slate-700 mb-2">Configurações do Fluxo</h3>
+                            <p className="text-sm">Opções avançadas de configuração estarão disponíveis aqui.</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <h4 className="text-xl font-bold text-slate-800 mb-2">Envio de Vídeos Nativos</h4>
-                    <p className="text-slate-500 max-w-md mb-6">
-                      Em breve, você poderá cadastrar vídeos curtos (ex: "Como funciona a tese", "O escritório é confiável?") e a IA enviará o vídeo nativamente no WhatsApp quando o cliente perguntar.
-                    </p>
-                    <button disabled className="bg-slate-200 text-slate-500 px-6 py-3 rounded-lg font-bold cursor-not-allowed">
-                      Recurso em Desenvolvimento
-                    </button>
                   </div>
-                </div>
-              )}
                 </div>
               )}
 
@@ -1717,68 +1769,51 @@ export default function Admin() {
       {/* Lead Profile Modal */}
       <AnimatePresence>
         {selectedLeadForProfile && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="bg-white w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] overflow-hidden flex flex-col"
             >
               {/* Modal Header */}
-              <div className="p-8 bg-slate-900 text-white flex justify-between items-start shrink-0 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
-                <div className="relative z-10 flex items-center gap-6">
-                  <div className="w-20 h-20 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center text-3xl font-bold border border-white/20">
+              <div className="p-4 lg:p-6 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
+                <div className="flex items-center gap-3 lg:gap-4">
+                  <div className="w-10 h-10 lg:w-12 lg:h-12 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-bold text-base lg:text-xl">
                     {selectedLeadForProfile.nome.charAt(0)}
                   </div>
                   <div>
-                    <h2 className="text-3xl font-bold mb-2">{selectedLeadForProfile.nome}</h2>
-                    <div className="flex flex-wrap gap-3">
-                      <span className="flex items-center gap-1.5 text-indigo-200 text-sm">
-                        <Phone size={14} /> {selectedLeadForProfile.telefone}
+                    <h2 className="text-lg lg:text-2xl font-bold text-slate-800 leading-tight">{selectedLeadForProfile.nome}</h2>
+                    <div className="flex flex-wrap items-center gap-2 mt-0.5 lg:mt-1">
+                      <span className="text-[10px] lg:text-xs text-slate-500 flex items-center gap-1">
+                        <Phone size={10} className="lg:w-3 lg:h-3" /> {selectedLeadForProfile.telefone}
                       </span>
-                      {selectedLeadForProfile.email && (
-                        <span className="flex items-center gap-1.5 text-indigo-200 text-sm">
-                          <Mail size={14} /> {selectedLeadForProfile.email}
-                        </span>
-                      )}
-                      <span className="flex items-center gap-1.5 text-indigo-200 text-sm">
-                        <MapPin size={14} /> {selectedLeadForProfile.cidade || 'Cidade não informada'}
+                      <span className={`px-1.5 py-0.5 rounded-full text-[8px] lg:text-[10px] font-bold uppercase tracking-wider ${
+                        selectedLeadForProfile.status === 'novo' ? 'bg-blue-100 text-blue-600' :
+                        selectedLeadForProfile.status === 'qualificado' ? 'bg-emerald-100 text-emerald-600' :
+                        selectedLeadForProfile.status === 'fechado' ? 'bg-amber-100 text-amber-600' :
+                        'bg-slate-100 text-slate-600'
+                      }`}>
+                        {selectedLeadForProfile.status}
                       </span>
                     </div>
                   </div>
                 </div>
                 <button 
                   onClick={() => setSelectedLeadForProfile(null)}
-                  className="relative z-10 p-2 hover:bg-white/10 rounded-full transition-colors"
+                  className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-600"
                 >
-                  <XCircle size={24} />
+                  <X size={20} className="lg:w-6 lg:h-6" />
                 </button>
               </div>
 
               {/* Modal Body */}
-              <div className="flex-1 overflow-y-auto p-8 bg-slate-50">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                  
-                  {/* Left Column: Status & Quick Actions */}
+              <div className="flex-1 overflow-y-auto p-4 lg:p-8 bg-slate-50/50">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+                  {/* Left Column: Quick Actions & Main Info */}
                   <div className="lg:col-span-1 space-y-6">
-                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Status Atual</h4>
-                      <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm mb-6 ${
-                        selectedLeadForProfile.status === 'novo' ? 'bg-blue-50 text-blue-600' :
-                        selectedLeadForProfile.status === 'qualificado' ? 'bg-green-50 text-green-600' :
-                        selectedLeadForProfile.status === 'fechado' ? 'bg-emerald-50 text-emerald-600' :
-                        'bg-slate-50 text-slate-500'
-                      }`}>
-                        <div className={`w-2 h-2 rounded-full animate-pulse ${
-                          selectedLeadForProfile.status === 'novo' ? 'bg-blue-600' :
-                          selectedLeadForProfile.status === 'qualificado' ? 'bg-green-600' :
-                          selectedLeadForProfile.status === 'fechado' ? 'bg-emerald-600' :
-                          'bg-slate-400'
-                        }`}></div>
-                        {selectedLeadForProfile.status.replace('_', ' ')}
-                      </div>
-                      
+                    <div className="bg-white p-4 lg:p-6 rounded-2xl border border-slate-200 shadow-sm">
+                      <h4 className="text-[10px] lg:text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Ações Rápidas</h4>
                       <div className="space-y-2">
                         <button 
                           onClick={() => {
@@ -1786,24 +1821,24 @@ export default function Admin() {
                             setActiveTab('chat');
                             setSelectedLeadForProfile(null);
                           }}
-                          className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
+                          className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white py-2.5 lg:py-3 rounded-xl font-bold text-xs lg:text-sm hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
                         >
-                          <MessageCircle size={18} /> Abrir Chat
+                          <MessageCircle size={16} /> Abrir Chat
                         </button>
                         <button 
-                          className="w-full flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-600 py-3 rounded-xl font-bold hover:bg-slate-50 transition-all"
+                          className="w-full flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-600 py-2.5 lg:py-3 rounded-xl font-bold text-xs lg:text-sm hover:bg-slate-50 transition-all"
                         >
-                          <Calendar size={18} /> Agendar Reunião
+                          <Calendar size={16} /> Agendar Reunião
                         </button>
                       </div>
                     </div>
 
-                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Atendimento</h4>
+                    <div className="bg-white p-4 lg:p-6 rounded-2xl border border-slate-200 shadow-sm">
+                      <h4 className="text-[10px] lg:text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Atendimento</h4>
                       <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
                         <div className="flex items-center gap-3">
-                          <Bot size={18} className="text-indigo-500" />
-                          <span className="text-sm font-medium text-slate-700">Automação IA</span>
+                          <Bot size={16} className="text-indigo-500" />
+                          <span className="text-xs lg:text-sm font-medium text-slate-700">Automação IA</span>
                         </div>
                         <div className={`w-10 h-6 rounded-full relative cursor-pointer transition-colors ${selectedLeadForProfile.aiEnabled !== false ? 'bg-emerald-500' : 'bg-slate-300'}`}
                              onClick={() => toggleAI(selectedLeadForProfile.id, selectedLeadForProfile.aiEnabled)}>
@@ -1815,42 +1850,42 @@ export default function Admin() {
 
                   {/* Right Column: Detailed Info */}
                   <div className="lg:col-span-2 space-y-6">
-                    <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
-                      <h4 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-                        <FileText size={20} className="text-indigo-500" />
+                    <div className="bg-white p-4 lg:p-8 rounded-2xl border border-slate-200 shadow-sm">
+                      <h4 className="text-sm lg:text-lg font-bold text-slate-800 mb-4 lg:mb-6 flex items-center gap-2">
+                        <FileText size={18} className="text-indigo-500 lg:w-5 lg:h-5" />
                         Informações Coletadas
                       </h4>
                       
-                      <div className="grid grid-cols-2 gap-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
                         <div className="space-y-1">
                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Aposentadoria Complementar</span>
-                          <p className="text-slate-700 font-medium">{selectedLeadForProfile.aposentadoriaComplementar || 'Não informado'}</p>
+                          <p className="text-xs lg:text-sm text-slate-700 font-medium">{selectedLeadForProfile.aposentadoriaComplementar || 'Não informado'}</p>
                         </div>
                         <div className="space-y-1">
                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Contribuição 89-95</span>
-                          <p className="text-slate-700 font-medium">{selectedLeadForProfile.contribuicao89a95 || 'Não informado'}</p>
+                          <p className="text-xs lg:text-sm text-slate-700 font-medium">{selectedLeadForProfile.contribuicao89a95 || 'Não informado'}</p>
                         </div>
                         <div className="space-y-1">
                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Paga IR Atualmente</span>
-                          <p className="text-slate-700 font-medium">{selectedLeadForProfile.pagaIrAtualmente || 'Não informado'}</p>
+                          <p className="text-xs lg:text-sm text-slate-700 font-medium">{selectedLeadForProfile.pagaIrAtualmente || 'Não informado'}</p>
                         </div>
                         <div className="space-y-1">
                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Fundo de Previdência</span>
-                          <p className="text-slate-700 font-medium">{selectedLeadForProfile.fundoPrevidencia || 'Não informado'}</p>
+                          <p className="text-xs lg:text-sm text-slate-700 font-medium">{selectedLeadForProfile.fundoPrevidencia || 'Não informado'}</p>
                         </div>
                       </div>
 
-                      <div className="mt-8 pt-8 border-t border-slate-100">
-                        <h5 className="text-sm font-bold text-slate-800 mb-4">Documentação e Contrato</h5>
+                      <div className="mt-6 lg:mt-8 pt-6 lg:pt-8 border-t border-slate-100">
+                        <h5 className="text-xs lg:text-sm font-bold text-slate-800 mb-4">Documentação e Contrato</h5>
                         {selectedLeadForProfile.contractUrl ? (
-                          <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl flex items-center justify-between">
+                          <div className="bg-emerald-50 border border-emerald-100 p-3 lg:p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600">
                                 <FileText size={20} />
                               </div>
                               <div>
-                                <div className="text-sm font-bold text-emerald-900">Contrato ZapSign</div>
-                                <div className="text-xs text-emerald-600 uppercase font-bold tracking-tighter">
+                                <div className="text-xs lg:text-sm font-bold text-emerald-900">Contrato ZapSign</div>
+                                <div className="text-[10px] lg:text-xs text-emerald-600 uppercase font-bold tracking-tighter">
                                   {selectedLeadForProfile.contractStatus === 'signed' ? '✅ Assinado' : '⏳ Pendente de Assinatura'}
                                 </div>
                               </div>
@@ -1859,45 +1894,162 @@ export default function Admin() {
                               href={selectedLeadForProfile.contractUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="px-4 py-2 bg-white border border-emerald-200 text-emerald-700 rounded-lg text-xs font-bold hover:bg-emerald-100 transition-colors flex items-center gap-2"
+                              className="px-4 py-2 bg-white border border-emerald-200 text-emerald-700 rounded-lg text-[10px] lg:text-xs font-bold hover:bg-emerald-100 transition-colors flex items-center justify-center gap-2"
                             >
                               Ver Documento <ExternalLink size={14} />
                             </a>
                           </div>
                         ) : (
-                          <div className="bg-slate-50 border border-dashed border-slate-300 p-6 rounded-xl text-center">
-                            <p className="text-slate-400 text-sm">Nenhum contrato gerado para este lead.</p>
+                          <div className="bg-slate-50 border border-dashed border-slate-300 p-4 lg:p-6 rounded-xl text-center">
+                            <p className="text-slate-400 text-[10px] lg:text-sm">Nenhum contrato gerado para este lead.</p>
                           </div>
                         )}
                       </div>
                     </div>
 
                     {/* Timeline / History */}
-                    <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
-                      <h4 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-                        <Activity size={20} className="text-indigo-500" />
+                    <div className="bg-white p-4 lg:p-8 rounded-2xl border border-slate-200 shadow-sm">
+                      <h4 className="text-sm lg:text-lg font-bold text-slate-800 mb-4 lg:mb-6 flex items-center gap-2">
+                        <Activity size={18} className="text-indigo-500 lg:w-5 lg:h-5" />
                         Histórico de Atividades
                       </h4>
-                      <div className="space-y-6">
-                        <div className="flex gap-4">
+                      <div className="space-y-4 lg:space-y-6">
+                        <div className="flex gap-3 lg:gap-4">
                           <div className="w-2 h-2 rounded-full bg-indigo-500 mt-1.5 shrink-0"></div>
                           <div>
-                            <p className="text-sm font-bold text-slate-800">Lead criado no sistema</p>
-                            <p className="text-xs text-slate-400">{new Date(selectedLeadForProfile.createdAt).toLocaleString('pt-BR')}</p>
+                            <p className="text-xs lg:text-sm font-bold text-slate-800">Lead criado no sistema</p>
+                            <p className="text-[10px] lg:text-xs text-slate-400">{new Date(selectedLeadForProfile.createdAt).toLocaleString('pt-BR')}</p>
                           </div>
                         </div>
                         {selectedLeadForProfile.updatedAt && (
-                          <div className="flex gap-4">
+                          <div className="flex gap-3 lg:gap-4">
                             <div className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 shrink-0"></div>
                             <div>
-                              <p className="text-sm font-bold text-slate-800">Última atualização de status</p>
-                              <p className="text-xs text-slate-400">{new Date(selectedLeadForProfile.updatedAt).toLocaleString('pt-BR')}</p>
+                              <p className="text-xs lg:text-sm font-bold text-slate-800">Última atualização de status</p>
+                              <p className="text-[10px] lg:text-xs text-slate-400">{new Date(selectedLeadForProfile.updatedAt).toLocaleString('pt-BR')}</p>
                             </div>
                           </div>
                         )}
                       </div>
                     </div>
                   </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Video Upload Modal */}
+      <AnimatePresence>
+        {isVideoModalOpen && (
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <div className="p-4 lg:p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                <h2 className="text-lg lg:text-xl font-bold text-slate-800 flex items-center gap-2">
+                  <Video className="text-indigo-600" size={24} />
+                  Biblioteca de Mídias
+                </h2>
+                <button 
+                  onClick={() => setIsVideoModalOpen(false)}
+                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              
+              <div className="p-4 lg:p-6 flex-1 overflow-y-auto">
+                {/* Upload Section */}
+                <div className="mb-8 bg-slate-50 border border-dashed border-slate-300 rounded-xl p-8 text-center">
+                  <input 
+                    type="file" 
+                    ref={fileInputRef}
+                    onChange={handleFileUpload}
+                    accept="video/*,image/*,audio/*"
+                    className="hidden"
+                  />
+                  
+                  {uploadingVideo ? (
+                    <div className="max-w-xs mx-auto">
+                      <div className="flex justify-between text-sm font-bold text-slate-700 mb-2">
+                        <span>Enviando arquivo...</span>
+                        <span>{Math.round(uploadProgress)}%</span>
+                      </div>
+                      <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                        <div 
+                          className="bg-indigo-600 h-2.5 rounded-full transition-all duration-300" 
+                          style={{ width: `${uploadProgress}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center">
+                      <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-4">
+                        <Upload size={32} />
+                      </div>
+                      <h3 className="text-lg font-bold text-slate-700 mb-2">Fazer Upload de Mídia</h3>
+                      <p className="text-sm text-slate-500 mb-6 max-w-sm">
+                        Selecione um vídeo, imagem ou áudio para usar em seus fluxos de conversa.
+                      </p>
+                      <button 
+                        onClick={() => fileInputRef.current?.click()}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-medium transition-all shadow-sm flex items-center gap-2"
+                      >
+                        <Plus size={18} />
+                        Selecionar Arquivo
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Media Library */}
+                <div>
+                  <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4">Arquivos Disponíveis</h3>
+                  
+                  {videosList.length === 0 ? (
+                    <div className="text-center py-8 text-slate-500 bg-slate-50 rounded-xl border border-slate-100">
+                      Nenhuma mídia enviada ainda.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                      {videosList.map((video) => (
+                        <div key={video.id} className="border border-slate-200 rounded-xl overflow-hidden group hover:border-indigo-300 transition-all cursor-pointer">
+                          <div className="aspect-video bg-slate-100 flex items-center justify-center relative">
+                            {video.type.startsWith('video/') ? (
+                              <Video size={32} className="text-slate-400 group-hover:text-indigo-500 transition-colors" />
+                            ) : video.type.startsWith('image/') ? (
+                              <Image size={32} className="text-slate-400 group-hover:text-indigo-500 transition-colors" />
+                            ) : (
+                              <Music size={32} className="text-slate-400 group-hover:text-indigo-500 transition-colors" />
+                            )}
+                            <div className="absolute inset-0 bg-indigo-600/0 group-hover:bg-indigo-600/10 transition-all flex items-center justify-center">
+                              <button 
+                                onClick={() => {
+                                  // In a real app, this would insert the video into the flow
+                                  showToast('Mídia selecionada para o fluxo!', 'success');
+                                  setIsVideoModalOpen(false);
+                                }}
+                                className="opacity-0 group-hover:opacity-100 bg-white text-indigo-600 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transform translate-y-2 group-hover:translate-y-0 transition-all"
+                              >
+                                Selecionar
+                              </button>
+                            </div>
+                          </div>
+                          <div className="p-3 bg-white">
+                            <p className="text-xs font-bold text-slate-700 truncate" title={video.name}>{video.name}</p>
+                            <p className="text-[10px] text-slate-500 mt-1">
+                              {video.createdAt ? new Date(video.createdAt.toDate()).toLocaleDateString('pt-BR') : 'Agora'} • {(video.size / (1024 * 1024)).toFixed(2)} MB
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>

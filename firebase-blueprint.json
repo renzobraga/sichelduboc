@@ -44,6 +44,20 @@
         "name": { "type": "string" }
       },
       "required": ["email", "role"]
+    },
+    "Video": {
+      "title": "Video",
+      "description": "A media file uploaded for use in flows",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "url": { "type": "string" },
+        "type": { "type": "string" },
+        "size": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "uploadedBy": { "type": "string" }
+      },
+      "required": ["name", "url", "type", "size", "createdAt", "uploadedBy"]
     }
   },
   "firestore": {
@@ -58,6 +72,10 @@
     "/users/{userId}": {
       "schema": { "$ref": "#/entities/User" },
       "description": "Collection of admin users"
+    },
+    "/videos/{videoId}": {
+      "schema": { "$ref": "#/entities/Video" },
+      "description": "Collection of uploaded media files"
     }
   }
 }
