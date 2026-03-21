@@ -335,6 +335,8 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                   - Chame o lead pelo nome (${primeiroNome}) sempre que possível.
                   - NÃO use botões no formato [BUTTONS: Opção 1 | Opção 2] a menos que o prompt de diretriz fornecido acima contenha explicitamente essa tag.
                   - NUNCA peça para o usuário responder com "SIM" ou "NÃO" de forma mecânica ou robótica. Deixe a conversa fluir de forma humanizada.
+                  - NUNCA envolva sua resposta em aspas duplas ("). Responda diretamente como se fosse uma pessoa real no WhatsApp.
+                  - NÃO use aspas para destacar frases ou exemplos, a menos que seja estritamente necessário para clareza.
                   - Se o lead informar nome, e-mail, cidade ou fundo, use a ferramenta 'updateLeadData' e CONTINUE a conversa para a próxima etapa do fluxo na mesma resposta.
                   - Siga o fluxo: Boas-vindas -> Triagem 1 -> Triagem 2 -> Triagem 3 -> Validação -> Documentos -> Contrato.
                   - NUNCA responda apenas com uma chamada de ferramenta. Sempre inclua uma mensagem de texto para o usuário.
@@ -420,6 +422,9 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
               });
               
               let aiResponseText = response.text || "";
+              
+              // Limpar aspas duplas que a IA às vezes coloca no início e fim
+              aiResponseText = aiResponseText.trim().replace(/^["']|["']$/g, '');
               
               // Se a IA chamou uma ferramenta mas não gerou texto (comum em alguns modelos),
               // fazemos uma segunda chamada para obter a resposta textual para o usuário.
