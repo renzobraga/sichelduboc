@@ -334,11 +334,9 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                   INSTRUÇÕES IMPORTANTES:
                   - Chame o lead pelo nome (${primeiroNome}) sempre que possível.
                   - Use botões no formato [BUTTONS: Opção 1 | Opção 2]. O texto do botão DEVE ter no máximo 20 caracteres.
-                  - Se o lead informar nome, e-mail, cidade ou fundo, use a ferramenta 'updateLeadData' IMEDIATAMENTE.
-                  - Se o lead estiver pronto para o contrato, use 'createContract'.
-                  - Se o lead pedir reunião, use 'scheduleMeeting'.
-                  - Se o lead fizer uma pergunta que você não sabe responder ou quiser falar com um humano, use a palavra [ESCAPE] na resposta.
+                  - Se o lead informar nome, e-mail, cidade ou fundo, use a ferramenta 'updateLeadData' e CONTINUE a conversa para a próxima etapa do fluxo na mesma resposta.
                   - Siga o fluxo: Boas-vindas -> Triagem 1 -> Triagem 2 -> Triagem 3 -> Validação -> Documentos -> Contrato.
+                  - NUNCA responda apenas com uma chamada de ferramenta. Sempre inclua uma mensagem de texto para o usuário.
 
                   HISTÓRICO RECENTE:
                   ${history.map(m => `${m.sender === 'user' ? 'Lead' : 'Você'}: ${m.text}`).join('\n')}
@@ -416,11 +414,33 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                 contents: promptText,
                 config: {
                   tools: [{ functionDeclarations: [scheduleMeetingDeclaration, createContractDeclaration, updateLeadDataDeclaration] }],
-                  systemInstruction: `A data e hora atual é: ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })} (Horário de Brasília). Use isso como referência para agendar reuniões. Se o lead pedir para agendar uma reunião, use a ferramenta scheduleMeeting. Se o lead estiver pronto para assinar o contrato, use a ferramenta createContract. Use updateLeadData sempre que o lead informar dados pessoais.`,
+                  systemInstruction: `A data e hora atual é: ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })} (Horário de Brasília). Use isso como referência para agendar reuniões. Se o lead pedir para agendar uma reunião, use a ferramenta scheduleMeeting. Se o lead estiver pronto para assinar o contrato, use a ferramenta createContract. Use updateLeadData sempre que o lead informar dados pessoais. IMPORTANTE: Sempre forneça uma resposta em texto para o usuário, mesmo quando usar ferramentas.`,
                 }
               });
               
               let aiResponseText = response.text || "";
+              
+              // Se a IA chamou uma ferramenta mas não gerou texto (comum em alguns modelos),
+              // fazemos uma segunda chamada para obter a resposta textual para o usuário.
+              if (!aiResponseText && response.functionCalls && response.functionCalls.length > 0) {
+                console.log("IA chamou ferramenta mas não enviou texto. Fazendo segunda chamada para obter resposta...");
+                try {
+                  const secondResponse = await ai.models.generateContent({
+                    model: "gemini-3-flash-preview",
+                    contents: [
+                      { role: 'user', parts: [{ text: promptText }] },
+                      { role: 'model', parts: response.candidates?.[0]?.content?.parts || [] },
+                      { role: 'user', parts: [{ text: "Dados processados com sucesso. Agora, por favor, responda ao lead com a próxima mensagem do fluxo (ex: agradecendo o nome e pedindo os documentos), sem usar ferramentas desta vez. Use o nome que o lead acabou de informar para tornar a conversa humanizada." }] }
+                    ],
+                    config: {
+                      systemInstruction: "Você é a Alice. Forneça apenas a resposta em texto para o lead seguindo o fluxo de atendimento.",
+                    }
+                  });
+                  aiResponseText = secondResponse.text || "";
+                } catch (secondCallError) {
+                  console.error("Erro na segunda chamada da IA:", secondCallError);
+                }
+              }
               
               // Handle function calls
               if (response.functionCalls && response.functionCalls.length > 0) {

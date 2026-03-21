@@ -58,24 +58,27 @@ export default function SimplePromptEditor({ prompts, setPrompts, onSave, saving
 
   return (
     <div className="max-w-4xl mx-auto space-y-4 sm:space-y-8 pb-10 sm:pb-20">
-      <div className="flex items-center justify-between sticky top-0 bg-slate-50/80 backdrop-blur-sm py-4 z-10 border-b border-slate-200 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between sticky top-0 bg-slate-50/95 backdrop-blur-md py-4 z-[60] border-b border-slate-200 mb-6 gap-4">
         <div>
           <h2 className="text-xl font-bold text-slate-900">Editor de Perguntas</h2>
           <p className="text-sm text-slate-500">Ajuste as mensagens que a Alice envia para os clientes.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-2 sm:pb-0">
           {onToggleAdvanced && (
             <button
               onClick={onToggleAdvanced}
-              className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-indigo-600 transition-colors border border-slate-200 rounded-xl bg-white"
+              className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-indigo-600 transition-colors border border-slate-200 rounded-xl bg-white shrink-0"
             >
               Modo Avançado (Nós)
             </button>
           )}
           <button
-            onClick={onSave}
+            onClick={() => {
+              console.log('Botão Salvar clicado no SimplePromptEditor');
+              onSave();
+            }}
             disabled={saving}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold transition-all shadow-lg ${
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold transition-all shadow-lg active:scale-95 shrink-0 ${
               saved 
                 ? 'bg-emerald-500 text-white shadow-emerald-500/20' 
                 : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-600/20'

@@ -357,6 +357,7 @@ export default function Admin() {
 
   const handleSavePrompt = async () => {
     console.log('Iniciando salvamento de prompts...', prompts);
+    showToast('Iniciando salvamento...', 'success');
     setSavingPrompt(true);
     setPromptSaved(false);
     try {
@@ -610,7 +611,7 @@ export default function Admin() {
   }
 
   return (
-    <div className={`admin-panel min-h-screen flex h-screen overflow-hidden ${isDarkMode ? 'dark bg-[#121212]' : 'bg-slate-50'}`}>
+    <div className={`admin-panel min-h-screen flex h-screen lg:overflow-hidden ${isDarkMode ? 'dark bg-[#121212]' : 'bg-slate-50'}`}>
       
       {/* Mobile Sidebar Overlay */}
       <AnimatePresence>

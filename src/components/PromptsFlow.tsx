@@ -581,11 +581,14 @@ export default function PromptsFlow({
   return (
     <div className="h-[800px] w-full bg-slate-50 border border-slate-200 rounded-xl overflow-hidden relative flex flex-col">
       {/* Header Toolbar */}
-      <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 items-end">
+      <div className="absolute top-4 right-4 z-[60] flex flex-col gap-2 items-end">
         <button 
-          onClick={onSave}
+          onClick={() => {
+            console.log('Botão Salvar clicado no PromptsFlow');
+            onSave();
+          }}
           disabled={saving}
-          className="flex items-center gap-2 bg-[#1a1a1a] text-white px-5 py-2.5 rounded-lg font-bold hover:bg-black transition-all shadow-lg disabled:opacity-70"
+          className="flex items-center gap-2 bg-[#1a1a1a] text-white px-5 py-2.5 rounded-lg font-bold hover:bg-black transition-all shadow-lg disabled:opacity-70 active:scale-95"
         >
           <Save size={18} />
           {saving ? 'Salvando...' : 'Salvar Fluxo'}
