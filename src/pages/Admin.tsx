@@ -883,10 +883,10 @@ export default function Admin() {
         
         {/* DASHBOARD TAB */}
         {activeTab === 'dashboard' && (
-          <div className="flex flex-col flex-1 overflow-hidden bg-slate-50/30">
+          <div className="flex flex-col flex-1 overflow-y-auto bg-slate-50/30 dark:bg-transparent">
             
             {/* Dashboard Header */}
-            <div className="bg-white border-b border-slate-200 p-4 lg:p-6 shrink-0">
+            <div className="p-4 lg:p-6 shrink-0">
               <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-6">
                 <div>
                   <h2 className="text-xl lg:text-2xl font-bold text-slate-800">Dashboard</h2>
@@ -1005,7 +1005,7 @@ export default function Admin() {
             </div>
 
             {/* View Content */}
-            <div className="flex-1 overflow-y-auto p-4 lg:p-6">
+            <div className="p-4 lg:p-6 pt-0 lg:pt-0">
               {dashboardView === 'analytics' ? (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
                   {/* Status Distribution Chart */}
