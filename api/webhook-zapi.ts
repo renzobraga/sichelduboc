@@ -49,13 +49,19 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
           messageText = data.listResponseMessage.title;
         } else if (data.templateButtonReplyMessage && data.templateButtonReplyMessage.selectedDisplayText) {
           messageText = data.templateButtonReplyMessage.selectedDisplayText;
-        } else if (data.interactiveResponseMessage && data.interactiveResponseMessage.body && data.interactiveResponseMessage.body.text) {
-          messageText = data.interactiveResponseMessage.body.text;
-        } else if (data.interactiveResponseMessage && data.interactiveResponseMessage.nativeFlowResponseMessage) {
-          try {
-            const params = JSON.parse(data.interactiveResponseMessage.nativeFlowResponseMessage.paramsJson || "{}");
-            if (params.id) messageText = params.id;
-          } catch (e) {}
+        } else if (data.interactiveResponseMessage) {
+          if (data.interactiveResponseMessage.buttonReply && data.interactiveResponseMessage.buttonReply.title) {
+            messageText = data.interactiveResponseMessage.buttonReply.title;
+          } else if (data.interactiveResponseMessage.listReply && data.interactiveResponseMessage.listReply.title) {
+            messageText = data.interactiveResponseMessage.listReply.title;
+          } else if (data.interactiveResponseMessage.body && data.interactiveResponseMessage.body.text) {
+            messageText = data.interactiveResponseMessage.body.text;
+          } else if (data.interactiveResponseMessage.nativeFlowResponseMessage) {
+            try {
+              const params = JSON.parse(data.interactiveResponseMessage.nativeFlowResponseMessage.paramsJson || "{}");
+              if (params.id) messageText = params.id;
+            } catch (e) {}
+          }
         } else if (data.button && data.button.text) {
           messageText = data.button.text;
         } else if (data.extendedTextMessage && data.extendedTextMessage.text) {
@@ -64,10 +70,20 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
           messageText = data.text;
         } else if (data.text && data.text.message) {
           messageText = data.text.message;
-        } else if (data.message && data.message.buttonResponseMessage) {
-          messageText = data.message.buttonResponseMessage.selectedDisplayText;
-        } else if (data.message && data.message.templateButtonReplyMessage) {
-          messageText = data.message.templateButtonReplyMessage.selectedDisplayText;
+        } else if (data.message) {
+          if (typeof data.message === 'string') {
+            messageText = data.message;
+          } else if (data.message.text && typeof data.message.text === 'string') {
+            messageText = data.message.text;
+          } else if (data.message.buttonResponseMessage && data.message.buttonResponseMessage.selectedDisplayText) {
+            messageText = data.message.buttonResponseMessage.selectedDisplayText;
+          } else if (data.message.templateButtonReplyMessage && data.message.templateButtonReplyMessage.selectedDisplayText) {
+            messageText = data.message.templateButtonReplyMessage.selectedDisplayText;
+          } else if (data.message.conversation) {
+            messageText = data.message.conversation;
+          } else if (data.message.extendedTextMessage && data.message.extendedTextMessage.text) {
+            messageText = data.message.extendedTextMessage.text;
+          }
         }
       }
 
@@ -75,7 +91,12 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
       if (!messageText) {
         const dataStr = JSON.stringify(data);
         const match = dataStr.match(/"selectedDisplayText":"([^"]+)"/);
-        if (match) messageText = match[1];
+        if (match) {
+          messageText = match[1];
+        } else {
+          const titleMatch = dataStr.match(/"title":"([^"]+)"/);
+          if (titleMatch) messageText = titleMatch[1];
+        }
       }
 
       if (!messageText) {
@@ -83,36 +104,72 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
         return res.status(200).json({ success: true, message: "Not a text or button message" });
       }
 
-      const phone = data.phone;
+      const rawPhone = data.phone;
+      const phone = rawPhone.replace(/\D/g, "");
       const senderName = data.senderName || data.senderShortName || "Cliente (Via WhatsApp)";
       
       console.log(`Mensagem recebida de ${phone} (${senderName}): ${messageText}`);
 
       // 1. Encontrar o Lead pelo telefone usando dbAdmin (bypassa regras de segurança)
+      // Tenta busca exata primeiro
       let leadsSnapshot = await dbAdmin.collection('leads')
         .where('telefone', '==', phone)
         .orderBy('createdAt', 'desc')
         .limit(1)
         .get();
 
-      // Se não encontrou, tentar com ou sem o 9 (para números do Brasil)
-      if (leadsSnapshot.empty && phone.startsWith('55') && phone.length >= 12) {
-        let altPhone = '';
-        if (phone.length === 13) {
-          // Remover o 9 (ex: 5511999999999 -> 551199999999)
-          altPhone = phone.substring(0, 4) + phone.substring(5);
-        } else if (phone.length === 12) {
-          // Adicionar o 9 (ex: 551199999999 -> 5511999999999)
-          altPhone = phone.substring(0, 4) + '9' + phone.substring(4);
-        }
+      // Se não encontrou, tenta buscar por variações (com/sem 9, com/sem 55)
+      if (leadsSnapshot.empty) {
+        let phoneVariations = [];
         
-        if (altPhone) {
-          console.log(`Tentando buscar lead com telefone alternativo: ${altPhone}`);
-          leadsSnapshot = await dbAdmin.collection('leads')
-            .where('telefone', '==', altPhone)
-            .orderBy('createdAt', 'desc')
-            .limit(1)
-            .get();
+        // Se tem 55, tenta sem 55
+        if (phone.startsWith('55')) {
+          phoneVariations.push(phone.substring(2));
+        } else {
+          // Se não tem 55, tenta com 55
+          phoneVariations.push('55' + phone);
+        }
+
+        // Variações do 9º dígito para números do Brasil
+        if (phone.startsWith('55')) {
+          if (phone.length === 13) {
+            // Remover o 9 (ex: 5511999999999 -> 551199999999)
+            phoneVariations.push(phone.substring(0, 4) + phone.substring(5));
+          } else if (phone.length === 12) {
+            // Adicionar o 9 (ex: 551199999999 -> 5511999999999)
+            phoneVariations.push(phone.substring(0, 4) + '9' + phone.substring(4));
+          }
+        }
+
+        // Tenta buscar por cada variação
+        for (const variation of phoneVariations) {
+          if (variation) {
+            console.log(`Tentando buscar lead com telefone alternativo: ${variation}`);
+            leadsSnapshot = await dbAdmin.collection('leads')
+              .where('telefone', '==', variation)
+              .orderBy('createdAt', 'desc')
+              .limit(1)
+              .get();
+            if (!leadsSnapshot.empty) break;
+          }
+        }
+      }
+
+      // Fallback final: busca pelos últimos 8 ou 9 dígitos (mais arriscado, mas pega casos estranhos)
+      if (leadsSnapshot.empty && phone.length >= 8) {
+        const last8 = phone.slice(-8);
+        console.log(`Tentando busca por sufixo (últimos 8 dígitos): ${last8}`);
+        // Nota: Firestore não suporta 'ends-with', então buscamos todos e filtramos (limitado a 10 para performance)
+        const allLeads = await dbAdmin.collection('leads').limit(10).get();
+        const matchingLead = allLeads.docs.find(doc => {
+          const t = doc.data().telefone;
+          return t && t.endsWith(last8);
+        });
+        
+        if (matchingLead) {
+          console.log(`Lead encontrado por sufixo: ${matchingLead.id}`);
+          // Mocking snapshot for the rest of the logic
+          leadsSnapshot = { empty: false, docs: [matchingLead] } as any;
         }
       }
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc, deleteDoc, setDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, doc, getDoc, updateDoc, deleteDoc, setDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { storage } from '../firebase';
 import { LogOut, MessageCircle, LayoutDashboard, Workflow, Save, Bot, User, Kanban, List, BarChart3, Users, CheckCircle, X, XCircle, Trash2, Clock, Moon, Sun, Sparkles, Calendar, Maximize, Minimize, TrendingUp, PieChart, Activity, ArrowRight, MapPin, Mail, Phone, FileText, ExternalLink, MoreVertical, Search, Filter, ChevronRight, ChevronLeft, Image, Video, Music, Download, Paperclip, Box, Plus, Play, Edit2, Settings, Upload } from 'lucide-react';
@@ -208,7 +208,9 @@ export default function Admin() {
           console.warn("Aviso: Não foi possível ler o documento do usuário.", error);
         }
 
-        if (isUserAdmin || currentUser.email === 'contato@sichelduboc.com.br') {
+        if (isUserAdmin || 
+            currentUser.email === 'contato@sichelduboc.com.br' || 
+            currentUser.email === 'ia.resguarde@gmail.com') {
           setIsAdmin(true);
         } else {
           setIsAdmin(false);
@@ -252,16 +254,18 @@ export default function Admin() {
   // Fetch Messages for selected lead (Real-time)
   useEffect(() => {
     if (selectedLead && user && isAdmin) {
-      const q = query(collection(db, 'messages'), orderBy('createdAt', 'asc'));
+      const q = query(
+        collection(db, 'messages'), 
+        where('leadId', '==', selectedLead.id),
+        orderBy('createdAt', 'asc')
+      );
       const unsubscribe = onSnapshot(q, (snapshot) => {
-        const msgs = snapshot.docs
-          .map(doc => ({ id: doc.id, ...doc.data() }))
-          .filter((msg: any) => msg.leadId === selectedLead.id);
+        const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setMessages(msgs);
       });
       return () => unsubscribe();
     }
-  }, [selectedLead, user, isAdmin]);
+  }, [selectedLead?.id, user, isAdmin]);
 
   // Fetch AI Prompts
   useEffect(() => {
