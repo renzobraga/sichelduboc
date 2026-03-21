@@ -2042,7 +2042,7 @@ export default function Admin() {
                       )}
 
                       {promptsSubTab === 'edit' && (
-                        <div className="flex-1 overflow-y-auto p-2 sm:p-4 lg:p-8 bg-slate-50">
+                        <div className="flex-1 overflow-y-auto p-2 sm:p-4 lg:p-8 bg-slate-50 dark:bg-slate-900">
                           {useAdvancedEditor ? (
                             <div className="h-full min-h-[600px] flex flex-col">
                               <div className="flex justify-between items-center mb-4">

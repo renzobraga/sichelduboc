@@ -333,7 +333,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
 
                   INSTRUÇÕES IMPORTANTES:
                   - Chame o lead pelo nome (${primeiroNome}) sempre que possível.
-                  - Use botões no formato [BUTTONS: Opção 1 | Opção 2] APENAS se o prompt original contiver essa tag ou se for extremamente necessário para a experiência do usuário. Caso contrário, responda apenas com texto.
+                  - NÃO use botões no formato [BUTTONS: Opção 1 | Opção 2] a menos que o prompt de diretriz fornecido acima contenha explicitamente essa tag. Se o prompt não tiver a tag, responda APENAS com texto simples.
                   - Se o lead informar nome, e-mail, cidade ou fundo, use a ferramenta 'updateLeadData' e CONTINUE a conversa para a próxima etapa do fluxo na mesma resposta.
                   - Siga o fluxo: Boas-vindas -> Triagem 1 -> Triagem 2 -> Triagem 3 -> Validação -> Documentos -> Contrato.
                   - NUNCA responda apenas com uma chamada de ferramenta. Sempre inclua uma mensagem de texto para o usuário.
@@ -570,7 +570,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                 // Salvar a resposta da IA no Firestore
                 await dbAdmin.collection('messages').add({
                   leadId,
-                  text: aiResponseText + (buttons.length > 0 ? `\n[Botões: ${buttons.join(' | ')}]` : ''),
+                  text: aiResponseText,
                   sender: 'bot',
                   createdAt: new Date().toISOString()
                 });
