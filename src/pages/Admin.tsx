@@ -208,9 +208,7 @@ export default function Admin() {
           console.warn("Aviso: Não foi possível ler o documento do usuário.", error);
         }
 
-        if (isUserAdmin || 
-            currentUser.email === 'contato@sichelduboc.com.br' || 
-            currentUser.email === 'ia.resguarde@gmail.com') {
+        if (isUserAdmin || currentUser.email === 'contato@sichelduboc.com.br') {
           setIsAdmin(true);
         } else {
           setIsAdmin(false);

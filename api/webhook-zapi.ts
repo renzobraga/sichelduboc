@@ -79,6 +79,14 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
             messageText = data.message.buttonResponseMessage.selectedDisplayText;
           } else if (data.message.templateButtonReplyMessage && data.message.templateButtonReplyMessage.selectedDisplayText) {
             messageText = data.message.templateButtonReplyMessage.selectedDisplayText;
+          } else if (data.message.interactiveResponseMessage) {
+            if (data.message.interactiveResponseMessage.buttonReply && data.message.interactiveResponseMessage.buttonReply.title) {
+              messageText = data.message.interactiveResponseMessage.buttonReply.title;
+            } else if (data.message.interactiveResponseMessage.listReply && data.message.interactiveResponseMessage.listReply.title) {
+              messageText = data.message.interactiveResponseMessage.listReply.title;
+            } else if (data.message.interactiveResponseMessage.body && data.message.interactiveResponseMessage.body.text) {
+              messageText = data.message.interactiveResponseMessage.body.text;
+            }
           } else if (data.message.conversation) {
             messageText = data.message.conversation;
           } else if (data.message.extendedTextMessage && data.message.extendedTextMessage.text) {
