@@ -101,7 +101,7 @@ export default function SimplePromptEditor({ prompts, setPrompts, onSave, saving
         <div className="text-sm text-blue-800 leading-relaxed">
           <p className="font-bold mb-1">Dicas de Formatação:</p>
           <ul className="list-disc list-inside space-y-1 opacity-90">
-            <li>Use <strong>[BUTTONS: Opção 1 | Opção 2]</strong> para criar botões de resposta.</li>
+            <li>Use <strong>[BUTTONS: Opção 1 | Opção 2]</strong> se desejar criar botões de resposta (opcional).</li>
             <li>Use <strong>{"{nome}"}</strong> para inserir o nome do cliente automaticamente.</li>
             <li>Mantenha as mensagens curtas e amigáveis para melhor conversão no WhatsApp.</li>
           </ul>

@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { collection, query, where, orderBy, onSnapshot, doc, getDoc, updateDoc, deleteDoc, setDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, doc, getDoc, updateDoc, deleteDoc, setDoc, addDoc, serverTimestamp, limit } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { storage } from '../firebase';
-import { LogOut, MessageCircle, LayoutDashboard, Workflow, Save, Bot, User, Kanban, List, BarChart3, Users, CheckCircle, X, XCircle, Trash2, Clock, Moon, Sun, Sparkles, Calendar, Maximize, Minimize, TrendingUp, PieChart, Activity, ArrowRight, MapPin, Mail, Phone, FileText, ExternalLink, MoreVertical, Search, Filter, ChevronRight, ChevronLeft, Image, Video, Music, Download, Paperclip, Box, Plus, Play, Edit2, Settings, Upload } from 'lucide-react';
+import { LogOut, MessageCircle, Bell, LayoutDashboard, Workflow, Save, Bot, User, Kanban, List, BarChart3, Users, CheckCircle, X, XCircle, Trash2, Clock, Moon, Sun, Sparkles, Calendar, Maximize, Minimize, TrendingUp, PieChart, Activity, ArrowRight, MapPin, Mail, Phone, FileText, ExternalLink, MoreVertical, Search, Filter, ChevronRight, ChevronLeft, Image, Video, Music, Download, Paperclip, Box, Plus, Play, Edit2, Settings, Upload } from 'lucide-react';
 import { PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, AreaChart, Area } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
 import PromptsFlow from '../components/PromptsFlow';
@@ -23,12 +23,12 @@ DIRETRIZES DE PERSONA:
 FLUXO DE ATENDIMENTO (Siga rigorosamente uma pergunta por vez):
 
 ETAPA 1: PRIMEIRO CONTATO
-- Mensagem de Boas-vindas: "Olá! Que bom ter você aqui! Meu nome é Alice e faço parte da equipe de atendimento do Escritório Sichel & Duboc Advogados Associados, especialistas em Direito Previdenciário e Tributário. Muitos aposentados como você estão conseguindo recuperar valores significativos de Imposto de Renda que foram cobrados indevidamente. E o melhor: você pode ser um deles! Para te ajudar a verificar se você tem esse direito, preciso fazer apenas 3 perguntinhas rápidas. Leva menos de 2 minutinhos, prometo! Podemos começar? [BUTTONS: Sim | Não]"
+- Mensagem de Boas-vindas: "Olá! Que bom ter você aqui! Meu nome é Alice e faço parte da equipe de atendimento do Escritório Sichel & Duboc Advogados Associados, especialistas em Direito Previdenciário e Tributário. Muitos aposentados como você estão conseguindo recuperar valores significativos de Imposto de Renda que foram cobrados indevidamente. E o melhor: você pode ser um deles! Para te ajudar a verificar se você tem esse direito, preciso fazer apenas 3 perguntinhas rápidas. Leva menos de 2 minutinhos, prometo! Podemos começar?"
 
 ETAPA 2: QUALIFICAÇÃO (Triagem dos 3 Requisitos - Uma por vez)
-- Pergunta 1 (Previdência Complementar): "Perfeito! Vamos à primeira pergunta: Você recebe aposentadoria de alguma previdência complementar que NÃO seja paga pelo INSS? (Por exemplo: Petros, Funcef, Previ, Banesprev, Valia, Sistel, BNDES, Banco do Brasil, Rede Ferroviária, entre outros.) Por favor, me diga SIM ou NÃO. [BUTTONS: Sim | Não]"
-- Pergunta 2 (Período de Contribuição): "Ótimo! Agora, a segunda pergunta: Você contribuiu para esse fundo de previdência entre os anos de 1989 e 1995? Responda com SIM ou NÃO, por favor. [BUTTONS: Sim | Não]"
-- Pergunta 3 (Retenção Atual): "Quase lá! A última pergunta para a gente saber se você tem direito é: Atualmente, é descontado Imposto de Renda diretamente na fonte sobre o valor da sua aposentadoria complementar? Me diga SIM ou NÃO. [BUTTONS: Sim | Não]"
+- Pergunta 1 (Previdência Complementar): "Perfeito! Vamos à primeira pergunta: Você recebe aposentadoria de alguma previdência complementar que NÃO seja paga pelo INSS? (Por exemplo: Petros, Funcef, Previ, Banesprev, Valia, Sistel, BNDES, Banco do Brasil, Rede Ferroviária, entre outros.) Por favor, me diga SIM ou NÃO."
+- Pergunta 2 (Período de Contribuição): "Ótimo! Agora, a segunda pergunta: Você contribuiu para esse fundo de previdência entre os anos de 1989 e 1995? Responda com SIM ou NÃO, por favor."
+- Pergunta 3 (Retenção Atual): "Quase lá! A última pergunta para a gente saber se você tem direito é: Atualmente, é descontado Imposto de Renda diretamente na fonte sobre o valor da sua aposentadoria complementar? Me diga SIM ou NÃO."
 
 ETAPA ALTERNATIVA: DESQUALIFICAÇÃO HUMANIZADA
 Se o lead responder "Não" a qualquer pergunta:
@@ -46,12 +46,12 @@ ETAPA 4: PROPOSTA E DOCUMENTOS
 2. Comprovante de Residência (conta de luz, água ou telefone)
 3. Contracheque atual da aposentadoria complementar
 4. Declaração de Imposto de Renda (ultimo ano)
-Você pode me enviar as fotos ou PDFs aqui mesmo pelo WhatsApp. Todos os seus dados são protegidos pela LGPD e utilizados exclusivamente para a análise do seu caso. Consegue me enviar hoje? [BUTTONS: Sim, envio hoje | Envio depois]"
+Você pode me enviar as fotos ou PDFs aqui mesmo pelo WhatsApp. Todos os seus dados são protegidos pela LGPD e utilizados exclusivamente para a análise do seu caso. Consegue me enviar hoje?"
 
 ETAPA 5: SUPERAÇÃO DE OBJEÇÕES
 - "Isso é golpe?": "Entendo perfeitamente a sua preocupação, [Nome], e é muito importante que você se sinta seguro(a)! O Escritório Sichel & Duboc é totalmente regularizado, registrado na OAB/RJ sob o número 181.046 e no CNPJ 48.319.240/0001-80. Você pode verificar todas as nossas informações no site do Conselho Federal da OAB ou em nosso site oficial [sichelduboc.com.br]. A tese que defendemos é baseada na Lei 7.713/88 e já tem decisões favoráveis em tribunais superiores. Estamos aqui para proteger os seus direitos com toda a seriedade e transparência."
 - "Quanto vou pagar?": "Essa é uma ótima pergunta, [Nome]! E a resposta é bem simples e transparente: O escritório trabalha no modelo de honorários de êxito. Isso significa que você não paga nada adiantado para iniciarmos a ação. Nossos honorários são um percentual combinado em contrato, cobrado apenas se você ganhar a ação e o dinheiro estiver disponível. Ou seja, você só paga se tiver o seu direito reconhecido e receber os valores! 😊"
-- "Preciso pensar": "Claro, [Nome], é uma decisão importante e faz todo sentido conversar com a família. Fique à vontade para fazer isso! Só quero te lembrar de um detalhe muito importante: o direito à restituição prescreve mês a mês. Isso significa que, a cada mês que passa sem a ação, você perde definitivamente o direito de recuperar aquele mês de 5 anos atrás. É como um reloginho correndo, sabe? Se quiser, posso te enviar um resumo do caso para você mostrar para a família. Posso fazer isso? [BUTTONS: Sim, por favor | Não precisa]"
+- "Preciso pensar": "Claro, [Nome], é uma decisão importante e faz todo sentido conversar com a família. Fique à vontade para fazer isso! Só quero te lembrar de um detalhe muito importante: o direito à restituição prescreve mês a mês. Isso significa que, a cada mês que passa sem a ação, você perde definitivamente o direito de recuperar aquele mês de 5 anos atrás. É como um reloginho correndo, sabe? Se quiser, posso te enviar um resumo do caso para você mostrar para a família. Posso fazer isso?"
 
 ETAPA 6: ENVIO DO CONTRATO E FECHAMENTO
 "Perfeito, [Nome]! Recebi tudo por aqui. Sua análise foi concluída e está tudo certo para darmos o próximo passo! ✅ Vou te encaminhar agora o seu Contrato de Prestação de Serviços Jurídicos. Como conversamos, os honorários são cobrados apenas no êxito — você não precisa pagar nada agora. O contrato é bem simples, claro e foi feito para proteger os seus direitos. Clique no link abaixo para ler e assinar digitalmente pelo seu celular mesmo. É super rápido e a assinatura digital tem total validade jurídica: [LINK PARA ASSINATURA DO CONTRATO] Assim que assinar, me avise aqui para eu confirmar no sistema, combinado? Se tiver alguma dúvida sobre algum ponto do contrato, pode me perguntar!"
@@ -95,7 +95,11 @@ export default function Admin() {
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [videosList, setVideosList] = useState<any[]>([]);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
+    return localStorage.getItem('chatNotifications') === 'true';
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const notificationSoundRef = useRef<HTMLAudioElement | null>(null);
 
   // Chart data helpers
   const getStatusData = () => {
@@ -264,6 +268,101 @@ export default function Admin() {
       return () => unsubscribe();
     }
   }, [selectedLead?.id, user, isAdmin]);
+
+  // Initialize notification sound
+  useEffect(() => {
+    notificationSoundRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
+  }, []);
+
+  const requestNotificationPermission = async () => {
+    if (!('Notification' in window)) {
+      showToast('Este navegador não suporta notificações.', 'error');
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+      setNotificationsEnabled(true);
+      localStorage.setItem('chatNotifications', 'true');
+      showToast('Notificações ativadas!', 'success');
+    } else {
+      showToast('Permissão de notificação negada.', 'error');
+    }
+  };
+
+  const toggleNotifications = () => {
+    if (!notificationsEnabled) {
+      requestNotificationPermission();
+    } else {
+      setNotificationsEnabled(false);
+      localStorage.setItem('chatNotifications', 'false');
+      showToast('Notificações desativadas.', 'success');
+    }
+  };
+
+  // Live Notifications for new messages
+  useEffect(() => {
+    if (user && isAdmin && notificationsEnabled) {
+      console.log('Monitorando novas mensagens para notificações...');
+      let isInitialLoad = true;
+      
+      // Listen to the messages collection
+      const q = query(
+        collection(db, 'messages'),
+        orderBy('createdAt', 'desc'),
+        limit(1)
+      );
+
+      const unsubscribe = onSnapshot(q, async (snapshot) => {
+        if (isInitialLoad) {
+          isInitialLoad = false;
+          return;
+        }
+
+        snapshot.docChanges().forEach(async (change) => {
+          if (change.type === 'added') {
+            const msgData = change.doc.data();
+            
+            // Only notify for messages from leads (role is 'user' or undefined)
+            // AND not from the current admin
+            if ((msgData.role === 'user' || !msgData.role) && msgData.senderId !== user.uid) {
+              
+              // Play sound
+              if (notificationSoundRef.current) {
+                notificationSoundRef.current.play().catch(e => console.warn('Erro ao tocar som:', e));
+              }
+
+              // Fetch lead name for better notification
+              let leadName = 'Novo Lead';
+              try {
+                const leadDoc = await getDoc(doc(db, 'leads', msgData.leadId));
+                if (leadDoc.exists()) {
+                  leadName = leadDoc.data().name || leadName;
+                }
+              } catch (e) {
+                console.error('Erro ao buscar nome do lead para notificação:', e);
+              }
+
+              // Show Browser Notification
+              if (Notification.permission === 'granted') {
+                new Notification(`Nova mensagem de ${leadName}`, {
+                  body: msgData.text,
+                  icon: '/favicon.ico'
+                });
+              }
+
+              // Show in-app toast
+              showToast(`Nova mensagem de ${leadName}: ${msgData.text.substring(0, 30)}...`, 'success');
+            }
+          }
+        });
+      }, (error) => {
+        console.error("Erro no monitoramento de notificações:", error);
+      });
+
+      return () => unsubscribe();
+    }
+  }, [user, isAdmin, notificationsEnabled]);
 
   // Fetch AI Prompts (Real-time)
   useEffect(() => {
@@ -751,8 +850,34 @@ export default function Admin() {
               {activeTab === 'calendario' ? 'Calendário' : activeTab}
             </span>
           </div>
-          <div className="w-8 h-8 rounded-full overflow-hidden border border-slate-200">
-            <img src={user.photoURL || "https://i.imgur.com/pgCrkrr.jpeg"} alt="User" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 mr-2">
+              <button
+                onClick={toggleNotifications}
+                className={`p-2 rounded-xl transition-all ${
+                  notificationsEnabled 
+                    ? 'bg-emerald-50 text-emerald-600 border border-emerald-100 shadow-sm shadow-emerald-100' 
+                    : 'bg-slate-100 text-slate-400 border border-slate-200'
+                }`}
+                title={notificationsEnabled ? "Notificações Ativas" : "Ativar Notificações"}
+              >
+                <Bell size={18} className={notificationsEnabled ? 'animate-bounce' : ''} />
+              </button>
+              <button
+                onClick={() => {
+                  const newMode = !isDarkMode;
+                  setIsDarkMode(newMode);
+                  localStorage.setItem('adminDarkMode', String(newMode));
+                }}
+                className="p-2 rounded-xl bg-slate-100 text-slate-400 border border-slate-200 hover:bg-slate-200 transition-all"
+                title={isDarkMode ? "Mudar para tema claro" : "Mudar para tema escuro"}
+              >
+                {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+              </button>
+            </div>
+            <div className="w-8 h-8 rounded-full overflow-hidden border border-slate-200">
+              <img src={user.photoURL || "https://i.imgur.com/pgCrkrr.jpeg"} alt="User" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            </div>
           </div>
         </header>
         
