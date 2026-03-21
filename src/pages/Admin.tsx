@@ -265,39 +265,49 @@ export default function Admin() {
     }
   }, [selectedLead?.id, user, isAdmin]);
 
-  // Fetch AI Prompts
+  // Fetch AI Prompts (Real-time)
   useEffect(() => {
     if (user && isAdmin && activeTab === 'fluxos') {
-      const fetchPrompts = async () => {
-        try {
-          const docSnap = await getDoc(doc(db, 'settings', 'prompts'));
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            setPrompts(prev => ({ ...prev, ...data }));
-          } else {
-            // Fallback to legacy docs if new prompts doc doesn't exist
-            const aiPromptSnap = await getDoc(doc(db, 'settings', 'ai_prompt'));
-            const aiChatPromptSnap = await getDoc(doc(db, 'settings', 'ai_chat_prompt'));
-            
-            setPrompts(prev => ({
-              ...prev,
-              prompt1: aiPromptSnap.exists() ? aiPromptSnap.data().text : prev.prompt1,
-              aiChatPrompt: aiChatPromptSnap.exists() ? aiChatPromptSnap.data().text : prev.aiChatPrompt
-            }));
-          }
-        } catch (error) {
-          console.error("Erro ao buscar prompts:", error);
+      console.log('Iniciando onSnapshot para prompts...');
+      const unsubscribe = onSnapshot(doc(db, 'settings', 'prompts'), (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          console.log('Prompts atualizados via onSnapshot:', data);
+          setPrompts(prev => ({ ...prev, ...data }));
+        } else {
+          console.log('Documento settings/prompts não existe, tentando legados...');
+          // Fallback to legacy docs if new prompts doc doesn't exist
+          const fetchLegacy = async () => {
+            try {
+              const aiPromptSnap = await getDoc(doc(db, 'settings', 'ai_prompt'));
+              const aiChatPromptSnap = await getDoc(doc(db, 'settings', 'ai_chat_prompt'));
+              
+              setPrompts(prev => ({
+                ...prev,
+                prompt1: aiPromptSnap.exists() ? aiPromptSnap.data().text : prev.prompt1,
+                aiChatPrompt: aiChatPromptSnap.exists() ? aiChatPromptSnap.data().text : prev.aiChatPrompt
+              }));
+            } catch (err) {
+              console.error("Erro ao buscar prompts legados:", err);
+            }
+          };
+          fetchLegacy();
         }
-      };
-      fetchPrompts();
+      }, (error) => {
+        console.error("Erro no onSnapshot de prompts:", error);
+      });
 
       // Fetch videos
       const q = query(collection(db, 'videos'), orderBy('createdAt', 'desc'));
-      const unsubscribe = onSnapshot(q, (snapshot) => {
+      const unsubscribeVideos = onSnapshot(q, (snapshot) => {
         const vids = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setVideosList(vids);
       });
-      return () => unsubscribe();
+
+      return () => {
+        unsubscribe();
+        unsubscribeVideos();
+      };
     }
   }, [user, isAdmin, activeTab]);
 
@@ -356,26 +366,52 @@ export default function Admin() {
   };
 
   const handleSavePrompt = async () => {
+    if (savingPrompt) {
+      console.log('Já existe um salvamento em curso, ignorando clique.');
+      return;
+    }
+    
     console.log('Iniciando salvamento de prompts...', prompts);
-    showToast('Iniciando salvamento...', 'success');
+    showToast('Salvando alterações...', 'success');
     setSavingPrompt(true);
     setPromptSaved(false);
+    
     try {
+      // Validate prompts object
+      if (!prompts || typeof prompts !== 'object') {
+        throw new Error('Objeto de prompts inválido.');
+      }
+
       // Save to the new consolidated document
-      await setDoc(doc(db, 'settings', 'prompts'), prompts);
+      const promptsRef = doc(db, 'settings', 'prompts');
+      await setDoc(promptsRef, {
+        ...prompts,
+        updatedAt: serverTimestamp(),
+        updatedBy: user?.email
+      });
       console.log('Documento settings/prompts salvo com sucesso.');
       
       // Keep legacy docs for compatibility with existing webhook logic
-      await setDoc(doc(db, 'settings', 'ai_prompt'), { text: prompts.prompt1 });
-      await setDoc(doc(db, 'settings', 'ai_chat_prompt'), { text: prompts.aiChatPrompt });
+      await setDoc(doc(db, 'settings', 'ai_prompt'), { 
+        text: prompts.prompt1,
+        updatedAt: serverTimestamp()
+      });
+      await setDoc(doc(db, 'settings', 'ai_chat_prompt'), { 
+        text: prompts.aiChatPrompt,
+        updatedAt: serverTimestamp()
+      });
       console.log('Documentos legados salvos com sucesso.');
       
       setPromptSaved(true);
       showToast('Fluxo salvo com sucesso!', 'success');
-      setTimeout(() => setPromptSaved(false), 3000);
+      
+      // Reset saved state after 3 seconds
+      setTimeout(() => {
+        setPromptSaved(false);
+      }, 3000);
     } catch (error: any) {
-      console.error("Erro ao salvar prompts:", error);
-      showToast(`Erro ao salvar: ${error.message || 'Erro desconhecido'}`, 'error');
+      console.error("Erro crítico ao salvar prompts:", error);
+      showToast(`Erro ao salvar: ${error.message || 'Erro de conexão'}`, 'error');
     } finally {
       setSavingPrompt(false);
     }

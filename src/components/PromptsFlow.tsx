@@ -529,51 +529,44 @@ export default function PromptsFlow({
 
   // Update node data when props change
   useEffect(() => {
+    console.log('PromptsFlow: Atualizando nodes com novos prompts...');
     setNodes((nds) =>
       nds.map((node) => {
+        let newData = { ...node.data };
+        
         if (node.id === 'prompt-1') {
-          node.data = { ...node.data, value: prompts.prompt1, onChange: (val: string) => updatePrompt('prompt1', val) };
+          newData = { ...newData, value: prompts.prompt1, onChange: (val: string) => updatePrompt('prompt1', val) };
+        } else if (node.id === 'prompt-2') {
+          newData = { ...newData, value: prompts.prompt2, onChange: (val: string) => updatePrompt('prompt2', val) };
+        } else if (node.id === 'prompt-3') {
+          newData = { ...newData, value: prompts.prompt3, onChange: (val: string) => updatePrompt('prompt3', val) };
+        } else if (node.id === 'prompt-4') {
+          newData = { ...newData, value: prompts.prompt4, onChange: (val: string) => updatePrompt('prompt4', val) };
+        } else if (node.id === 'prompt-5') {
+          newData = { ...newData, value: prompts.prompt5, onChange: (val: string) => updatePrompt('prompt5', val) };
+        } else if (node.id === 'prompt-6') {
+          newData = { ...newData, value: prompts.prompt6, onChange: (val: string) => updatePrompt('prompt6', val) };
+        } else if (node.id === 'prompt-objections') {
+          newData = { ...newData, value: prompts.promptObjections, onChange: (val: string) => updatePrompt('promptObjections', val) };
+        } else if (node.id === 'prompt-schedule') {
+          newData = { ...newData, value: prompts.promptSchedule, onChange: (val: string) => updatePrompt('promptSchedule', val) };
+        } else if (node.id === 'prompt-contract') {
+          newData = { ...newData, value: prompts.promptContract, onChange: (val: string) => updatePrompt('promptContract', val) };
+        } else if (node.id === 'prompt-closing') {
+          newData = { ...newData, value: prompts.promptClosing, onChange: (val: string) => updatePrompt('promptClosing', val) };
+        } else if (node.id === 'prompt-desq') {
+          newData = { ...newData, value: prompts.promptDesq, onChange: (val: string) => updatePrompt('promptDesq', val) };
+        } else if (node.id === 'prompt-expert') {
+          newData = { ...newData, value: prompts.aiChatPrompt, onChange: (val: string) => updatePrompt('aiChatPrompt', val), onLoadExpert: () => updatePrompt('aiChatPrompt', expertPrompt) };
+        } else if (node.id === 'prompt-trust') {
+          newData = { ...newData, value: prompts.promptTrust, onChange: (val: string) => updatePrompt('promptTrust', val) };
+        } else if (node.id === 'prompt-fees') {
+          newData = { ...newData, value: prompts.promptFees, onChange: (val: string) => updatePrompt('promptFees', val) };
+        } else {
+          return node;
         }
-        if (node.id === 'prompt-2') {
-          node.data = { ...node.data, value: prompts.prompt2, onChange: (val: string) => updatePrompt('prompt2', val) };
-        }
-        if (node.id === 'prompt-3') {
-          node.data = { ...node.data, value: prompts.prompt3, onChange: (val: string) => updatePrompt('prompt3', val) };
-        }
-        if (node.id === 'prompt-4') {
-          node.data = { ...node.data, value: prompts.prompt4, onChange: (val: string) => updatePrompt('prompt4', val) };
-        }
-        if (node.id === 'prompt-5') {
-          node.data = { ...node.data, value: prompts.prompt5, onChange: (val: string) => updatePrompt('prompt5', val) };
-        }
-        if (node.id === 'prompt-6') {
-          node.data = { ...node.data, value: prompts.prompt6, onChange: (val: string) => updatePrompt('prompt6', val) };
-        }
-        if (node.id === 'prompt-objections') {
-          node.data = { ...node.data, value: prompts.promptObjections, onChange: (val: string) => updatePrompt('promptObjections', val) };
-        }
-        if (node.id === 'prompt-schedule') {
-          node.data = { ...node.data, value: prompts.promptSchedule, onChange: (val: string) => updatePrompt('promptSchedule', val) };
-        }
-        if (node.id === 'prompt-contract') {
-          node.data = { ...node.data, value: prompts.promptContract, onChange: (val: string) => updatePrompt('promptContract', val) };
-        }
-        if (node.id === 'prompt-closing') {
-          node.data = { ...node.data, value: prompts.promptClosing, onChange: (val: string) => updatePrompt('promptClosing', val) };
-        }
-        if (node.id === 'prompt-desq') {
-          node.data = { ...node.data, value: prompts.promptDesq, onChange: (val: string) => updatePrompt('promptDesq', val) };
-        }
-        if (node.id === 'prompt-expert') {
-          node.data = { ...node.data, value: prompts.aiChatPrompt, onChange: (val: string) => updatePrompt('aiChatPrompt', val), onLoadExpert: () => updatePrompt('aiChatPrompt', expertPrompt) };
-        }
-        if (node.id === 'prompt-trust') {
-          node.data = { ...node.data, value: prompts.promptTrust, onChange: (val: string) => updatePrompt('promptTrust', val) };
-        }
-        if (node.id === 'prompt-fees') {
-          node.data = { ...node.data, value: prompts.promptFees, onChange: (val: string) => updatePrompt('promptFees', val) };
-        }
-        return node;
+
+        return { ...node, data: newData };
       })
     );
   }, [prompts, expertPrompt, setNodes]);
