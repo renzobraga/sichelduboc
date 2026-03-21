@@ -8,6 +8,7 @@ import { LogOut, MessageCircle, LayoutDashboard, Workflow, Save, Bot, User, Kanb
 import { PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, AreaChart, Area } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
 import PromptsFlow from '../components/PromptsFlow';
+import SimplePromptEditor from '../components/SimplePromptEditor';
 import FlowSimulator from '../components/FlowSimulator';
 import GoogleCalendar from '../components/GoogleCalendar';
 
@@ -84,6 +85,7 @@ export default function Admin() {
   
   // Fluxos states
   const [promptsSubTab, setPromptsSubTab] = useState<'visual' | 'simulator' | 'edit'>('visual');
+  const [useAdvancedEditor, setUseAdvancedEditor] = useState(false);
   const [flowView, setFlowView] = useState<'list' | 'editor'>('list');
   const [configTab, setConfigTab] = useState<'prompts' | 'followups' | 'videos'>('prompts');
   const [isFlowFullScreen, setIsFlowFullScreen] = useState(false);
@@ -1841,15 +1843,37 @@ export default function Admin() {
                       )}
 
                       {promptsSubTab === 'edit' && (
-                        <div className="flex-1 overflow-y-auto p-4 lg:p-8">
-                          <PromptsFlow 
-                            prompts={prompts}
-                            setPrompts={setPrompts}
-                            onSave={handleSavePrompt}
-                            saving={savingPrompt}
-                            saved={promptSaved}
-                            expertPrompt={EXPERT_PROMPT}
-                          />
+                        <div className="flex-1 overflow-y-auto p-4 lg:p-8 bg-slate-50">
+                          {useAdvancedEditor ? (
+                            <div className="h-full min-h-[600px] flex flex-col">
+                              <div className="flex justify-between items-center mb-4">
+                                <h2 className="text-xl font-bold text-slate-800">Editor Avançado (Nós)</h2>
+                                <button 
+                                  onClick={() => setUseAdvancedEditor(false)}
+                                  className="px-4 py-2 text-xs font-bold text-indigo-600 hover:bg-indigo-50 transition-colors rounded-xl border border-indigo-100 bg-white"
+                                >
+                                  Voltar para Editor Simples
+                                </button>
+                              </div>
+                              <PromptsFlow 
+                                prompts={prompts}
+                                setPrompts={setPrompts}
+                                onSave={handleSavePrompt}
+                                saving={savingPrompt}
+                                saved={promptSaved}
+                                expertPrompt={EXPERT_PROMPT}
+                              />
+                            </div>
+                          ) : (
+                            <SimplePromptEditor 
+                              prompts={prompts}
+                              setPrompts={setPrompts}
+                              onSave={handleSavePrompt}
+                              saving={savingPrompt}
+                              saved={promptSaved}
+                              onToggleAdvanced={() => setUseAdvancedEditor(true)}
+                            />
+                          )}
                         </div>
                       )}
                     </div>
