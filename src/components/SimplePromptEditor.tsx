@@ -57,7 +57,7 @@ export default function SimplePromptEditor({ prompts, setPrompts, onSave, saving
   ];
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 pb-20">
+    <div className="max-w-4xl mx-auto space-y-4 sm:space-y-8 pb-10 sm:pb-20">
       <div className="flex items-center justify-between sticky top-0 bg-slate-50/80 backdrop-blur-sm py-4 z-10 border-b border-slate-200 mb-6">
         <div>
           <h2 className="text-xl font-bold text-slate-900">Editor de Perguntas</h2>
@@ -114,7 +114,7 @@ export default function SimplePromptEditor({ prompts, setPrompts, onSave, saving
           
           <div className="grid gap-4">
             {section.items.map((item) => (
-              <div key={item.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:border-indigo-200 transition-all p-5 group">
+              <div key={item.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:border-indigo-200 transition-all p-3 sm:p-5 group">
                 <div className="flex items-center justify-between mb-3">
                   <label htmlFor={item.id} className="flex items-center gap-2 font-bold text-slate-700 group-focus-within:text-indigo-600 transition-colors">
                     <span className="p-1.5 bg-slate-100 rounded-lg text-slate-500 group-focus-within:bg-indigo-50 group-focus-within:text-indigo-500 transition-all">

@@ -182,7 +182,7 @@ export default function PromptsFlow({
 }: PromptsFlowProps) {
   
   const updatePrompt = (key: string, value: string) => {
-    setPrompts({ ...prompts, [key]: value });
+    setPrompts((prev: any) => ({ ...prev, [key]: value }));
   };
 
   const initialNodes = [
