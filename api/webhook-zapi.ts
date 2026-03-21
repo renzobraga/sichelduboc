@@ -338,6 +338,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                   - NUNCA envolva sua resposta em aspas duplas ("). Responda diretamente como se fosse uma pessoa real no WhatsApp.
                   - NÃO use aspas para destacar frases ou exemplos, a menos que seja estritamente necessário para clareza.
                   - NUNCA use negrito com asteriscos (ex: **texto**). No WhatsApp, escreva de forma simples e natural, sem formatação Markdown.
+                  - INCERTEZA: Se o lead disser "acho que sim", "talvez" ou "não tenho certeza", NÃO trate como confirmação. Seja empático e explique como ele pode conferir (ex: contracheque).
                   - Se o lead informar nome, e-mail, cidade ou fundo, use a ferramenta 'updateLeadData' e CONTINUE a conversa para a próxima etapa do fluxo na mesma resposta.
                   - Siga o fluxo: Boas-vindas -> Triagem 1 -> Triagem 2 -> Triagem 3 -> Validação -> Documentos -> Contrato.
                   - NUNCA responda apenas com uma chamada de ferramenta. Sempre inclua uma mensagem de texto para o usuário.
