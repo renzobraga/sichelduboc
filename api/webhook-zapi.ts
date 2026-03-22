@@ -337,7 +337,8 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                   - NUNCA peça para o usuário responder com "SIM" ou "NÃO" de forma mecânica ou robótica. Deixe a conversa fluir de forma humanizada.
                   - NUNCA envolva sua resposta em aspas duplas ("). Responda diretamente como se fosse uma pessoa real no WhatsApp.
                   - NÃO use aspas para destacar frases ou exemplos, a menos que seja estritamente necessário para clareza.
-                  - NUNCA use negrito com asteriscos (ex: **texto**). No WhatsApp, escreva de forma simples e natural, sem formatação Markdown.
+                  - NUNCA use negrito com asteriscos (ex: **texto**). No WhatsApp, escreva de forma simples e natural, sem formatação Markdown. TODOS os asteriscos serão removidos automaticamente.
+                  - APRESENTAÇÃO: Apresente-se sempre de forma clara: "Aqui é a Alice, do escritório Sichel & Duboc". Evite inversões ou nomes fragmentados.
                   - INCERTEZA: Se o lead disser "acho que sim", "talvez" ou "não tenho certeza", NÃO trate como confirmação. Seja empático e explique como ele pode conferir (ex: contracheque).
                   - CONTEXTO: NÃO fale como se soubesse para qual empresa o lead trabalhava (ex: "naquela empresa"). Use termos genéricos como "seu empregador na época" ou foque no "fundo de previdência".
                   - Se o lead informar nome, e-mail, cidade ou fundo, use a ferramenta 'updateLeadData' e CONTINUE a conversa para a próxima etapa do fluxo na mesma resposta.
@@ -429,8 +430,8 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
               // Limpar aspas duplas que a IA às vezes coloca no início e fim
               aiResponseText = aiResponseText.trim().replace(/^["']|["']$/g, '');
               
-              // Remover negrito Markdown (**) que a IA costuma usar
-              aiResponseText = aiResponseText.replace(/\*\*/g, '');
+              // Remover negrito Markdown (**) e qualquer asterisco que a IA costuma usar
+              aiResponseText = aiResponseText.replace(/\*/g, '');
               
               // Se a IA chamou uma ferramenta mas não gerou texto (comum em alguns modelos),
               // fazemos uma segunda chamada para obter a resposta textual para o usuário.
