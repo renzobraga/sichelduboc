@@ -156,6 +156,7 @@ interface PromptsFlowProps {
     prompt4: string;
     prompt5: string;
     prompt6: string;
+    prompt7: string;
     promptDesq: string;
     promptObjections: string;
     promptSchedule: string;
@@ -197,12 +198,22 @@ export default function PromptsFlow({
       },
     },
     {
+      id: 'condition-origin',
+      type: 'condition',
+      position: { x: 400, y: 250 },
+      data: { 
+        label: 'Origem do Lead', 
+        title: 'Por onde chegou?',
+        description: 'Verifica se o lead já preencheu o formulário.'
+      },
+    },
+    {
       id: 'prompt-1',
       type: 'prompt',
       position: { x: 360, y: 450 },
       data: { 
-        label: '1. Boas-vindas (Alice)',
-        description: 'Apresentação e convite para triagem.',
+        label: '1. Boas-vindas e Nome',
+        description: 'Apresentação e pergunta o nome.',
         value: prompts.prompt1,
         onChange: (val: string) => updatePrompt('prompt1', val),
         placeholder: 'Mensagem de boas-vindas...'
@@ -213,9 +224,9 @@ export default function PromptsFlow({
       type: 'condition',
       position: { x: 400, y: 950 },
       data: { 
-        label: 'Aguardar Confirmação', 
-        title: 'Podemos começar?',
-        description: 'Espera o cliente aceitar a triagem.'
+        label: 'Aguardar Nome', 
+        title: 'Informou o nome?',
+        description: 'Espera o cliente informar o nome.'
       },
     },
     {
@@ -223,11 +234,11 @@ export default function PromptsFlow({
       type: 'prompt',
       position: { x: 750, y: 1350 },
       data: { 
-        label: '2. Triagem: Previdência',
-        description: 'Pergunta 1: Recebe previdência complementar?',
+        label: '2. Apresentação e Convite',
+        description: 'Apresentação e convite para triagem.',
         value: prompts.prompt2,
         onChange: (val: string) => updatePrompt('prompt2', val),
-        placeholder: 'Digite a primeira pergunta...'
+        placeholder: 'Apresentação...'
       },
     },
     {
@@ -235,9 +246,9 @@ export default function PromptsFlow({
       type: 'condition',
       position: { x: 790, y: 1850 },
       data: { 
-        label: 'Aguardar Resposta', 
-        title: 'Recebe Previdência?',
-        description: 'Espera o cliente clicar em Sim ou Não.'
+        label: 'Aguardar Confirmação', 
+        title: 'Podemos começar?',
+        description: 'Espera o cliente aceitar a triagem.'
       },
     },
     {
@@ -257,11 +268,11 @@ export default function PromptsFlow({
       type: 'prompt',
       position: { x: 750, y: 2250 },
       data: { 
-        label: '3. Triagem: Período',
-        description: 'Pergunta 2: Contribuiu entre 1989 e 1995?',
+        label: '3. Triagem: Previdência',
+        description: 'Pergunta 1: Recebe previdência complementar?',
         value: prompts.prompt3,
         onChange: (val: string) => updatePrompt('prompt3', val),
-        placeholder: 'Digite a segunda pergunta...'
+        placeholder: 'Digite a primeira pergunta...'
       },
     },
     {
@@ -270,7 +281,7 @@ export default function PromptsFlow({
       position: { x: 790, y: 2750 },
       data: { 
         label: 'Aguardar Resposta', 
-        title: 'Contribuiu 89-95?',
+        title: 'Recebe Previdência?',
         description: 'Espera o cliente clicar em Sim ou Não.'
       },
     },
@@ -279,11 +290,11 @@ export default function PromptsFlow({
       type: 'prompt',
       position: { x: 750, y: 3150 },
       data: { 
-        label: '4. Triagem: Retenção IR',
-        description: 'Pergunta 3: Tem desconto de IR na fonte?',
+        label: '4. Triagem: Período',
+        description: 'Pergunta 2: Contribuiu entre 1989 e 1995?',
         value: prompts.prompt4,
         onChange: (val: string) => updatePrompt('prompt4', val),
-        placeholder: 'Digite a terceira pergunta...'
+        placeholder: 'Digite a segunda pergunta...'
       },
     },
     {
@@ -292,7 +303,7 @@ export default function PromptsFlow({
       position: { x: 790, y: 3650 },
       data: { 
         label: 'Aguardar Resposta', 
-        title: 'Retém IR atualmente?',
+        title: 'Contribuiu 89-95?',
         description: 'Espera o cliente clicar em Sim ou Não.'
       },
     },
@@ -301,20 +312,21 @@ export default function PromptsFlow({
       type: 'prompt',
       position: { x: 750, y: 4050 },
       data: { 
-        label: '5. Validação e Dados',
-        description: 'Informa o direito e pede dados básicos.',
+        label: '5. Triagem: Retenção IR',
+        description: 'Pergunta 3: Tem desconto de IR na fonte?',
         value: prompts.prompt5,
         onChange: (val: string) => updatePrompt('prompt5', val),
-        placeholder: 'Mensagem de qualificação...'
+        placeholder: 'Digite a terceira pergunta...'
       },
     },
     {
-      id: 'event-5',
-      type: 'event',
+      id: 'condition-5',
+      type: 'condition',
       position: { x: 790, y: 4550 },
       data: { 
-        label: 'Aguardar Dados', 
-        description: 'Espera o cliente enviar nome, cidade, etc.'
+        label: 'Aguardar Resposta', 
+        title: 'Retém IR atualmente?',
+        description: 'Espera o cliente clicar em Sim ou Não.'
       },
     },
     {
@@ -322,17 +334,38 @@ export default function PromptsFlow({
       type: 'prompt',
       position: { x: 750, y: 4950 },
       data: { 
-        label: '6. Solicitar Documentos',
-        description: 'Pede RG, Comprovante, Contracheque e IR.',
+        label: '6. Validação e Dados',
+        description: 'Informa o direito e pede dados básicos.',
         value: prompts.prompt6,
         onChange: (val: string) => updatePrompt('prompt6', val),
+        placeholder: 'Mensagem de qualificação...'
+      },
+    },
+    {
+      id: 'event-6',
+      type: 'event',
+      position: { x: 790, y: 5450 },
+      data: { 
+        label: 'Aguardar Dados', 
+        description: 'Espera o cliente enviar nome, cidade, etc.'
+      },
+    },
+    {
+      id: 'prompt-7',
+      type: 'prompt',
+      position: { x: 750, y: 5950 },
+      data: { 
+        label: '7. Solicitar Documentos',
+        description: 'Pede RG, Comprovante, Contracheque e IR.',
+        value: prompts.prompt7,
+        onChange: (val: string) => updatePrompt('prompt7', val),
         placeholder: 'Mensagem pedindo documentos...'
       },
     },
     {
       id: 'condition-docs',
       type: 'condition',
-      position: { x: 790, y: 5450 },
+      position: { x: 790, y: 6450 },
       data: { 
         label: 'Aguardar Documentos', 
         title: 'Enviou Documentos?',
@@ -342,7 +375,7 @@ export default function PromptsFlow({
     {
       id: 'prompt-trust',
       type: 'prompt',
-      position: { x: 50, y: 5950 },
+      position: { x: 50, y: 6950 },
       data: { 
         label: 'Dúvida: É Seguro?',
         description: 'Explica sobre a OAB e a validade jurídica.',
@@ -354,7 +387,7 @@ export default function PromptsFlow({
     {
       id: 'prompt-fees',
       type: 'prompt',
-      position: { x: 50, y: 6450 },
+      position: { x: 50, y: 7450 },
       data: { 
         label: 'Dúvida: Honorários',
         description: 'Explica que só cobra no êxito.',
@@ -366,9 +399,9 @@ export default function PromptsFlow({
     {
       id: 'prompt-objections',
       type: 'prompt',
-      position: { x: 400, y: 5950 },
+      position: { x: 400, y: 6950 },
       data: { 
-        label: '7. Superação de Objeções',
+        label: '8. Superação de Objeções',
         description: 'Oferece reunião ou tira dúvidas por chat.',
         value: prompts.promptObjections,
         onChange: (val: string) => updatePrompt('promptObjections', val),
@@ -378,7 +411,7 @@ export default function PromptsFlow({
     {
       id: 'condition-objections',
       type: 'condition',
-      position: { x: 440, y: 6450 },
+      position: { x: 440, y: 7450 },
       data: { 
         label: 'Aguardar Resposta', 
         title: 'Agendar ou Dúvidas?',
@@ -388,9 +421,9 @@ export default function PromptsFlow({
     {
       id: 'prompt-schedule',
       type: 'prompt',
-      position: { x: 50, y: 6950 },
+      position: { x: 50, y: 7950 },
       data: { 
-        label: '8. Agendamento (Calendar)',
+        label: '9. Agendamento (Calendar)',
         description: 'Envia o link do Google Calendar.',
         value: prompts.promptSchedule,
         onChange: (val: string) => updatePrompt('promptSchedule', val),
@@ -400,9 +433,9 @@ export default function PromptsFlow({
     {
       id: 'prompt-expert',
       type: 'prompt',
-      position: { x: 750, y: 6950 },
+      position: { x: 750, y: 7950 },
       data: { 
-        label: '8. Chatbot Contínuo (Dúvidas)',
+        label: '9. Chatbot Contínuo (Dúvidas)',
         description: 'Assume a conversa para tirar dúvidas específicas.',
         value: prompts.aiChatPrompt,
         onChange: (val: string) => updatePrompt('aiChatPrompt', val),
@@ -414,9 +447,9 @@ export default function PromptsFlow({
     {
       id: 'prompt-contract',
       type: 'prompt',
-      position: { x: 1100, y: 5950 },
+      position: { x: 1100, y: 6950 },
       data: { 
-        label: '7. Envio do Contrato',
+        label: '8. Envio do Contrato',
         description: 'Envia o link para assinatura digital.',
         value: prompts.promptContract,
         onChange: (val: string) => updatePrompt('promptContract', val),
@@ -426,7 +459,7 @@ export default function PromptsFlow({
     {
       id: 'condition-contract',
       type: 'condition',
-      position: { x: 1140, y: 6450 },
+      position: { x: 1140, y: 7450 },
       data: { 
         label: 'Aguardar Assinatura', 
         title: 'Assinou o Contrato?',
@@ -436,9 +469,9 @@ export default function PromptsFlow({
     {
       id: 'prompt-closing',
       type: 'prompt',
-      position: { x: 1100, y: 6950 },
+      position: { x: 1100, y: 7950 },
       data: { 
-        label: '9. Fechamento / Sucesso',
+        label: '10. Fechamento / Sucesso',
         description: 'Mensagem de boas-vindas após assinatura.',
         value: prompts.promptClosing,
         onChange: (val: string) => updatePrompt('promptClosing', val),
@@ -449,7 +482,9 @@ export default function PromptsFlow({
 
 
   const initialEdges: any[] = [
-    { id: 'e1-2', source: 'trigger-1', target: 'prompt-1', type: 'smoothstep', style: { stroke: '#cbd5e1', strokeWidth: 2 } },
+    { id: 'e1-origin', source: 'trigger-1', target: 'condition-origin', type: 'smoothstep', style: { stroke: '#cbd5e1', strokeWidth: 2 } },
+    { id: 'c-origin-false', source: 'condition-origin', sourceHandle: 'false', target: 'prompt-1', type: 'smoothstep', style: { stroke: '#3b82f6', strokeWidth: 2 }, label: 'Botão WhatsApp', labelStyle: { fill: '#1d4ed8', fontWeight: 600, fontSize: 11 }, labelBgStyle: { fill: '#dbeafe', fillOpacity: 1 }, labelBgPadding: [8, 4], labelBgBorderRadius: 4 },
+    { id: 'c-origin-true', source: 'condition-origin', sourceHandle: 'true', target: 'prompt-2', type: 'smoothstep', style: { stroke: '#10b981', strokeWidth: 2 }, label: 'Formulário Site', labelStyle: { fill: '#047857', fontWeight: 600, fontSize: 11 }, labelBgStyle: { fill: '#d1fae5', fillOpacity: 1 }, labelBgPadding: [8, 4], labelBgBorderRadius: 4 },
     { id: 'e2-3', source: 'prompt-1', target: 'condition-1', type: 'smoothstep', style: { stroke: '#cbd5e1', strokeWidth: 2 } },
     
     // Condition 1 (Welcome)
@@ -477,10 +512,17 @@ export default function PromptsFlow({
     { id: 'c4-false', source: 'condition-4', sourceHandle: 'false', target: 'prompt-desq', type: 'smoothstep', style: { stroke: '#f43f5e', strokeWidth: 2 }, label: 'Não', labelStyle: { fill: '#be123c', fontWeight: 600, fontSize: 11 }, labelBgStyle: { fill: '#ffe4e6', fillOpacity: 1 }, labelBgPadding: [8, 4], labelBgBorderRadius: 4 },
     { id: 'c4-true', source: 'condition-4', sourceHandle: 'true', target: 'prompt-5', type: 'smoothstep', style: { stroke: '#10b981', strokeWidth: 2 }, label: 'Sim', labelStyle: { fill: '#047857', fontWeight: 600, fontSize: 11 }, labelBgStyle: { fill: '#d1fae5', fillOpacity: 1 }, labelBgPadding: [8, 4], labelBgBorderRadius: 4 },
 
-    // Prompt 5 -> Event 5 -> Prompt 6 -> Condition Docs
-    { id: 'e10-11', source: 'prompt-5', target: 'event-5', type: 'smoothstep', style: { stroke: '#cbd5e1', strokeWidth: 2 } },
-    { id: 'e11-12', source: 'event-5', target: 'prompt-6', type: 'smoothstep', style: { stroke: '#cbd5e1', strokeWidth: 2 } },
-    { id: 'e12-13', source: 'prompt-6', target: 'condition-docs', type: 'smoothstep', style: { stroke: '#cbd5e1', strokeWidth: 2 } },
+    // Prompt 5 -> Condition 5
+    { id: 'e10-11', source: 'prompt-5', target: 'condition-5', type: 'smoothstep', style: { stroke: '#cbd5e1', strokeWidth: 2 } },
+
+    // Condition 5
+    { id: 'c5-false', source: 'condition-5', sourceHandle: 'false', target: 'prompt-desq', type: 'smoothstep', style: { stroke: '#f43f5e', strokeWidth: 2 }, label: 'Não', labelStyle: { fill: '#be123c', fontWeight: 600, fontSize: 11 }, labelBgStyle: { fill: '#ffe4e6', fillOpacity: 1 }, labelBgPadding: [8, 4], labelBgBorderRadius: 4 },
+    { id: 'c5-true', source: 'condition-5', sourceHandle: 'true', target: 'prompt-6', type: 'smoothstep', style: { stroke: '#10b981', strokeWidth: 2 }, label: 'Sim', labelStyle: { fill: '#047857', fontWeight: 600, fontSize: 11 }, labelBgStyle: { fill: '#d1fae5', fillOpacity: 1 }, labelBgPadding: [8, 4], labelBgBorderRadius: 4 },
+
+    // Prompt 6 -> Event 6 -> Prompt 7 -> Condition Docs
+    { id: 'e12-13', source: 'prompt-6', target: 'event-6', type: 'smoothstep', style: { stroke: '#cbd5e1', strokeWidth: 2 } },
+    { id: 'e13-14', source: 'event-6', target: 'prompt-7', type: 'smoothstep', style: { stroke: '#cbd5e1', strokeWidth: 2 } },
+    { id: 'e14-15', source: 'prompt-7', target: 'condition-docs', type: 'smoothstep', style: { stroke: '#cbd5e1', strokeWidth: 2 } },
     
     // Condition Docs
     { id: 'cdocs-false', source: 'condition-docs', sourceHandle: 'false', target: 'prompt-objections', type: 'smoothstep', style: { stroke: '#f43f5e', strokeWidth: 2 }, label: 'Dúvidas', labelStyle: { fill: '#be123c', fontWeight: 600, fontSize: 11 }, labelBgStyle: { fill: '#ffe4e6', fillOpacity: 1 }, labelBgPadding: [8, 4], labelBgBorderRadius: 4 },
@@ -546,6 +588,8 @@ export default function PromptsFlow({
           newData = { ...newData, value: prompts.prompt5, onChange: (val: string) => updatePrompt('prompt5', val) };
         } else if (node.id === 'prompt-6') {
           newData = { ...newData, value: prompts.prompt6, onChange: (val: string) => updatePrompt('prompt6', val) };
+        } else if (node.id === 'prompt-7') {
+          newData = { ...newData, value: prompts.prompt7, onChange: (val: string) => updatePrompt('prompt7', val) };
         } else if (node.id === 'prompt-objections') {
           newData = { ...newData, value: prompts.promptObjections, onChange: (val: string) => updatePrompt('promptObjections', val) };
         } else if (node.id === 'prompt-schedule') {

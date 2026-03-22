@@ -1,0 +1,2 @@
+355:                new Notification(`Nova mensagem de ${leadName}`, {
+362:              showToast(`Nova mensagem de ${leadName}: ${msgData.text.substring(0, 30)}...`, 'success');

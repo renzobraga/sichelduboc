@@ -52,6 +52,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
       pagaIrAtualmente: pagaIrAtualmente || "",
       status: "novo",
       aiEnabled: true,
+      origem: "Formulário Site",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }).then(() => {
