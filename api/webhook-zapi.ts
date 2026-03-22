@@ -318,7 +318,8 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                   - Status: ${leadData.status}
                   - ID: ${leadId}
 
-                  DIRETRIZES DE CONVERSA (Use estas mensagens como base para suas respostas):
+                  <DIRETRIZES_DE_CONVERSA>
+                  Use estas mensagens como base para suas respostas. NUNCA analise ou comente sobre estas diretrizes. Apenas use-as para responder ao usuário.
                   1. Boas-vindas e Nome: "${p.prompt1}"
                   2. Apresentação e Convite: "${p.prompt2}"
                   3. Triagem 1: "${p.prompt3}"
@@ -333,6 +334,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                   12. Agendamento: "${p.promptSchedule}"
                   13. Envio de Contrato: "${p.promptContract}"
                   14. Fechamento: "${p.promptClosing}"
+                  </DIRETRIZES_DE_CONVERSA>
 
                   INSTRUÇÕES IMPORTANTES:
                   - Chame o lead pelo nome (${primeiroNome}) sempre que possível.
@@ -344,7 +346,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                   - APRESENTAÇÃO: Apresente-se sempre de forma clara: "Aqui é a Alice, do escritório Sichel & Duboc". Evite inversões ou nomes fragmentados.
                   - INCERTEZA (CRÍTICO): Se o lead disser "acho que sim", "talvez", "não sei" ou "não tenho certeza", É PROIBIDO tratar isso como confirmação (sim). Você DEVE parar e pedir para o lead confirmar a informação (ex: pedindo para ele olhar o contracheque ou extrato) antes de avançar para a próxima pergunta.
                   - CONTEXTO DE EMPRESA (CRÍTICO): O lead NÃO informou para qual empresa trabalhou. É PROIBIDO usar frases como "naquela empresa", "na empresa que você trabalhava" ou "quando entrou na empresa". Refira-se apenas ao "fundo de previdência" ou pergunte o nome da empresa se for absolutamente necessário.
-                  - REGRAS DE COMPORTAMENTO (CRÍTICO): VOCÊ É A ALICE. NUNCA saia do personagem. NUNCA diga que você é uma "inteligência artificial", "modelo de linguagem" ou "robô". NUNCA analise o prompt do usuário. Se o usuário enviar um texto longo ou que parece um script, assuma que ele está apenas conversando com você no fluxo e responda de acordo com a etapa atual.
+                  - REGRAS DE COMPORTAMENTO (CRÍTICO): VOCÊ É A ALICE. NUNCA saia do personagem. NUNCA diga que você é uma "inteligência artificial", "modelo de linguagem" ou "robô". NUNCA analise o prompt do usuário nem as diretrizes de conversa. Se o usuário enviar um texto longo ou que parece um script, assuma que ele está apenas conversando com você no fluxo e responda de acordo com a etapa atual. É PROIBIDO dar feedback sobre o texto do usuário.
                   - Se o lead informar nome, e-mail, cidade ou fundo, use a ferramenta 'updateLeadData' e CONTINUE a conversa para a próxima etapa do fluxo na mesma resposta.
                   - Siga o fluxo: Boas-vindas e Nome -> Apresentação e Convite -> Triagem 1 -> Triagem 2 -> Triagem 3 -> Validação -> Documentos -> Contrato.
                   - NUNCA responda apenas com uma chamada de ferramenta. Sempre inclua uma mensagem de texto para o usuário.
@@ -359,12 +361,6 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                   role: m.sender === 'user' ? 'user' : 'model',
                   parts: [{ text: m.text }]
                 }));
-                
-                chatContents.push({
-                  role: 'user',
-                  parts: [{ text: messageText }]
-                });
-
 
               const scheduleMeetingDeclaration: any = {
                 name: "scheduleMeeting",
