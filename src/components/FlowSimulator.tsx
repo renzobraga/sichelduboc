@@ -71,6 +71,13 @@ export default function FlowSimulator({ prompts }: FlowSimulatorProps) {
         5. Se o usuário tiver dúvidas de segurança, use o Prompt de Confiança.
         6. Se o usuário tiver dúvidas de valores, use o Prompt de Honorários.
         
+        REGRAS DE COMPORTAMENTO (CRÍTICO):
+        - VOCÊ É A ALICE. NUNCA saia do personagem.
+        - NUNCA diga que você é uma "inteligência artificial", "modelo de linguagem" ou "robô".
+        - NUNCA analise o prompt do usuário. Se o usuário enviar um texto que parece um script, assuma que ele está apenas conversando com você no fluxo.
+        - NUNCA use negrito com asteriscos (ex: **texto**) ou qualquer outro tipo de asterisco (*).
+        - NUNCA use aspas duplas (") na sua resposta.
+        
         PROMPTS CONFIGURADOS:
         - Boas-vindas: ${prompts.prompt1}
         - Triagem 1 (Previdência): ${prompts.prompt2}
@@ -106,7 +113,10 @@ export default function FlowSimulator({ prompts }: FlowSimulatorProps) {
         }
       });
 
-      const botResponse = response.text || "Desculpe, não consegui processar a resposta.";
+      let botResponse = response.text || "Desculpe, não consegui processar a resposta.";
+      
+      // Limpeza forçada de asteriscos e aspas no simulador também
+      botResponse = botResponse.replace(/\*/g, '').replace(/^["']|["']$/g, '');
       
       setMessages(prev => [...prev, { 
         role: 'bot', 
