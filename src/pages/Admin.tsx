@@ -148,6 +148,38 @@ export default function Admin() {
     return Object.entries(groups).map(([date, count]) => ({ date, count }));
   };
 
+  const getGrowthData = () => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    
+    const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+    const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+
+    let currentMonthCount = 0;
+    let lastMonthCount = 0;
+
+    leads.forEach(l => {
+      const createdAt = new Date(l.createdAt);
+      const m = createdAt.getMonth();
+      const y = createdAt.getFullYear();
+
+      if (m === currentMonth && y === currentYear) {
+        currentMonthCount++;
+      } else if (m === lastMonth && y === lastMonthYear) {
+        lastMonthCount++;
+      }
+    });
+
+    if (lastMonthCount === 0) {
+      return currentMonthCount > 0 ? `+${currentMonthCount * 100}%` : '0%';
+    }
+
+    const growth = ((currentMonthCount - lastMonthCount) / lastMonthCount) * 100;
+    const sign = growth >= 0 ? '+' : '';
+    return `${sign}${growth.toFixed(0)}%`;
+  };
+
   const COLORS = ['#6366f1', '#f59e0b', '#10b981', '#8b5cf6', '#a855f7', '#059669', '#64748b'];
 
   const [prompts, setPrompts] = useState({
@@ -1160,7 +1192,7 @@ export default function Admin() {
                         <TrendingUp size={20} className="mb-2 lg:mb-4 opacity-80 lg:w-6 lg:h-6" />
                         <div>
                           <div className="text-indigo-100 text-[10px] lg:text-sm font-medium">Crescimento</div>
-                          <div className="text-lg lg:text-2xl font-bold mt-0.5 lg:mt-1">+12%</div>
+                          <div className="text-lg lg:text-2xl font-bold mt-0.5 lg:mt-1">{getGrowthData()}</div>
                           <div className="text-indigo-200 text-[9px] lg:text-[10px] mt-1 lg:mt-2">Leads este mês</div>
                         </div>
                       </div>
