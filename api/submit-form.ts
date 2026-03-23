@@ -1,6 +1,5 @@
 import nodemailer from "nodemailer";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { GoogleGenAI } from "@google/genai";
 import { db } from "./_firebase-client.js";
 import { collection, doc, setDoc, addDoc, getDoc } from "firebase/firestore";
 
@@ -126,42 +125,27 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
         let mensagemWhatsApp = "";
         let erroIA = null;
         
-        // 3.1 Gerar mensagem com IA
+        // 3.1 Gerar mensagem inicial
         try {
-          let apiKey = process.env.CHAVE_IA_GEMINI || process.env.GEMINI_API_KEY || "";
-          apiKey = apiKey.replace(/['"]/g, '').trim();
-          
-          if (!apiKey || apiKey === "AI Studio Free Tier") throw new Error("Chave da IA inválida.");
-          
           // Buscar prompt customizado do banco de dados
-          let customPrompt = "";
+          let prompt2 = "Prazer em te conhecer, [Nome]! Muitos aposentados como você estão conseguindo recuperar valores significativos de Imposto de Renda que foram cobrados indevidamente. E o melhor: você pode ser um deles! Para te ajudar a verificar se você tem esse direito, preciso fazer apenas 3 perguntinhas rápidas. Leva menos de 2 minutinhos, prometo! 😉 Podemos começar?";
+          
           try {
-            const promptDoc = await getDoc(doc(db, 'settings', 'ai_prompt'));
-            if (promptDoc.exists()) {
-              customPrompt = promptDoc.data()?.text || "";
+            const promptsDoc = await getDoc(doc(db, 'settings', 'prompts'));
+            if (promptsDoc.exists() && promptsDoc.data().prompt2) {
+              prompt2 = promptsDoc.data().prompt2;
             }
           } catch (e) {
-            console.error("Erro ao buscar prompt customizado, usando padrão:", e);
+            console.error("Erro ao buscar prompts customizados, usando padrão:", e);
           }
 
-          let promptTemplate = customPrompt || `Você é um assistente do escritório Sichel & Duboc. Lead: {nome}. Aposentadoria: {aposentadoriaComplementar}. Contribuiu 89-95: {contribuicao89a95}. Paga IR: {pagaIrAtualmente}. Crie uma mensagem curta de WhatsApp agradecendo, dizendo se é promissor e fazendo uma pergunta aberta. Assine Equipe Sichel & Duboc.`;
-          
           const primeiroNome = nome ? nome.split(' ')[0] : 'Cliente';
-          const prompt = promptTemplate
-            .replace(/{nome}/g, primeiroNome)
-            .replace(/{aposentadoriaComplementar}/g, aposentadoriaComplementar || 'Não informado')
-            .replace(/{contribuicao89a95}/g, contribuicao89a95 || 'Não informado')
-            .replace(/{pagaIrAtualmente}/g, pagaIrAtualmente || 'Não informado');
           
-          const ai = new GoogleGenAI({ apiKey: apiKey });
-          const response = await ai.models.generateContent({
-            model: "gemini-3-flash-preview",
-            contents: prompt,
-          });
-          mensagemWhatsApp = response.text || "Olá! Recebemos seu contato no site da Sichel & Duboc. Um de nossos advogados falará com você em breve!";
-        } catch (aiError: any) {
-          console.error("Erro na IA:", aiError);
-          erroIA = aiError.message;
+          // Substituir a tag {nome} pelo nome real do lead
+          mensagemWhatsApp = prompt2.replace(/\{nome\}/gi, primeiroNome).replace(/\[Nome\]/gi, primeiroNome);
+          
+        } catch (error: any) {
+          console.error("Erro ao preparar mensagem inicial:", error);
           const primeiroNome = nome ? nome.split(' ')[0] : 'Cliente';
           mensagemWhatsApp = `Olá, ${primeiroNome}! Recebemos seu contato no site da Sichel & Duboc. Um de nossos especialistas vai analisar seu caso e entrará em contato. Qual o melhor horário para falarmos?`;
         }

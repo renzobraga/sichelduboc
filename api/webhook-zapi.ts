@@ -305,6 +305,13 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
 
                 const primeiroNome = leadData.nome ? leadData.nome.split(' ')[0] : 'Cliente';
                 
+                // Substituir {nome} e [Nome] nos prompts
+                for (const key in p) {
+                  if (typeof p[key] === 'string') {
+                    p[key] = p[key].replace(/\{nome\}/gi, primeiroNome).replace(/\[Nome\]/gi, primeiroNome);
+                  }
+                }
+                
                 const systemInstructionText = `
                   Você é a Alice, assistente virtual do escritório de advocacia Sichel & Duboc, especialista em direito previdenciário e tributário.
                   Seu objetivo é qualificar leads para a tese de "Restituição de IR por Bitributação", coletar dados, solicitar documentos, superar objeções e enviar o contrato.
