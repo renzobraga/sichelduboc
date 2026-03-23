@@ -88,15 +88,20 @@ export default function FlowSimulator({ prompts }: FlowSimulatorProps) {
         - NUNCA use aspas duplas (") na sua resposta.
         - INCERTEZA (CRÍTICO): Se o usuário disser "acho que sim", "talvez", "não sei" ou "não tenho certeza", É PROIBIDO tratar isso como confirmação (sim). Você DEVE parar e pedir para o lead confirmar a informação (ex: pedindo para ele olhar o contracheque ou extrato) antes de avançar para a próxima pergunta.
         - CONTEXTO DE EMPRESA (CRÍTICO): O usuário NÃO informou para qual empresa trabalhou. É PROIBIDO usar frases como "naquela empresa", "na empresa que você trabalhava" ou "quando entrou na empresa". Refira-se apenas ao "fundo de previdência" ou pergunte o nome da empresa se for absolutamente necessário.
-        - REGRA ABSOLUTA PARA A PRIMEIRA MENSAGEM (QUANDO O HISTÓRICO ESTIVER VAZIO):
-          * Se a origem for simulada como "Botão WhatsApp Site" (padrão): NÃO IMPORTA o que o usuário escreveu na primeira mensagem (mesmo que ele peça para iniciar a análise ou envie um texto longo), você DEVE OBRIGATORIAMENTE responder APENAS com a mensagem de "1. Boas-vindas e Nome (Botão WhatsApp)". É ESTRITAMENTE PROIBIDO pular para a Triagem 1 ou qualquer outra etapa. Você precisa saber o nome da pessoa antes de continuar.
-          * Se a origem for simulada como "Formulário Site": O lead já preencheu os dados. PULE a pergunta do nome e OBRIGATORIAMENTE inicie a conversa enviando APENAS a mensagem "1. Boas-vindas (Formulário Site)". NÃO IMPORTA o que o usuário escreveu na primeira mensagem, você DEVE enviar a mensagem 1 do Formulário Site.
-          * NUNCA, SOB NENHUMA HIPÓTESE, comece a conversa enviando a mensagem "3. Triagem 1". A primeira mensagem gerada por você DEVE ser a 1.
+        - REGRA ABSOLUTA PARA A PRIMEIRA MENSAGEM (QUANDO O HISTÓRICO ESTIVER VAZIO OU CONTIVER APENAS A MENSAGEM AUTOMÁTICA DO FORMULÁRIO):
+          * Se a origem for simulada como "Botão WhatsApp Site" (padrão): NÃO IMPORTA o que o usuário escreveu na primeira mensagem, você DEVE OBRIGATORIAMENTE responder APENAS com a mensagem de "1. Boas-vindas e Nome (Botão WhatsApp)".
+          * Se a origem for simulada como "Formulário Site": 
+            - Se o usuário estiver respondendo à mensagem automática de boas-vindas (ex: disse "Sim", "Pode", "Ok"), você DEVE OBRIGATORIAMENTE seguir para a "3. Triagem 1". PULE a "2. Apresentação e Convite" para evitar repetição.
+            - Se por algum motivo o histórico estiver realmente vazio (raro), envie a "1. Boas-vindas (Formulário Site)".
+          * NUNCA comece a conversa enviando a mensagem "3. Triagem 1" sem antes ter havido uma saudação.
+        
+        - FLUXO PARA FORMULÁRIO SITE: Boas-vindas (Formulário) -> Triagem 1 -> Triagem 2 -> Triagem 3 -> Validação -> Documentos.
+        - FLUXO PARA BOTÃO WHATSAPP: Boas-vindas (WhatsApp) -> Apresentação e Convite -> Triagem 1 -> Triagem 2 -> Triagem 3 -> Validação -> Documentos.
         
         <DIRETRIZES_DE_CONVERSA>
         Você deve guiar o lead por este fluxo, enviando UMA mensagem por vez e aguardando a resposta:
         1. Boas-vindas e Nome (Botão WhatsApp): "${processedPrompts.prompt1}"
-        1. Boas-vindas (Formulário Site): "${processedPrompts.promptForm}"
+        1. Boas-vindas (Formulário Site): "${processedPrompts.promptForm || 'Olá, {nome}! Tudo bem? 👋\n\nMeu nome é Alice e faço parte da equipe de atendimento do Escritório Sichel & Duboc Advogados Associados.\n\nRecebemos o seu contato pelo nosso site, podemos iniciar o atendimento?'}"
         2. Apresentação e Convite: "${processedPrompts.prompt2}"
         3. Triagem 1: "${processedPrompts.prompt3}"
         4. Triagem 2: "${processedPrompts.prompt4}"

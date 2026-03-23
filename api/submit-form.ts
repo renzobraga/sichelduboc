@@ -128,7 +128,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
         // 3.1 Gerar mensagem inicial
         try {
           // Buscar prompt customizado do banco de dados
-          let promptForm = "Olá, {nome}! Tudo bem? 👋\n\nMeu nome é Alice e faço parte da equipe de atendimento do Escritório Sichel & Duboc Advogados Associados.\n\nRecebemos o seu contato pelo nosso site! Muitos aposentados como você estão conseguindo recuperar valores significativos de Imposto de Renda que foram cobrados indevidamente. E o melhor: você pode ser um deles!\n\nPara te ajudar a verificar se você tem esse direito, preciso fazer apenas 3 perguntinhas rápidas. Leva menos de 2 minutinhos, prometo! 😉\n\nPodemos começar?";
+          let promptForm = "Olá, {nome}! Tudo bem? 👋\n\nMeu nome é Alice e faço parte da equipe de atendimento do Escritório Sichel & Duboc Advogados Associados.\n\nRecebemos o seu contato pelo nosso site, podemos iniciar o atendimento?";
           
           try {
             const promptsDoc = await getDoc(doc(db, 'settings', 'prompts'));

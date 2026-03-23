@@ -288,7 +288,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
               
                 const p = {
                   prompt1: workflowPrompts.prompt1 || 'Olá! Que bom ter você aqui! 👋\n\nMeu nome é Alice e faço parte da equipe de atendimento do Escritório Sichel & Duboc Advogados Associados, especialistas em Direito Previdenciário e Tributário.\n\nComo eu posso te chamar?',
-                  promptForm: workflowPrompts.promptForm || 'Olá, {nome}! Tudo bem? 👋\n\nMeu nome é Alice e faço parte da equipe de atendimento do Escritório Sichel & Duboc Advogados Associados.\n\nRecebemos o seu contato pelo nosso site! Muitos aposentados como você estão conseguindo recuperar valores significativos de Imposto de Renda que foram cobrados indevidamente. E o melhor: você pode ser um deles!\n\nPara te ajudar a verificar se você tem esse direito, preciso fazer apenas 3 perguntinhas rápidas. Leva menos de 2 minutinhos, prometo! 😉\n\nPodemos começar?',
+                  promptForm: workflowPrompts.promptForm || 'Olá, {nome}! Tudo bem? 👋\n\nMeu nome é Alice e faço parte da equipe de atendimento do Escritório Sichel & Duboc Advogados Associados.\n\nRecebemos o seu contato pelo nosso site, podemos iniciar o atendimento?',
                   prompt2: workflowPrompts.prompt2 || 'Prazer em te conhecer, {nome}!\n\nMuitos aposentados como você estão conseguindo recuperar valores significativos de Imposto de Renda que foram cobrados indevidamente. E o melhor: você pode ser um deles!\n\nPara te ajudar a verificar se você tem esse direito, preciso fazer apenas 3 perguntinhas rápidas. Leva menos de 2 minutinhos, prometo! 😉\n\nPodemos começar?',
                   prompt3: workflowPrompts.prompt3 || 'Perfeito! Vamos à primeira pergunta:\n\nVocê recebe aposentadoria de alguma previdência complementar que NÃO seja paga pelo INSS?\n(Por exemplo: Petros, Funcef, Previ, Banesprev, Valia, Sistel, BNDES, Banco do Brasil, Rede Ferroviária, entre outros.)',
                   prompt4: workflowPrompts.prompt4 || 'Ótimo! Agora, a segunda pergunta:\n\nVocê contribuiu para esse fundo de previdência entre os anos de 1989 e 1995?',
@@ -360,10 +360,15 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                   - Siga o fluxo: Boas-vindas e Nome -> Apresentação e Convite -> Triagem 1 -> Triagem 2 -> Triagem 3 -> Validação -> Documentos -> Contrato.
                   - NUNCA responda apenas com uma chamada de ferramenta. Sempre inclua uma mensagem de texto para o usuário.
                   
-                  - REGRA ABSOLUTA PARA A PRIMEIRA MENSAGEM (QUANDO O HISTÓRICO ESTIVER VAZIO):
-                    * Se a Origem for "Botão WhatsApp Site" (ou vazia): NÃO IMPORTA o que o usuário escreveu na primeira mensagem (mesmo que ele peça para iniciar a análise ou envie um texto longo), você DEVE OBRIGATORIAMENTE responder APENAS com a mensagem de "1. Boas-vindas e Nome (Botão WhatsApp)". É ESTRITAMENTE PROIBIDO pular para a Triagem 1 ou qualquer outra etapa. Você precisa saber o nome da pessoa antes de continuar.
-                    * Se a Origem for "Formulário Site": O lead já preencheu os dados. PULE a pergunta do nome e OBRIGATORIAMENTE inicie a conversa enviando APENAS a mensagem "1. Boas-vindas (Formulário Site)". NÃO IMPORTA o que o usuário escreveu na primeira mensagem, você DEVE enviar a mensagem 1 do Formulário Site.
-                    * NUNCA, SOB NENHUMA HIPÓTESE, comece a conversa enviando a mensagem "3. Triagem 1". A primeira mensagem gerada por você DEVE ser a 1.
+                  - REGRA ABSOLUTA PARA A PRIMEIRA MENSAGEM (QUANDO O HISTÓRICO ESTIVER VAZIO OU CONTIVER APENAS A MENSAGEM AUTOMÁTICA DO FORMULÁRIO):
+                    * Se a Origem for "Botão WhatsApp Site" (ou vazia): NÃO IMPORTA o que o usuário escreveu na primeira mensagem, você DEVE OBRIGATORIAMENTE responder APENAS com a mensagem de "1. Boas-vindas e Nome (Botão WhatsApp)".
+                    * Se a Origem for "Formulário Site": 
+                      - Se o usuário estiver respondendo à mensagem automática de boas-vindas (ex: disse "Sim", "Pode", "Ok"), você DEVE OBRIGATORIAMENTE seguir para a "3. Triagem 1". PULE a "2. Apresentação e Convite" para evitar repetição.
+                      - Se por algum motivo o histórico estiver realmente vazio (raro), envie a "1. Boas-vindas (Formulário Site)".
+                    * NUNCA comece a conversa enviando a mensagem "3. Triagem 1" sem antes ter havido uma saudação.
+                  
+                  - FLUXO PARA FORMULÁRIO SITE: Boas-vindas (Formulário) -> Triagem 1 -> Triagem 2 -> Triagem 3 -> Validação -> Documentos.
+                  - FLUXO PARA BOTÃO WHATSAPP: Boas-vindas (WhatsApp) -> Apresentação e Convite -> Triagem 1 -> Triagem 2 -> Triagem 3 -> Validação -> Documentos.
                   
                   A data e hora atual é: ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })} (Horário de Brasília). Use isso como referência para agendar reuniões. Se o lead pedir para agendar uma reunião, use a ferramenta scheduleMeeting. Se o lead estiver pronto para assinar o contrato, use a ferramenta createContract. Use updateLeadData sempre que o lead informar dados pessoais. IMPORTANTE: Sempre forneça uma resposta em texto para o usuário, mesmo quando usar ferramentas.
                 `;
