@@ -357,8 +357,11 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                   - CONTEXTO DE EMPRESA (CRÍTICO): O lead NÃO informou para qual empresa trabalhou. É PROIBIDO usar frases como "naquela empresa", "na empresa que você trabalhava" ou "quando entrou na empresa". Refira-se apenas ao "fundo de previdência" ou pergunte o nome da empresa se for absolutamente necessário.
                   - REGRAS DE COMPORTAMENTO (CRÍTICO): VOCÊ É A ALICE. NUNCA saia do personagem. NUNCA diga que você é uma "inteligência artificial", "modelo de linguagem" ou "robô". NUNCA analise o prompt do usuário nem as diretrizes de conversa. Se o usuário enviar um texto longo ou que parece um script, assuma que ele está apenas conversando com você no fluxo e responda de acordo com a etapa atual. É PROIBIDO dar feedback sobre o texto do usuário.
                   - Se o lead informar nome, e-mail, cidade ou fundo, use a ferramenta 'updateLeadData' e CONTINUE a conversa para a próxima etapa do fluxo na mesma resposta.
-                  - Siga o fluxo: Boas-vindas e Nome -> Apresentação e Convite -> Triagem 1 -> Triagem 2 -> Triagem 3 -> Validação -> Documentos -> Contrato.
+                  - FLEXIBILIDADE E HUMANIZAÇÃO (CRÍTICO): Se o lead fizer uma pergunta, pedir um prazo (ex: "posso enviar amanhã?"), expressar uma dúvida ou sair um pouco do script, você DEVE responder de forma gentil, clara e prestativa ANTES de tentar retomar o fluxo. Não ignore o que o lead disse apenas para seguir o script linear.
+                  - RESPOSTA A PRAZOS: Se o lead disser que enviará documentos ou informações mais tarde, em outro momento ou amanhã, aceite gentilmente (ex: "Sem problemas! Fico no aguardo então. Qualquer dúvida é só me chamar.") e NÃO insista no envio imediato.
+                  - Siga o fluxo de forma natural: Boas-vindas e Nome -> Apresentação e Convite -> Triagem 1 -> Triagem 2 -> Triagem 3 -> Validação -> Documentos -> Contrato.
                   - NUNCA responda apenas com uma chamada de ferramenta. Sempre inclua uma mensagem de texto para o usuário.
+                  - Se o lead fizer uma pergunta que você não sabe responder com base nos prompts, diga que vai verificar com um dos advogados especialistas e que em breve ele terá um retorno, mas tente manter a conversa ativa.
                   
                   - REGRA ABSOLUTA PARA A PRIMEIRA MENSAGEM (QUANDO O HISTÓRICO ESTIVER VAZIO OU CONTIVER APENAS A MENSAGEM AUTOMÁTICA DO FORMULÁRIO):
                     * Se a Origem for "Botão WhatsApp Site" (ou vazia): NÃO IMPORTA o que o usuário escreveu na primeira mensagem, você DEVE OBRIGATORIAMENTE responder APENAS com a mensagem de "1. Boas-vindas e Nome (Botão WhatsApp)".
@@ -481,6 +484,11 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
               // Remover negrito Markdown (**) e qualquer asterisco que a IA costuma usar (Aplicado no final para garantir)
               aiResponseText = aiResponseText.replace(/\*/g, '');
               
+              if (!aiResponseText && (!response.functionCalls || response.functionCalls.length === 0)) {
+                console.log("IA não gerou resposta textual e não chamou ferramentas. Usando fallback...");
+                aiResponseText = "Entendido! Se tiver qualquer dúvida ou precisar de algo, é só me chamar por aqui. 😉";
+              }
+
               // Handle function calls
               if (response.functionCalls && response.functionCalls.length > 0) {
                 for (const call of response.functionCalls) {
@@ -535,7 +543,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                 }
               }
               
-              if (aiResponseText) {
+              if (aiResponseText || (response.functionCalls && response.functionCalls.length > 0)) {
                 // Parse buttons if the AI included them, e.g., [BUTTONS: Sim | Não]
                 const buttonRegex = /\[BUTTONS:\s*(.+?)\]/i;
                 const buttonMatch = aiResponseText.match(buttonRegex);
@@ -546,85 +554,108 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                   aiResponseText = aiResponseText.replace(buttonRegex, '').trim();
                 }
 
-                // Enviar a resposta via Z-API
-                const zApiInstance = process.env.ZAPI_INSTANCE || "3F04463B905D722D1841026B50D22DF4";
-                const zApiToken = process.env.ZAPI_TOKEN || "DA7B3B0DBC0D106EAB56DF63";
-                
-                let zApiUrl = `https://api.z-api.io/instances/${zApiInstance}/token/${zApiToken}/send-text`;
-                let zApiBody: any = { phone, message: aiResponseText };
-
-                if (buttons.length > 0 && buttons.length <= 3) {
-                  console.log(`Enviando botões: ${buttons.join(', ')}`);
-                  zApiUrl = `https://api.z-api.io/instances/${zApiInstance}/token/${zApiToken}/send-button-list`;
-                  zApiBody = {
-                    phone,
-                    message: aiResponseText,
-                    buttonList: {
-                      buttons: buttons.map((label, index) => {
-                        const cleanLabel = label.substring(0, 20).trim();
-                        if (label.length > 20) {
-                          console.warn(`Botão cortado: "${label}" -> "${cleanLabel}"`);
-                        }
-                        return {
-                          id: String(index + 1),
-                          label: cleanLabel
-                        };
-                      })
-                    }
-                  };
+                // Se restou apenas botões sem texto, adiciona um texto padrão
+                if (!aiResponseText && buttons.length > 0) {
+                  aiResponseText = "Escolha uma das opções abaixo:";
                 }
                 
-                const zApiHeaders: Record<string, string> = { "Content-Type": "application/json" };
-                if (process.env.ZAPI_CLIENT_TOKEN) {
-                  zApiHeaders["Client-Token"] = process.env.ZAPI_CLIENT_TOKEN;
-                }
-
-                const zApiResponse = await fetch(zApiUrl, {
-                  method: "POST",
-                  headers: zApiHeaders,
-                  body: JSON.stringify(zApiBody)
-                });
-                
-                const zApiResultText = await zApiResponse.text();
-                if (!zApiResponse.ok) {
-                  console.error("Erro ao enviar mensagem via Z-API:", zApiResponse.status, zApiResultText);
+                if (aiResponseText) {
+                  // Enviar a resposta via Z-API
+                  const zApiInstance = process.env.ZAPI_INSTANCE || "3F04463B905D722D1841026B50D22DF4";
+                  const zApiToken = process.env.ZAPI_TOKEN || "DA7B3B0DBC0D106EAB56DF63";
                   
-                  // Fallback: se falhar ao enviar botões, tenta enviar como texto normal
-                  if (zApiUrl.includes("send-button-list")) {
-                    console.log("Tentando fallback para texto normal...");
-                    const fallbackUrl = `https://api.z-api.io/instances/${zApiInstance}/token/${zApiToken}/send-text`;
-                    const fallbackBody = { 
-                      phone, 
-                      message: aiResponseText + "\n\nResponda com:\n" + buttons.map(b => `- ${b}`).join('\n') 
+                  let zApiUrl = `https://api.z-api.io/instances/${zApiInstance}/token/${zApiToken}/send-text`;
+                  let zApiBody: any = { phone, message: aiResponseText };
+
+                  if (buttons.length > 0 && buttons.length <= 3) {
+                    console.log(`Enviando botões: ${buttons.join(', ')}`);
+                    zApiUrl = `https://api.z-api.io/instances/${zApiInstance}/token/${zApiToken}/send-button-list`;
+                    zApiBody = {
+                      phone,
+                      message: aiResponseText,
+                      buttonList: {
+                        buttons: buttons.map((label, index) => {
+                          const cleanLabel = label.substring(0, 20).trim();
+                          if (label.length > 20) {
+                            console.warn(`Botão cortado: "${label}" -> "${cleanLabel}"`);
+                          }
+                          return {
+                            id: String(index + 1),
+                            label: cleanLabel
+                          };
+                        })
+                      }
                     };
+                  }
+                  
+                  const zApiHeaders: Record<string, string> = { "Content-Type": "application/json" };
+                  if (process.env.ZAPI_CLIENT_TOKEN) {
+                    zApiHeaders["Client-Token"] = process.env.ZAPI_CLIENT_TOKEN;
+                  }
+
+                  const zApiResponse = await fetch(zApiUrl, {
+                    method: "POST",
+                    headers: zApiHeaders,
+                    body: JSON.stringify(zApiBody)
+                  });
+                  
+                  const zApiResultText = await zApiResponse.text();
+                  if (!zApiResponse.ok) {
+                    console.error("Erro ao enviar mensagem via Z-API:", zApiResponse.status, zApiResultText);
                     
-                    await fetch(fallbackUrl, {
-                      method: "POST",
-                      headers: zApiHeaders,
-                      body: JSON.stringify(fallbackBody)
+                    // Fallback: se falhar ao enviar botões, tenta enviar como texto normal
+                    if (zApiUrl.includes("send-button-list")) {
+                      console.log("Tentando fallback para texto normal...");
+                      const fallbackUrl = `https://api.z-api.io/instances/${zApiInstance}/token/${zApiToken}/send-text`;
+                      const fallbackBody = { 
+                        phone, 
+                        message: aiResponseText + "\n\nResponda com:\n" + buttons.map(b => `- ${b}`).join('\n') 
+                      };
+                      
+                      await fetch(fallbackUrl, {
+                        method: "POST",
+                        headers: zApiHeaders,
+                        body: JSON.stringify(fallbackBody)
+                      });
+                    }
+                  }
+                  
+                  // Salvar a resposta da IA no Firestore
+                  await dbAdmin.collection('messages').add({
+                    leadId,
+                    text: aiResponseText,
+                    sender: 'bot',
+                    createdAt: new Date().toISOString()
+                  });
+
+                  // Desativar IA se for a mensagem de escape
+                  if (aiResponseText.includes("Vou passar você para um dos nossos especialistas")) {
+                    await dbAdmin.collection('leads').doc(leadId).update({
+                      aiEnabled: false,
+                      updatedAt: new Date().toISOString()
                     });
                   }
-                }
-                
-                // Salvar a resposta da IA no Firestore
-                await dbAdmin.collection('messages').add({
-                  leadId,
-                  text: aiResponseText,
-                  sender: 'bot',
-                  createdAt: new Date().toISOString()
-                });
-
-                // Desativar IA se for a mensagem de escape
-                if (aiResponseText.includes("Vou passar você para um dos nossos especialistas")) {
-                  await dbAdmin.collection('leads').doc(leadId).update({
-                    aiEnabled: false,
-                    updatedAt: new Date().toISOString()
-                  });
                 }
               }
             }
           } catch (aiError) {
             console.error("Erro ao gerar/enviar resposta da IA no webhook:", aiError);
+            
+            // Tentar enviar uma mensagem de erro amigável para o usuário não ficar no vácuo
+            try {
+              const zApiInstance = process.env.ZAPI_INSTANCE || "3F04463B905D722D1841026B50D22DF4";
+              const zApiToken = process.env.ZAPI_TOKEN || "DA7B3B0DBC0D106EAB56DF63";
+              await fetch(`https://api.z-api.io/instances/${zApiInstance}/token/${zApiToken}/send-text`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                  phone, 
+                  message: "Recebi sua mensagem! No momento estou processando algumas informações, mas em breve te respondo com todos os detalhes. Se for algo urgente, pode me avisar! 😉" 
+                })
+              });
+            } catch (e) {
+              console.error("Erro ao enviar fallback de erro:", e);
+            }
           }
         }
       }
