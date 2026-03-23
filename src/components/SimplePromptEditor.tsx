@@ -20,12 +20,14 @@ export default function SimplePromptEditor({ prompts, setPrompts, onSave, saving
       title: "Fluxo Principal (Alice)",
       icon: <Sparkles className="text-indigo-500" size={20} />,
       items: [
-        { id: 'prompt1', label: '1. Boas-vindas e Introdução', icon: <MessageSquare size={16} /> },
-        { id: 'prompt2', label: '2. Triagem Q1 (Previdência)', icon: <MessageSquare size={16} /> },
-        { id: 'prompt3', label: '3. Triagem Q2 (Período)', icon: <MessageSquare size={16} /> },
-        { id: 'prompt4', label: '4. Triagem Q3 (Retenção IR)', icon: <MessageSquare size={16} /> },
-        { id: 'prompt5', label: '5. Validação e Coleta de Dados', icon: <CheckCircle2 size={16} /> },
-        { id: 'prompt6', label: '6. Solicitação de Documentos', icon: <FileText size={16} /> },
+        { id: 'prompt1', label: '1. Boas-vindas (Botão WhatsApp)', icon: <MessageSquare size={16} /> },
+        { id: 'promptForm', label: '1. Boas-vindas (Formulário Site)', icon: <MessageSquare size={16} /> },
+        { id: 'prompt2', label: '2. Apresentação e Convite', icon: <MessageSquare size={16} /> },
+        { id: 'prompt3', label: '3. Triagem Q1 (Previdência)', icon: <MessageSquare size={16} /> },
+        { id: 'prompt4', label: '4. Triagem Q2 (Período)', icon: <MessageSquare size={16} /> },
+        { id: 'prompt5', label: '5. Triagem Q3 (Retenção IR)', icon: <MessageSquare size={16} /> },
+        { id: 'prompt6', label: '6. Validação e Coleta de Dados', icon: <CheckCircle2 size={16} /> },
+        { id: 'prompt7', label: '7. Solicitação de Documentos', icon: <FileText size={16} /> },
       ]
     },
     {

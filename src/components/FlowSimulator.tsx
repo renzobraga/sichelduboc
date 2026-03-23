@@ -59,14 +59,21 @@ export default function FlowSimulator({ prompts }: FlowSimulatorProps) {
       }
       const genAI = new GoogleGenAI({ apiKey: apiKey as string });
       
+      const processedPrompts: any = { ...prompts };
+      for (const key in processedPrompts) {
+        if (typeof processedPrompts[key] === 'string') {
+          processedPrompts[key] = processedPrompts[key].replace(/\{nome\}/gi, 'João').replace(/\[Nome\]/gi, 'João');
+        }
+      }
+
       // Construct the simulator prompt
       const simulatorSystemInstruction = `
         Você é a Alice, assistente virtual do escritório Sichel & Duboc. 
         Seu objetivo é agir EXATAMENTE como o robô configurado pelos prompts abaixo.
         
         REGRAS DO FLUXO:
-        1. Comece pelas Boas-vindas e Nome (Prompt 1).
-        2. Siga para a Apresentação e Convite (Prompt 2) após o usuário informar o nome.
+        1. Comece pelas Boas-vindas e Nome (Prompt 1 ou PromptForm, dependendo da origem).
+        2. Siga para a Apresentação e Convite (Prompt 2) após o usuário informar o nome (ou imediatamente se a origem for Formulário).
         3. Siga para a Triagem 1 (Prompt 3) se o usuário aceitar o convite.
         4. Siga as condições de Sim/Não conforme os prompts.
         5. Se o usuário desqualificar, use o Prompt de Desqualificação.
@@ -82,30 +89,31 @@ export default function FlowSimulator({ prompts }: FlowSimulatorProps) {
         - INCERTEZA (CRÍTICO): Se o usuário disser "acho que sim", "talvez", "não sei" ou "não tenho certeza", É PROIBIDO tratar isso como confirmação (sim). Você DEVE parar e pedir para o lead confirmar a informação (ex: pedindo para ele olhar o contracheque ou extrato) antes de avançar para a próxima pergunta.
         - CONTEXTO DE EMPRESA (CRÍTICO): O usuário NÃO informou para qual empresa trabalhou. É PROIBIDO usar frases como "naquela empresa", "na empresa que você trabalhava" ou "quando entrou na empresa". Refira-se apenas ao "fundo de previdência" ou pergunte o nome da empresa se for absolutamente necessário.
         - REGRA ABSOLUTA PARA A PRIMEIRA MENSAGEM (QUANDO O HISTÓRICO ESTIVER VAZIO):
-          * Se a origem for simulada como "Botão WhatsApp Site" (padrão): NÃO IMPORTA o que o usuário escreveu na primeira mensagem (mesmo que ele peça para iniciar a análise ou envie um texto longo), você DEVE OBRIGATORIAMENTE responder APENAS com a mensagem de "Boas-vindas e Nome". É ESTRITAMENTE PROIBIDO pular para a Triagem 1 ou qualquer outra etapa. Você precisa saber o nome da pessoa antes de continuar.
-          * Se a origem for simulada como "Formulário Site": O lead já preencheu os dados. PULE a pergunta do nome e OBRIGATORIAMENTE inicie a conversa enviando APENAS a mensagem "2. Apresentação e Convite", adaptando a saudação inicial para incluir o nome dele. NÃO IMPORTA o que o usuário escreveu na primeira mensagem, você DEVE enviar a mensagem 2.
-          * NUNCA, SOB NENHUMA HIPÓTESE, comece a conversa enviando a mensagem "3. Triagem 1". A primeira mensagem gerada por você DEVE ser a 1 ou a 2.
+          * Se a origem for simulada como "Botão WhatsApp Site" (padrão): NÃO IMPORTA o que o usuário escreveu na primeira mensagem (mesmo que ele peça para iniciar a análise ou envie um texto longo), você DEVE OBRIGATORIAMENTE responder APENAS com a mensagem de "1. Boas-vindas e Nome (Botão WhatsApp)". É ESTRITAMENTE PROIBIDO pular para a Triagem 1 ou qualquer outra etapa. Você precisa saber o nome da pessoa antes de continuar.
+          * Se a origem for simulada como "Formulário Site": O lead já preencheu os dados. PULE a pergunta do nome e OBRIGATORIAMENTE inicie a conversa enviando APENAS a mensagem "1. Boas-vindas (Formulário Site)". NÃO IMPORTA o que o usuário escreveu na primeira mensagem, você DEVE enviar a mensagem 1 do Formulário Site.
+          * NUNCA, SOB NENHUMA HIPÓTESE, comece a conversa enviando a mensagem "3. Triagem 1". A primeira mensagem gerada por você DEVE ser a 1.
         
         <DIRETRIZES_DE_CONVERSA>
         Você deve guiar o lead por este fluxo, enviando UMA mensagem por vez e aguardando a resposta:
-        1. Boas-vindas e Nome: "${prompts.prompt1}"
-        2. Apresentação e Convite: "${prompts.prompt2}"
-        3. Triagem 1: "${prompts.prompt3}"
-        4. Triagem 2: "${prompts.prompt4}"
-        5. Triagem 3: "${prompts.prompt5}"
-        6. Validação e Dados: "${prompts.prompt6}"
-        7. Solicitar Documentos: "${prompts.prompt7}"
-        8. Desqualificação: "${prompts.promptDesq}"
-        9. Objeções Gerais: "${prompts.promptObjections}"
-        10. Dúvida sobre Segurança/Golpe: "${prompts.promptTrust}"
-        11. Dúvida sobre Valores/Honorários: "${prompts.promptFees}"
-        12. Agendamento: "${prompts.promptSchedule}"
-        13. Envio de Contrato: "${prompts.promptContract}"
-        14. Fechamento: "${prompts.promptClosing}"
+        1. Boas-vindas e Nome (Botão WhatsApp): "${processedPrompts.prompt1}"
+        1. Boas-vindas (Formulário Site): "${processedPrompts.promptForm}"
+        2. Apresentação e Convite: "${processedPrompts.prompt2}"
+        3. Triagem 1: "${processedPrompts.prompt3}"
+        4. Triagem 2: "${processedPrompts.prompt4}"
+        5. Triagem 3: "${processedPrompts.prompt5}"
+        6. Validação e Dados: "${processedPrompts.prompt6}"
+        7. Solicitar Documentos: "${processedPrompts.prompt7}"
+        8. Desqualificação: "${processedPrompts.promptDesq}"
+        9. Objeções Gerais: "${processedPrompts.promptObjections}"
+        10. Dúvida sobre Segurança/Golpe: "${processedPrompts.promptTrust}"
+        11. Dúvida sobre Valores/Honorários: "${processedPrompts.promptFees}"
+        12. Agendamento: "${processedPrompts.promptSchedule}"
+        13. Envio de Contrato: "${processedPrompts.promptContract}"
+        14. Fechamento: "${processedPrompts.promptClosing}"
         </DIRETRIZES_DE_CONVERSA>
 
         - INSTRUÇÕES ADICIONAIS DO ESCRITÓRIO:
-        ${prompts.aiChatPrompt}
+        ${processedPrompts.aiChatPrompt}
 
         IMPORTANTE: 
         Responda APENAS com a mensagem que o robô enviaria ao cliente.

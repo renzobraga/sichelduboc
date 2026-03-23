@@ -128,12 +128,15 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
         // 3.1 Gerar mensagem inicial
         try {
           // Buscar prompt customizado do banco de dados
-          let prompt2 = "Prazer em te conhecer, [Nome]! Muitos aposentados como você estão conseguindo recuperar valores significativos de Imposto de Renda que foram cobrados indevidamente. E o melhor: você pode ser um deles! Para te ajudar a verificar se você tem esse direito, preciso fazer apenas 3 perguntinhas rápidas. Leva menos de 2 minutinhos, prometo! 😉 Podemos começar?";
+          let promptForm = "Olá, {nome}! Tudo bem? 👋\n\nMeu nome é Alice e faço parte da equipe de atendimento do Escritório Sichel & Duboc Advogados Associados.\n\nRecebemos o seu contato pelo nosso site! Muitos aposentados como você estão conseguindo recuperar valores significativos de Imposto de Renda que foram cobrados indevidamente. E o melhor: você pode ser um deles!\n\nPara te ajudar a verificar se você tem esse direito, preciso fazer apenas 3 perguntinhas rápidas. Leva menos de 2 minutinhos, prometo! 😉\n\nPodemos começar?";
           
           try {
             const promptsDoc = await getDoc(doc(db, 'settings', 'prompts'));
-            if (promptsDoc.exists() && promptsDoc.data().prompt2) {
-              prompt2 = promptsDoc.data().prompt2;
+            if (promptsDoc.exists() && promptsDoc.data().promptForm) {
+              promptForm = promptsDoc.data().promptForm;
+            } else if (promptsDoc.exists() && promptsDoc.data().prompt2) {
+              // Fallback to prompt2 if promptForm doesn't exist yet
+              promptForm = "Olá, {nome}! Tudo bem? 👋\n\nMeu nome é Alice e faço parte da equipe de atendimento do Escritório Sichel & Duboc Advogados Associados.\n\nRecebemos o seu contato pelo nosso site! " + promptsDoc.data().prompt2.replace(/Prazer em te conhecer, \{nome\}!\n\n/g, '').replace(/Prazer em te conhecer, \[Nome\]!\n\n/g, '');
             }
           } catch (e) {
             console.error("Erro ao buscar prompts customizados, usando padrão:", e);
@@ -142,7 +145,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
           const primeiroNome = nome ? nome.split(' ')[0] : 'Cliente';
           
           // Substituir a tag {nome} pelo nome real do lead
-          mensagemWhatsApp = prompt2.replace(/\{nome\}/gi, primeiroNome).replace(/\[Nome\]/gi, primeiroNome);
+          mensagemWhatsApp = promptForm.replace(/\{nome\}/gi, primeiroNome).replace(/\[Nome\]/gi, primeiroNome);
           
         } catch (error: any) {
           console.error("Erro ao preparar mensagem inicial:", error);
