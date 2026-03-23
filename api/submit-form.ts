@@ -156,7 +156,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
         if (process.env.ZAPI_CLIENT_TOKEN) zApiHeaders["Client-Token"] = process.env.ZAPI_CLIENT_TOKEN;
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
 
         const zApiResponse = await fetch(zApiUrl, {
           method: "POST",

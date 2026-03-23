@@ -357,9 +357,11 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                   - Se o lead informar nome, e-mail, cidade ou fundo, use a ferramenta 'updateLeadData' e CONTINUE a conversa para a próxima etapa do fluxo na mesma resposta.
                   - Siga o fluxo: Boas-vindas e Nome -> Apresentação e Convite -> Triagem 1 -> Triagem 2 -> Triagem 3 -> Validação -> Documentos -> Contrato.
                   - NUNCA responda apenas com uma chamada de ferramenta. Sempre inclua uma mensagem de texto para o usuário.
-                  - PRIMEIRA MENSAGEM DA CONVERSA (histórico vazio):
-                    * Se a Origem for "Botão WhatsApp Site" (ou vazia): Responda EXATAMENTE com a mensagem de Boas-vindas (1. Boas-vindas e Nome), SEM adicionar outras informações e SEM pular para a próxima etapa. Aguarde a resposta do usuário.
-                    * Se a Origem for "Formulário Site": O lead já preencheu os dados. PULE a pergunta do nome e inicie a conversa com a Apresentação e Convite (2. Apresentação e Convite), adaptando a saudação inicial para incluir o nome dele.
+                  
+                  - REGRA ABSOLUTA PARA A PRIMEIRA MENSAGEM (QUANDO O HISTÓRICO ESTIVER VAZIO):
+                    * Se a Origem for "Botão WhatsApp Site" (ou vazia): NÃO IMPORTA o que o usuário escreveu na primeira mensagem (mesmo que ele peça para iniciar a análise ou envie um texto longo), você DEVE OBRIGATORIAMENTE responder APENAS com a mensagem de "1. Boas-vindas e Nome". É ESTRITAMENTE PROIBIDO pular para a Triagem 1 ou qualquer outra etapa. Você precisa saber o nome da pessoa antes de continuar.
+                    * Se a Origem for "Formulário Site": O lead já preencheu os dados. PULE a pergunta do nome e OBRIGATORIAMENTE inicie a conversa enviando APENAS a mensagem "2. Apresentação e Convite", adaptando a saudação inicial para incluir o nome dele. NÃO IMPORTA o que o usuário escreveu na primeira mensagem, você DEVE enviar a mensagem 2.
+                    * NUNCA, SOB NENHUMA HIPÓTESE, comece a conversa enviando a mensagem "3. Triagem 1". A primeira mensagem gerada por você DEVE ser a 1 ou a 2.
                   
                   A data e hora atual é: ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })} (Horário de Brasília). Use isso como referência para agendar reuniões. Se o lead pedir para agendar uma reunião, use a ferramenta scheduleMeeting. Se o lead estiver pronto para assinar o contrato, use a ferramenta createContract. Use updateLeadData sempre que o lead informar dados pessoais. IMPORTANTE: Sempre forneça uma resposta em texto para o usuário, mesmo quando usar ferramentas.
                 `;
