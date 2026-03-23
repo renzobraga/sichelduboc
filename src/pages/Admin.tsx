@@ -109,6 +109,7 @@ export default function Admin() {
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const notificationSoundRef = useRef<HTMLAudioElement | null>(null);
+  const newLeadSoundRef = useRef<HTMLAudioElement | null>(null);
 
   // Chart data helpers
   const getStatusData = () => {
@@ -312,9 +313,10 @@ export default function Admin() {
     }
   }, [selectedLead?.id, user, isAdmin]);
 
-  // Initialize notification sound
+  // Initialize notification sounds
   useEffect(() => {
     notificationSoundRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3');
+    newLeadSoundRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3');
   }, []);
 
   const requestNotificationPermission = async () => {
@@ -368,10 +370,11 @@ export default function Admin() {
             
             // Only notify for messages from leads (role is 'user' or undefined)
             // AND not from the current admin
-            if ((msgData.role === 'user' || !msgData.role) && msgData.senderId !== user.uid) {
+            if ((msgData.role === 'user' || !msgData.role) && msgData.senderId !== user.uid && msgData.sender !== 'bot') {
               
               // Play sound
               if (notificationSoundRef.current) {
+                notificationSoundRef.current.currentTime = 0;
                 notificationSoundRef.current.play().catch(e => console.warn('Erro ao tocar som:', e));
               }
 
@@ -401,6 +404,54 @@ export default function Admin() {
         });
       }, (error) => {
         console.error("Erro no monitoramento de notificações:", error);
+      });
+
+      return () => unsubscribe();
+    }
+  }, [user, isAdmin, notificationsEnabled]);
+
+  // Live Notifications for new leads
+  useEffect(() => {
+    if (user && isAdmin && notificationsEnabled) {
+      console.log('Monitorando novos leads para notificações...');
+      let isInitialLoad = true;
+      
+      const q = query(
+        collection(db, 'leads'),
+        orderBy('createdAt', 'desc'),
+        limit(1)
+      );
+
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        if (isInitialLoad) {
+          isInitialLoad = false;
+          return;
+        }
+
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === 'added') {
+            const leadData = change.doc.data();
+            
+            // Play sound
+            if (newLeadSoundRef.current) {
+              newLeadSoundRef.current.currentTime = 0;
+              newLeadSoundRef.current.play().catch(e => console.warn('Erro ao tocar som de lead:', e));
+            }
+
+            // Show Browser Notification
+            if (Notification.permission === 'granted') {
+              new Notification(`Novo Lead: ${leadData.name || 'Sem nome'}`, {
+                body: `Um novo contato acabou de chegar pelo ${leadData.origin || 'site'}.`,
+                icon: '/favicon.ico'
+              });
+            }
+
+            // Show in-app toast
+            showToast(`Novo lead recebido: ${leadData.name || 'Sem nome'}`, 'success');
+          }
+        });
+      }, (error) => {
+        console.error("Erro no monitoramento de novos leads:", error);
       });
 
       return () => unsubscribe();
