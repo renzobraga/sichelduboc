@@ -72,11 +72,24 @@ FOLLOW-UPS:
 - FU-3 (48h): Olá, [Nome]! Tudo bem? Aqui é a Alice novamente. 😊 Sua pasta de restituição já está pré-aprovada aqui no escritório. Só estamos aguardando as fotos dos seus documentos para darmos entrada. Sei que às vezes é difícil encontrar a papelada — se precisar de ajuda para emitir algum documento pela internet, é só me avisar, ok? Consegue me mandar as fotos hoje? Assim a gente agiliza tudo!
 `;
 
+const defaultKanbanColumns = [
+  { id: 'novo', title: 'Novos', color: 'bg-blue-50 text-blue-700 border-blue-100' },
+  { id: 'em_atendimento', title: 'Em Atendimento', color: 'bg-amber-50 text-amber-700 border-amber-100' },
+  { id: 'qualificado', title: 'Qualificados', color: 'bg-green-50 text-green-700 border-green-100' },
+  { id: 'dados_coletados', title: 'Dados Coletados', color: 'bg-indigo-50 text-indigo-700 border-indigo-100' },
+  { id: 'contrato_enviado', title: 'Contrato Enviado', color: 'bg-purple-50 text-purple-700 border-purple-100' },
+  { id: 'fechado', title: 'Fechados', color: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
+  { id: 'descartado', title: 'Descartados', color: 'bg-slate-50 text-slate-700 border-slate-100' },
+];
+
 export default function Admin() {
   const [user, setUser] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [leads, setLeads] = useState<any[]>([]);
+  const [kanbanColumns, setKanbanColumns] = useState<any[]>(defaultKanbanColumns);
+  const [editingKanbanColumns, setEditingKanbanColumns] = useState<any[]>([]);
+  const [isEditingKanban, setIsEditingKanban] = useState(false);
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -113,15 +126,10 @@ export default function Admin() {
 
   // Chart data helpers
   const getStatusData = () => {
-    const statusMap: any = {
-      novo: 'Novos',
-      em_atendimento: 'Em Atendimento',
-      qualificado: 'Qualificados',
-      dados_coletados: 'Dados Coletados',
-      contrato_enviado: 'Contrato Enviado',
-      fechado: 'Fechados',
-      descartado: 'Descartados'
-    };
+    const statusMap: any = {};
+    kanbanColumns.forEach(col => {
+      statusMap[col.id] = col.title;
+    });
     const counts: any = {};
     leads.forEach(l => {
       const label = statusMap[l.status] || l.status;
@@ -277,6 +285,20 @@ export default function Admin() {
       const unsubscribe = onSnapshot(q, (snapshot) => {
         const leadsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setLeads(leadsData);
+      });
+      return () => unsubscribe();
+    }
+  }, [user, isAdmin]);
+
+  // Fetch Kanban Columns
+  useEffect(() => {
+    if (user && isAdmin) {
+      const unsubscribe = onSnapshot(doc(db, 'settings', 'kanban'), (docSnap) => {
+        if (docSnap.exists() && docSnap.data().columns) {
+          setKanbanColumns(docSnap.data().columns);
+        } else {
+          setKanbanColumns(defaultKanbanColumns);
+        }
       });
       return () => unsubscribe();
     }
@@ -1001,6 +1023,18 @@ export default function Admin() {
                     <Kanban size={14} className="lg:w-4 lg:h-4" />
                     Kanban
                   </button>
+                  {dashboardView === 'kanban' && (
+                    <button
+                      onClick={() => {
+                        setEditingKanbanColumns([...kanbanColumns]);
+                        setIsEditingKanban(true);
+                      }}
+                      className="flex items-center gap-2 px-3 py-1.5 lg:px-4 lg:py-2 rounded-lg text-xs lg:text-sm font-medium text-slate-500 hover:text-slate-700 transition-all ml-2"
+                      title="Configurar Colunas"
+                    >
+                      <Settings size={14} className="lg:w-4 lg:h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
               
@@ -1224,12 +1258,8 @@ export default function Admin() {
                               </div>
                             </div>
                             <div className="flex items-center gap-2 lg:gap-3">
-                              <span className={`text-[9px] lg:text-[10px] font-bold px-1.5 py-0.5 lg:px-2 lg:py-1 rounded-full uppercase tracking-wider ${
-                                lead.status === 'novo' ? 'bg-blue-50 text-blue-600' :
-                                lead.status === 'qualificado' ? 'bg-green-50 text-green-600' :
-                                'bg-slate-50 text-slate-500'
-                              }`}>
-                                {lead.status}
+                              <span className={`text-[9px] lg:text-[10px] font-bold px-1.5 py-0.5 lg:px-2 lg:py-1 rounded-full uppercase tracking-wider ${kanbanColumns.find(c => c.id === lead.status)?.color || 'bg-slate-50 text-slate-500'}`}>
+                                {kanbanColumns.find(c => c.id === lead.status)?.title || lead.status}
                               </span>
                               <ChevronRight size={12} className="text-slate-300 group-hover:text-indigo-400 transition-colors lg:w-3.5 lg:h-3.5" />
                             </div>
@@ -1264,15 +1294,7 @@ export default function Admin() {
               ) : (
                 /* Kanban View (Dashboard) */
                 <div className="flex gap-6 h-full min-w-max pb-4">
-                  {[
-                    { id: 'novo', title: 'Novos', color: 'bg-blue-50 text-blue-700 border-blue-100' },
-                    { id: 'em_atendimento', title: 'Em Atendimento', color: 'bg-amber-50 text-amber-700 border-amber-100' },
-                    { id: 'qualificado', title: 'Qualificados', color: 'bg-green-50 text-green-700 border-green-100' },
-                    { id: 'dados_coletados', title: 'Dados Coletados', color: 'bg-indigo-50 text-indigo-700 border-indigo-100' },
-                    { id: 'contrato_enviado', title: 'Contrato Enviado', color: 'bg-purple-50 text-purple-700 border-purple-100' },
-                    { id: 'fechado', title: 'Fechados', color: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
-                    { id: 'descartado', title: 'Descartados', color: 'bg-slate-50 text-slate-700 border-slate-100' },
-                  ].map(col => (
+                  {kanbanColumns.map(col => (
                     <div 
                       key={col.id} 
                       className="w-80 flex flex-col bg-slate-100/30 rounded-2xl border border-slate-200/60"
@@ -1384,12 +1406,10 @@ export default function Admin() {
                           </span>
                         </div>
                         <div className="text-xs text-slate-500 truncate">
-                          {lead.status === 'novo' ? 'Novo lead' : 
-                           lead.status === 'em_atendimento' ? 'Em atendimento' : 
-                           lead.status === 'qualificado' ? 'Qualificado' : 'Descartado'}
+                          {kanbanColumns.find(c => c.id === lead.status)?.title || 'Status desconhecido'}
                         </div>
                       </div>
-                      {lead.status === 'novo' && (
+                      {lead.status === kanbanColumns[0]?.id && (
                         <div className="w-5 h-5 rounded-full bg-indigo-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
                           1
                         </div>
@@ -1570,45 +1590,27 @@ export default function Admin() {
                       {/* Status Badge */}
                       <div className="mb-8">
                         <span className="block text-slate-400 text-[9px] uppercase font-bold mb-2 tracking-wider">Status do Atendimento</span>
-                        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border ${
-                          selectedLead.status === 'novo' ? 'bg-blue-50 text-blue-600 border-blue-100' :
-                          selectedLead.status === 'em_atendimento' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                          selectedLead.status === 'qualificado' ? 'bg-green-50 text-green-600 border-green-100' :
-                          selectedLead.status === 'fechado' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                          'bg-slate-50 text-slate-500 border-slate-100'
-                        }`}>
-                          <div className={`w-2 h-2 rounded-full ${
-                            selectedLead.status === 'novo' ? 'bg-blue-500' :
-                            selectedLead.status === 'em_atendimento' ? 'bg-amber-500' :
-                            selectedLead.status === 'qualificado' ? 'bg-green-500' :
-                            selectedLead.status === 'fechado' ? 'bg-emerald-500' :
-                            'bg-slate-400'
-                          }`} />
-                          {selectedLead.status.replace('_', ' ').toUpperCase()}
+                        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border ${kanbanColumns.find(c => c.id === selectedLead.status)?.color || 'bg-slate-50 text-slate-500 border-slate-100'}`}>
+                          {kanbanColumns.find(c => c.id === selectedLead.status)?.title || selectedLead.status.replace('_', ' ').toUpperCase()}
                         </div>
                       </div>
 
                       {/* Action Buttons */}
                       <div className="grid grid-cols-1 gap-2 mb-8">
-                        <span className="block text-slate-400 text-[9px] uppercase font-bold mb-2 tracking-wider">Ações Rápidas</span>
-                        <button 
-                          onClick={() => updateLeadStatus(selectedLead.id, 'em_atendimento')}
-                          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${selectedLead.status === 'em_atendimento' ? 'bg-amber-500 text-white shadow-lg shadow-amber-100' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'}`}
-                        >
-                          <Clock size={18} /> Em Atendimento
-                        </button>
-                        <button 
-                          onClick={() => updateLeadStatus(selectedLead.id, 'qualificado')}
-                          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${selectedLead.status === 'qualificado' ? 'bg-green-500 text-white shadow-lg shadow-green-100' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'}`}
-                        >
-                          <CheckCircle size={18} /> Qualificar Lead
-                        </button>
-                        <button 
-                          onClick={() => updateLeadStatus(selectedLead.id, 'fechado')}
-                          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${selectedLead.status === 'fechado' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-100' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'}`}
-                        >
-                          <TrendingUp size={18} /> Fechar Contrato
-                        </button>
+                        <span className="block text-slate-400 text-[9px] uppercase font-bold mb-2 tracking-wider">Mover para</span>
+                        
+                        {kanbanColumns.map(col => (
+                          <button 
+                            key={col.id}
+                            onClick={() => updateLeadStatus(selectedLead.id, col.id)}
+                            className={`flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all ${selectedLead.status === col.id ? col.color + ' shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'}`}
+                          >
+                            <span className="flex items-center gap-3">
+                              {col.title}
+                            </span>
+                            {selectedLead.status === col.id && <CheckCircle size={16} />}
+                          </button>
+                        ))}
                         
                         {!selectedLead.contractUrl && selectedLead.email && (
                           <button 
@@ -1633,22 +1635,15 @@ export default function Admin() {
                                 showToast("Erro ao gerar contrato.", 'error');
                               }
                             }}
-                            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-100 transition-all"
+                            className="flex items-center gap-3 px-4 py-3 mt-2 rounded-xl text-sm font-medium bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-100 transition-all"
                           >
                             <FileText size={18} /> Gerar Contrato ZapSign
                           </button>
                         )}
                         
                         <button 
-                          onClick={() => updateLeadStatus(selectedLead.id, 'descartado')}
-                          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${selectedLead.status === 'descartado' ? 'bg-red-500 text-white shadow-lg shadow-red-100' : 'bg-white text-slate-600 hover:bg-red-50 hover:text-red-600 border border-slate-200 hover:border-red-100'}`}
-                        >
-                          <XCircle size={18} /> Descartar Lead
-                        </button>
-
-                        <button 
                           onClick={() => handleDeleteLead(selectedLead.id)}
-                          className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all bg-white text-slate-400 hover:bg-red-50 hover:text-red-600 border border-slate-200 hover:border-red-100"
+                          className="flex items-center gap-3 px-4 py-3 mt-2 rounded-xl text-sm font-medium transition-all bg-white text-slate-400 hover:bg-red-50 hover:text-red-600 border border-slate-200 hover:border-red-100"
                         >
                           <Trash2 size={18} /> Excluir Lead
                         </button>
@@ -2217,13 +2212,8 @@ export default function Admin() {
                       <span className="text-[10px] lg:text-xs text-slate-500 flex items-center gap-1">
                         <Phone size={10} className="lg:w-3 lg:h-3" /> {selectedLeadForProfile.telefone}
                       </span>
-                      <span className={`px-1.5 py-0.5 rounded-full text-[8px] lg:text-[10px] font-bold uppercase tracking-wider ${
-                        selectedLeadForProfile.status === 'novo' ? 'bg-blue-100 text-blue-600' :
-                        selectedLeadForProfile.status === 'qualificado' ? 'bg-emerald-100 text-emerald-600' :
-                        selectedLeadForProfile.status === 'fechado' ? 'bg-amber-100 text-amber-600' :
-                        'bg-slate-100 text-slate-600'
-                      }`}>
-                        {selectedLeadForProfile.status}
+                      <span className={`px-1.5 py-0.5 rounded-full text-[8px] lg:text-[10px] font-bold uppercase tracking-wider ${kanbanColumns.find(c => c.id === selectedLeadForProfile.status)?.color || 'bg-slate-100 text-slate-600'}`}>
+                        {kanbanColumns.find(c => c.id === selectedLeadForProfile.status)?.title || selectedLeadForProfile.status}
                       </span>
                     </div>
                   </div>
@@ -2489,6 +2479,169 @@ export default function Admin() {
                     </div>
                   )}
                 </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      {/* Kanban Columns Modal */}
+      <AnimatePresence>
+        {isEditingKanban && (
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <div className="p-4 lg:p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                    <Kanban size={20} />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-800">Configurar Colunas do Kanban</h2>
+                    <p className="text-xs text-slate-500">Adicione, edite, reordene ou exclua colunas do seu funil.</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setIsEditingKanban(false)}
+                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              
+              <div className="p-4 lg:p-6 overflow-y-auto flex-1 bg-slate-50/30">
+                <div className="space-y-3">
+                  {editingKanbanColumns.map((col, index) => (
+                    <div key={col.id} className="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-sm group">
+                      <div className="cursor-grab text-slate-300 hover:text-slate-500">
+                        <MoreVertical size={16} />
+                      </div>
+                      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <input
+                            type="text"
+                            value={col.title}
+                            onChange={(e) => {
+                              const newCols = [...editingKanbanColumns];
+                              newCols[index].title = e.target.value;
+                              setEditingKanbanColumns(newCols);
+                            }}
+                            className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                            placeholder="Nome da coluna"
+                          />
+                          <div className="flex items-center gap-1 mt-1 ml-1">
+                            <span className="text-[9px] text-slate-400 font-mono">ID:</span>
+                            <input
+                              type="text"
+                              value={col.id}
+                              onChange={(e) => {
+                                const newCols = [...editingKanbanColumns];
+                                // Apenas letras minúsculas, números e underscores
+                                newCols[index].id = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
+                                setEditingKanbanColumns(newCols);
+                              }}
+                              className="text-[9px] text-slate-500 font-mono bg-transparent border-b border-transparent hover:border-slate-300 focus:border-indigo-500 focus:outline-none px-1 py-0 w-full"
+                              placeholder="id_da_coluna"
+                            />
+                          </div>
+                        </div>
+                        <input
+                          type="text"
+                          value={col.color}
+                          onChange={(e) => {
+                            const newCols = [...editingKanbanColumns];
+                            newCols[index].color = e.target.value;
+                            setEditingKanbanColumns(newCols);
+                          }}
+                          className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-mono text-xs h-[34px]"
+                          placeholder="Classes Tailwind (ex: bg-blue-50 text-blue-700)"
+                        />
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => {
+                            if (index > 0) {
+                              const newCols = [...editingKanbanColumns];
+                              const temp = newCols[index];
+                              newCols[index] = newCols[index - 1];
+                              newCols[index - 1] = temp;
+                              setEditingKanbanColumns(newCols);
+                            }
+                          }}
+                          disabled={index === 0}
+                          className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                        >
+                          <ChevronLeft size={16} className="rotate-90" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (index < editingKanbanColumns.length - 1) {
+                              const newCols = [...editingKanbanColumns];
+                              const temp = newCols[index];
+                              newCols[index] = newCols[index + 1];
+                              newCols[index + 1] = temp;
+                              setEditingKanbanColumns(newCols);
+                            }
+                          }}
+                          disabled={index === editingKanbanColumns.length - 1}
+                          className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                        >
+                          <ChevronRight size={16} className="rotate-90" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (window.confirm('Tem certeza que deseja excluir esta coluna? Os leads nela não aparecerão no Kanban.')) {
+                              const newCols = editingKanbanColumns.filter((_, i) => i !== index);
+                              setEditingKanbanColumns(newCols);
+                            }
+                          }}
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors ml-1"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  <button
+                    onClick={() => {
+                      const newId = `col_${Date.now()}`;
+                      setEditingKanbanColumns([...editingKanbanColumns, { id: newId, title: 'Nova Coluna', color: 'bg-slate-50 text-slate-700 border-slate-100' }]);
+                    }}
+                    className="w-full py-3 border-2 border-dashed border-slate-200 rounded-xl text-slate-500 font-medium text-sm hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50/50 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Plus size={16} />
+                    Adicionar Coluna
+                  </button>
+                </div>
+              </div>
+              
+              <div className="p-4 lg:p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+                <button
+                  onClick={() => setIsEditingKanban(false)}
+                  className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 bg-slate-100 rounded-lg transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      await setDoc(doc(db, 'settings', 'kanban'), { columns: editingKanbanColumns }, { merge: true });
+                      setIsEditingKanban(false);
+                      showToast('Colunas salvas com sucesso!', 'success');
+                    } catch (error) {
+                      console.error('Erro ao salvar colunas:', error);
+                      showToast('Erro ao salvar colunas.', 'error');
+                    }
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <Save size={16} />
+                  Salvar Alterações
+                </button>
               </div>
             </motion.div>
           </div>

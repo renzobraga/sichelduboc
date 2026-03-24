@@ -468,7 +468,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                 timeoutPromise
               ]);
               
-              let aiResponseText = response.text || "";
+              let aiResponseText = (response.text || "").trim();
               console.log(`Resposta da IA (texto): "${aiResponseText.substring(0, 50)}..."`);
               
               // Se a IA chamou uma ferramenta mas não gerou texto (comum em alguns modelos),
@@ -491,6 +491,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                           parts: [
                             ...response.functionCalls.map(call => ({
                               functionResponse: {
+                                id: call.id,
                                 name: call.name,
                                 response: { success: true, message: "Dados processados com sucesso." }
                               }
@@ -506,7 +507,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                     }),
                     secondTimeoutPromise
                   ]);
-                  aiResponseText = secondResponse.text || "";
+                  aiResponseText = (secondResponse.text || "").trim();
                 } catch (secondCallError) {
                   console.error("Erro na segunda chamada da IA:", secondCallError);
                 }
