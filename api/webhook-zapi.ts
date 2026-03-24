@@ -112,7 +112,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
         return res.status(200).json({ success: true, message: "Not a text or button message" });
       }
 
-      const rawPhone = data.phone;
+      const rawPhone = String(data.phone);
       const phone = rawPhone.replace(/\D/g, "");
       const senderName = data.senderName || data.senderShortName || "Cliente (Via WhatsApp)";
       
@@ -248,6 +248,8 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
         }
         
         // 4. Lógica do Chatbot (IA)
+        console.log(`[Webhook] Processando lead ${leadId} (${leadData.nome || 'Sem nome'}). Status: ${leadData.status}. AI Enabled: ${leadData.aiEnabled !== false}`);
+        
         if (leadData.aiEnabled !== false) {
           try {
             const { GoogleGenAI, Type } = await import("@google/genai");
@@ -255,16 +257,20 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
             let apiKey = process.env.CHAVE_IA_GEMINI || process.env.GEMINI_API_KEY;
             if (apiKey) {
               apiKey = apiKey.replace(/['"]/g, '').trim();
+            } else {
+              console.error("[IA] API Key não encontrada! Verifique GEMINI_API_KEY ou CHAVE_IA_GEMINI.");
             }
             
-            if (apiKey && !apiKey.includes("AI Studio Free Tier")) {
+            if (apiKey) {
               const ai = new GoogleGenAI({ apiKey });
+              
+              console.log(`[IA] Iniciando geração para ${leadId}...`);
               
               // Buscar histórico recente de mensagens do lead
               const historySnapshot = await dbAdmin.collection('messages')
                 .where('leadId', '==', leadId)
                 .orderBy('createdAt', 'desc')
-                .limit(15)
+                .limit(20)
                 .get();
                 
               const history = historySnapshot.docs.map(d => d.data()).reverse();
@@ -445,49 +451,91 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                 }
               };
 
-              const response = await ai.models.generateContent({
-                model: "gemini-3-flash-preview",
-                contents: chatContents,
-                config: {
-                  tools: [{ functionDeclarations: [scheduleMeetingDeclaration, createContractDeclaration, updateLeadDataDeclaration] }],
-                  systemInstruction: systemInstructionText,
-                }
+              const timeoutPromise = new Promise<any>((_, reject) => {
+                setTimeout(() => reject(new Error("Gemini API timeout")), 15000);
               });
+
+              const response = await Promise.race([
+                ai.models.generateContent({
+                  model: "gemini-3-flash-preview",
+                  contents: chatContents,
+                  config: {
+                    tools: [{ functionDeclarations: [scheduleMeetingDeclaration, createContractDeclaration, updateLeadDataDeclaration] }],
+                    systemInstruction: systemInstructionText,
+                    temperature: 0.7,
+                  }
+                }),
+                timeoutPromise
+              ]);
               
               let aiResponseText = response.text || "";
+              console.log(`Resposta da IA (texto): "${aiResponseText.substring(0, 50)}..."`);
               
               // Se a IA chamou uma ferramenta mas não gerou texto (comum em alguns modelos),
               // fazemos uma segunda chamada para obter a resposta textual para o usuário.
               if (!aiResponseText && response.functionCalls && response.functionCalls.length > 0) {
                 console.log("IA chamou ferramenta mas não enviou texto. Fazendo segunda chamada para obter resposta...");
                 try {
-                  const secondResponse = await ai.models.generateContent({
-                    model: "gemini-3-flash-preview",
-                    contents: [
-                      ...chatContents,
-                      { role: 'model', parts: response.candidates?.[0]?.content?.parts || [] },
-                      { role: 'user', parts: [{ text: "Dados processados com sucesso. Agora, por favor, responda ao lead com a próxima mensagem do fluxo (ex: agradecendo o nome e pedindo os documentos), sem usar ferramentas desta vez. Use o nome que o lead acabou de informar para tornar a conversa humanizada. NUNCA use asteriscos." }] }
-                    ],
-                    config: {
-                      systemInstruction: systemInstructionText,
-                    }
+                  const secondTimeoutPromise = new Promise<any>((_, reject) => {
+                    setTimeout(() => reject(new Error("Gemini API timeout (2nd call)")), 10000);
                   });
+
+                  const secondResponse = await Promise.race([
+                    ai.models.generateContent({
+                      model: "gemini-3-flash-preview",
+                      contents: [
+                        ...chatContents,
+                        { role: 'model', parts: response.candidates?.[0]?.content?.parts || [] },
+                        { 
+                          role: 'user', 
+                          parts: [
+                            ...response.functionCalls.map(call => ({
+                              functionResponse: {
+                                name: call.name,
+                                response: { success: true, message: "Dados processados com sucesso." }
+                              }
+                            })),
+                            { text: "Agora, responda ao lead com a próxima mensagem do fluxo de forma natural e humanizada. Use o nome do lead se souber. NÃO use asteriscos nem ferramentas agora." }
+                          ]
+                        }
+                      ],
+                      config: {
+                        systemInstruction: systemInstructionText,
+                        temperature: 0.7,
+                      }
+                    }),
+                    secondTimeoutPromise
+                  ]);
                   aiResponseText = secondResponse.text || "";
                 } catch (secondCallError) {
                   console.error("Erro na segunda chamada da IA:", secondCallError);
                 }
               }
               
+              // Fallback se a IA falhar em gerar qualquer texto
+              if (!aiResponseText) {
+                console.log("[IA] Resposta vazia detectada. Aplicando fallback...");
+                if (leadData.status === 'novo' || !leadData.nome) {
+                  aiResponseText = p.prompt1;
+                } else if (leadData.status === 'em_atendimento') {
+                  // Tentar ser um pouco mais específico no fallback
+                  if (messageText.toLowerCase().includes("sim") || messageText.toLowerCase().includes("quero")) {
+                    aiResponseText = "Ótimo! Vamos prosseguir. Você recebe aposentadoria de alguma previdência complementar?";
+                  } else {
+                    aiResponseText = "Entendido! Como posso te ajudar agora? Se preferir, posso te passar para um especialista.";
+                  }
+                } else {
+                  aiResponseText = "Estou processando sua solicitação. Um momento, por favor! 😉";
+                }
+              }
+
               // Limpar aspas duplas que a IA às vezes coloca no início e fim
               aiResponseText = aiResponseText.trim().replace(/^["']|["']$/g, '');
               
-              // Remover negrito Markdown (**) e qualquer asterisco que a IA costuma usar (Aplicado no final para garantir)
+              // Remover negrito Markdown (**) e qualquer asterisco que a IA costuma usar
               aiResponseText = aiResponseText.replace(/\*/g, '');
               
-              if (!aiResponseText && (!response.functionCalls || response.functionCalls.length === 0)) {
-                console.log("IA não gerou resposta textual e não chamou ferramentas. Usando fallback...");
-                aiResponseText = "Entendido! Se tiver qualquer dúvida ou precisar de algo, é só me chamar por aqui. 😉";
-              }
+              console.log(`Resposta final a ser enviada: "${aiResponseText.substring(0, 50)}..."`);
 
               // Handle function calls
               if (response.functionCalls && response.functionCalls.length > 0) {
@@ -596,7 +644,8 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                   const zApiResponse = await fetch(zApiUrl, {
                     method: "POST",
                     headers: zApiHeaders,
-                    body: JSON.stringify(zApiBody)
+                    body: JSON.stringify(zApiBody),
+                    signal: AbortSignal.timeout(20000) // 20 segundos de timeout
                   });
                   
                   const zApiResultText = await zApiResponse.text();
@@ -627,34 +676,39 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                     sender: 'bot',
                     createdAt: new Date().toISOString()
                   });
-
-                  // Desativar IA se for a mensagem de escape
-                  if (aiResponseText.includes("Vou passar você para um dos nossos especialistas")) {
-                    await dbAdmin.collection('leads').doc(leadId).update({
-                      aiEnabled: false,
-                      updatedAt: new Date().toISOString()
-                    });
-                  }
                 }
               }
             }
-          } catch (aiError) {
-            console.error("Erro ao gerar/enviar resposta da IA no webhook:", aiError);
+          } catch (aiError: any) {
+            console.error("[IA] Erro crítico no processamento:", aiError);
             
-            // Tentar enviar uma mensagem de erro amigável para o usuário não ficar no vácuo
+            // Tentar identificar erros de cota ou segurança
+            const errorMessage = aiError.message || "";
+            if (errorMessage.includes("quota") || errorMessage.includes("429")) {
+              console.error("[IA] Erro de cota (429) detectado.");
+            } else if (errorMessage.includes("safety") || errorMessage.includes("blocked")) {
+              console.error("[IA] Resposta bloqueada por filtros de segurança.");
+            }
+            
+            // Enviar mensagem de fallback em caso de erro crítico na IA
             try {
               const zApiInstance = process.env.ZAPI_INSTANCE || "3F04463B905D722D1841026B50D22DF4";
               const zApiToken = process.env.ZAPI_TOKEN || "DA7B3B0DBC0D106EAB56DF63";
-              await fetch(`https://api.z-api.io/instances/${zApiInstance}/token/${zApiToken}/send-text`, {
+              const zApiUrl = `https://api.z-api.io/instances/${zApiInstance}/token/${zApiToken}/send-text`;
+              
+              console.log("[IA] Enviando mensagem de fallback para o usuário...");
+              
+              await fetch(zApiUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ 
-                  phone, 
-                  message: "Recebi sua mensagem! No momento estou processando algumas informações, mas em breve te respondo com todos os detalhes. Se for algo urgente, pode me avisar! 😉" 
-                })
+                body: JSON.stringify({
+                  phone,
+                  message: "Recebi sua mensagem! No momento estou processando algumas informações, mas em breve te respondo com todos os detalhes. Se for algo urgente, pode me avisar! 😉"
+                }),
+                signal: AbortSignal.timeout(10000)
               });
-            } catch (e) {
-              console.error("Erro ao enviar fallback de erro:", e);
+            } catch (sendError) {
+              console.error("[IA] Erro ao enviar mensagem de fallback:", sendError);
             }
           }
         }
