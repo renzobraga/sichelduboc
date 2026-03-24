@@ -238,8 +238,10 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
           throw e;
         }
 
+        let isNewLead = false;
         // 3. Atualizar o status do lead se for 'novo'
         if (leadData.status === 'novo') {
+          isNewLead = true;
           await dbAdmin.collection('leads').doc(leadId).update({
             status: 'em_atendimento',
             updatedAt: new Date().toISOString()
@@ -373,8 +375,8 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                     * Quando o lead responder a essa mensagem (ex: "Sim", "Ok"), você DEVE responder APENAS com a "3. Triagem 1". NÃO repita a saudação inicial e NÃO envie a "2. Apresentação e Convite".
                   
                   - REGRA PARA BOTÃO WHATSAPP:
-                    * O lead inicia a conversa. Você responde com "1. Boas-vindas e Nome (Botão WhatsApp)".
-                    * Após ele dizer o nome, você envia a "2. Apresentação e Convite".
+                    * Se o nome do lead for "Não informado", responda com "1. Boas-vindas e Nome (Botão WhatsApp)".
+                    * Se o nome do lead já for conhecido (diferente de "Não informado"), PULE a mensagem 1 e envie DIRETAMENTE a "2. Apresentação e Convite".
                   
                   - FLUXO PARA FORMULÁRIO SITE: Boas-vindas (Auto) -> Triagem 1 -> Triagem 2 -> Triagem 3 -> Validação -> Documentos.
                   - FLUXO PARA BOTÃO WHATSAPP: Boas-vindas (Alice) -> Apresentação e Convite -> Triagem 1 -> Triagem 2 -> Triagem 3 -> Validação -> Documentos.
@@ -469,7 +471,14 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
               ]);
               
               let aiResponseText = (response.text || "").trim();
-              console.log(`Resposta da IA (texto): "${aiResponseText.substring(0, 50)}..."`);
+              
+              // Limpar aspas duplas que a IA às vezes coloca no início e fim
+              aiResponseText = aiResponseText.replace(/^["']|["']$/g, '').trim();
+              
+              // Remover negrito Markdown (**) e qualquer asterisco que a IA costuma usar
+              aiResponseText = aiResponseText.replace(/\*/g, '').trim();
+              
+              console.log(`Resposta da IA (texto limpo): "${aiResponseText.substring(0, 50)}..."`);
               
               // Se a IA chamou uma ferramenta mas não gerou texto (comum em alguns modelos),
               // fazemos uma segunda chamada para obter a resposta textual para o usuário.
@@ -508,6 +517,8 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                     secondTimeoutPromise
                   ]);
                   aiResponseText = (secondResponse.text || "").trim();
+                  aiResponseText = aiResponseText.replace(/^["']|["']$/g, '').trim();
+                  aiResponseText = aiResponseText.replace(/\*/g, '').trim();
                 } catch (secondCallError) {
                   console.error("Erro na segunda chamada da IA:", secondCallError);
                 }
@@ -516,7 +527,13 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
               // Fallback se a IA falhar em gerar qualquer texto
               if (!aiResponseText) {
                 console.log("[IA] Resposta vazia detectada. Aplicando fallback...");
-                if (leadData.status === 'novo' || !leadData.nome) {
+                if (isNewLead) {
+                  if (leadData.nome) {
+                    aiResponseText = p.prompt2;
+                  } else {
+                    aiResponseText = p.prompt1;
+                  }
+                } else if (!leadData.nome) {
                   aiResponseText = p.prompt1;
                 } else if (leadData.status === 'em_atendimento') {
                   // Tentar ser um pouco mais específico no fallback
@@ -529,12 +546,6 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                   aiResponseText = "Estou processando sua solicitação. Um momento, por favor! 😉";
                 }
               }
-
-              // Limpar aspas duplas que a IA às vezes coloca no início e fim
-              aiResponseText = aiResponseText.trim().replace(/^["']|["']$/g, '');
-              
-              // Remover negrito Markdown (**) e qualquer asterisco que a IA costuma usar
-              aiResponseText = aiResponseText.replace(/\*/g, '');
               
               console.log(`Resposta final a ser enviada: "${aiResponseText.substring(0, 50)}..."`);
 
@@ -616,25 +627,30 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                   let zApiUrl = `https://api.z-api.io/instances/${zApiInstance}/token/${zApiToken}/send-text`;
                   let zApiBody: any = { phone, message: aiResponseText };
 
-                  if (buttons.length > 0 && buttons.length <= 3) {
-                    console.log(`Enviando botões: ${buttons.join(', ')}`);
-                    zApiUrl = `https://api.z-api.io/instances/${zApiInstance}/token/${zApiToken}/send-button-list`;
-                    zApiBody = {
-                      phone,
-                      message: aiResponseText,
-                      buttonList: {
-                        buttons: buttons.map((label, index) => {
-                          const cleanLabel = label.substring(0, 20).trim();
-                          if (label.length > 20) {
-                            console.warn(`Botão cortado: "${label}" -> "${cleanLabel}"`);
-                          }
-                          return {
-                            id: String(index + 1),
-                            label: cleanLabel
-                          };
-                        })
-                      }
-                    };
+                  if (buttons.length > 0) {
+                    if (buttons.length <= 3) {
+                      console.log(`Enviando botões: ${buttons.join(', ')}`);
+                      zApiUrl = `https://api.z-api.io/instances/${zApiInstance}/token/${zApiToken}/send-button-list`;
+                      zApiBody = {
+                        phone,
+                        message: aiResponseText,
+                        buttonList: {
+                          buttons: buttons.map((label, index) => {
+                            const cleanLabel = label.substring(0, 20).trim();
+                            if (label.length > 20) {
+                              console.warn(`Botão cortado: "${label}" -> "${cleanLabel}"`);
+                            }
+                            return {
+                              id: String(index + 1),
+                              label: cleanLabel
+                            };
+                          })
+                        }
+                      };
+                    } else {
+                      console.log(`Muitos botões (${buttons.length}), enviando como texto...`);
+                      zApiBody.message = aiResponseText + "\n\nResponda com:\n" + buttons.map(b => `- ${b}`).join('\n');
+                    }
                   }
                   
                   const zApiHeaders: Record<string, string> = { "Content-Type": "application/json" };
@@ -699,15 +715,27 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
               
               console.log("[IA] Enviando mensagem de fallback para o usuário...");
               
+              const fallbackMessage = "Recebi sua mensagem! No momento estou processando algumas informações, mas em breve te respondo com todos os detalhes. Se for algo urgente, pode me avisar! 😉";
+              
               await fetch(zApiUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   phone,
-                  message: "Recebi sua mensagem! No momento estou processando algumas informações, mas em breve te respondo com todos os detalhes. Se for algo urgente, pode me avisar! 😉"
+                  message: fallbackMessage
                 }),
                 signal: AbortSignal.timeout(10000)
               });
+              
+              // Salvar a mensagem de fallback no Firestore
+              if (leadId) {
+                await dbAdmin.collection('messages').add({
+                  leadId,
+                  text: fallbackMessage,
+                  sender: 'bot',
+                  createdAt: new Date().toISOString()
+                });
+              }
             } catch (sendError) {
               console.error("[IA] Erro ao enviar mensagem de fallback:", sendError);
             }
