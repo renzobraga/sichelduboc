@@ -268,6 +268,23 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
               
               console.log(`[IA] Iniciando geração para ${leadId}...`);
               
+              const cleanAIResponse = (text: string) => {
+                let cleaned = text.trim().replace(/^["']|["']$/g, '').trim();
+                cleaned = cleaned.replace(/\*/g, '').trim();
+                
+                const lines = cleaned.split('\n');
+                const filteredLines = lines.filter(line => {
+                  const lowerLine = line.toLowerCase();
+                  return !lowerLine.includes('apenas escreva') && 
+                         !lowerLine.includes('lembre-se:') && 
+                         !lowerLine.includes('use o prompt') &&
+                         !lowerLine.includes('triagem') &&
+                         !lowerLine.startsWith('ok') &&
+                         !lowerLine.startsWith('entendido');
+                });
+                return filteredLines.join('\n').trim();
+              };
+              
               // Buscar histórico recente de mensagens do lead
               const historySnapshot = await dbAdmin.collection('messages')
                 .where('leadId', '==', leadId)
@@ -367,6 +384,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                   - Se o lead informar nome, e-mail, cidade ou fundo, use a ferramenta 'updateLeadData' e CONTINUE a conversa para a próxima etapa do fluxo na mesma resposta.
                   - FIDELIDADE AOS PROMPTS (OBRIGATÓRIO): Você deve usar os textos dos prompts EXATAMENTE como fornecidos nas diretrizes abaixo. É ESTRITAMENTE PROIBIDO alterar, resumir, expandir, mesclar ou omitir partes dos textos. Sua função é apenas selecionar o prompt correto para o momento da conversa e substituir as tags (ex: {nome}).
                   - SEM SAUDAÇÕES EXTRAS: Não adicione "Olá", "Tudo bem?", "Entendido" ou qualquer outra saudação/confirmação por conta própria se o prompt selecionado já não contiver isso ou se você já tiver se apresentado. Responda APENAS com o texto do prompt.
+                  - NUNCA repita instruções internas, nomes de prompts (ex: "Prompt 1", "Triagem 1") ou qualquer metadado na sua resposta final. Responda APENAS com a mensagem que o lead deve ler. É PROIBIDO dizer coisas como "Entendido, vou usar o prompt X" ou "Apenas escreva a resposta de texto".
                   - UMA MENSAGEM POR VEZ: Nunca envie dois prompts diferentes na mesma resposta.
                   - FLEXIBILIDADE E HUMANIZAÇÃO: Se o lead fizer uma pergunta ou comentário fora do script (ex: "posso enviar amanhã?"), responda de forma humanizada e curta ANTES de enviar o prompt da etapa atual. Mas mantenha o texto do prompt íntegro.
                   
@@ -470,13 +488,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                 timeoutPromise
               ]);
               
-              let aiResponseText = (response.text || "").trim();
-              
-              // Limpar aspas duplas que a IA às vezes coloca no início e fim
-              aiResponseText = aiResponseText.replace(/^["']|["']$/g, '').trim();
-              
-              // Remover negrito Markdown (**) e qualquer asterisco que a IA costuma usar
-              aiResponseText = aiResponseText.replace(/\*/g, '').trim();
+              let aiResponseText = cleanAIResponse(response.text || "");
               
               console.log(`Resposta da IA (texto limpo): "${aiResponseText.substring(0, 50)}..."`);
               
@@ -505,7 +517,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                                 response: { success: true, message: "Dados processados com sucesso." }
                               }
                             })),
-                            { text: "Agora, responda ao lead com a próxima mensagem do fluxo de forma natural e humanizada. Use o nome do lead se souber. NÃO use asteriscos nem ferramentas agora." }
+                            { text: "Obrigada. Agora, como Alice, continue a conversa com o lead seguindo o fluxo. Responda APENAS com a mensagem para o WhatsApp, sem metadados ou explicações." }
                           ]
                         }
                       ],
@@ -516,9 +528,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                     }),
                     secondTimeoutPromise
                   ]);
-                  aiResponseText = (secondResponse.text || "").trim();
-                  aiResponseText = aiResponseText.replace(/^["']|["']$/g, '').trim();
-                  aiResponseText = aiResponseText.replace(/\*/g, '').trim();
+                  aiResponseText = cleanAIResponse(secondResponse.text || "");
                 } catch (secondCallError) {
                   console.error("Erro na segunda chamada da IA:", secondCallError);
                 }
