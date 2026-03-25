@@ -7,6 +7,7 @@ import { storage } from '../firebase';
 import { LogOut, MessageCircle, Bell, LayoutDashboard, Workflow, Save, Bot, User, Kanban, List, BarChart3, Users, CheckCircle, X, XCircle, Trash2, Clock, Moon, Sun, Sparkles, Calendar, Maximize, Minimize, TrendingUp, PieChart, Activity, ArrowRight, MapPin, Mail, Phone, FileText, ExternalLink, MoreVertical, Search, Filter, ChevronRight, ChevronLeft, Image, Video, Music, Download, Paperclip, Box, Plus, Play, Edit2, Settings, Upload } from 'lucide-react';
 import { PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, AreaChart, Area } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
+import { formatChatDate, formatMessageDateDivider } from '../lib/dateUtils';
 import PromptsFlow from '../components/PromptsFlow';
 import SimplePromptEditor from '../components/SimplePromptEditor';
 import FlowSimulator from '../components/FlowSimulator';
@@ -1392,8 +1393,8 @@ export default function Admin() {
                   leads
                     .filter(l => l.nome.toLowerCase().includes(searchTerm.toLowerCase()) || l.telefone.includes(searchTerm))
                     .sort((a, b) => {
-                      const timeA = new Date(a.lastMessageAt || a.updatedAt || a.createdAt).getTime();
-                      const timeB = new Date(b.lastMessageAt || b.updatedAt || b.createdAt).getTime();
+                      const timeA = new Date(a.lastMessageAt || a.createdAt).getTime();
+                      const timeB = new Date(b.lastMessageAt || b.createdAt).getTime();
                       return timeB - timeA;
                     })
                     .map(lead => (
@@ -1409,7 +1410,7 @@ export default function Admin() {
                         <div className="flex justify-between items-center mb-0.5">
                           <h3 className="font-semibold text-slate-800 truncate text-sm">{lead.nome}</h3>
                           <span className="text-[10px] text-slate-400 shrink-0">
-                            {new Date(lead.lastMessageAt || lead.updatedAt || lead.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                            {formatChatDate(lead.lastMessageAt || lead.createdAt)}
                           </span>
                         </div>
                         <div className="text-xs text-slate-500 truncate">
@@ -1474,20 +1475,32 @@ export default function Admin() {
                           Nenhuma mensagem registrada.
                         </div>
                       ) : (
-                        messages.map(msg => (
-                          msg.sender === 'system' ? (
-                            <div key={msg.id} className="self-center bg-slate-100 text-slate-500 text-[10px] uppercase font-bold tracking-widest px-3 py-1 rounded-full border border-slate-200 my-2">
-                              {msg.text}
-                            </div>
-                          ) : (
-                            <div 
-                              key={msg.id} 
-                              className={`max-w-[85%] lg:max-w-[75%] flex gap-2 lg:gap-3 ${
-                                msg.sender === 'user' 
-                                  ? 'self-start' 
-                                  : 'self-end flex-row-reverse'
-                              }`}
-                            >
+                        messages.map((msg, index) => {
+                          const currentDate = new Date(msg.createdAt).toLocaleDateString('pt-BR');
+                          const previousDate = index > 0 ? new Date(messages[index - 1].createdAt).toLocaleDateString('pt-BR') : null;
+                          const showDateDivider = currentDate !== previousDate;
+                          
+                          return (
+                            <React.Fragment key={msg.id}>
+                              {showDateDivider && (
+                                <div className="flex justify-center my-4">
+                                  <div className="bg-slate-100/80 backdrop-blur-sm text-slate-500 text-[11px] font-medium px-3 py-1 rounded-full shadow-sm border border-slate-200/50">
+                                    {formatMessageDateDivider(msg.createdAt)}
+                                  </div>
+                                </div>
+                              )}
+                              {msg.sender === 'system' ? (
+                                <div className="self-center bg-slate-100 text-slate-500 text-[10px] uppercase font-bold tracking-widest px-3 py-1 rounded-full border border-slate-200 my-2">
+                                  {msg.text}
+                                </div>
+                              ) : (
+                                <div 
+                                  className={`max-w-[85%] lg:max-w-[75%] flex gap-2 lg:gap-3 ${
+                                    msg.sender === 'user' 
+                                      ? 'self-start' 
+                                      : 'self-end flex-row-reverse'
+                                  }`}
+                                >
                               <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-400 mt-auto">
                                 {msg.sender === 'user' ? <User size={14} /> : <Bot size={14} />}
                               </div>
@@ -1545,8 +1558,10 @@ export default function Admin() {
                                 </span>
                               </div>
                             </div>
-                          )
-                        ))
+                          )}
+                        </React.Fragment>
+                          );
+                        })
                       )}
                       <div ref={messagesEndRef} />
                     </div>

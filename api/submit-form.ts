@@ -175,12 +175,18 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
         
         // 3.3 Salvar mensagem no banco
         try {
+          const now = new Date().toISOString();
           await addDoc(collection(db, 'messages'), {
             leadId,
             text: mensagemWhatsApp,
             sender: 'bot',
-            createdAt: new Date().toISOString()
+            createdAt: now
           });
+          
+          await setDoc(doc(db, 'leads', leadId), {
+            lastMessageAt: now,
+            updatedAt: now
+          }, { merge: true });
         } catch (msgError) {
           console.error("Erro ao salvar mensagem:", msgError);
         }
