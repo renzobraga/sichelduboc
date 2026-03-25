@@ -50,17 +50,19 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
     }
 
     // 3. Salvar a mensagem no Firestore
+    const now = new Date().toISOString();
     await dbAdmin.collection('messages').add({
       leadId,
       text,
       sender: 'admin',
-      createdAt: new Date().toISOString()
+      createdAt: now
     });
 
-    // 4. Desativar a IA para este lead (Humano assumiu)
+    // 4. Desativar a IA para este lead (Humano assumiu) e atualizar lastMessageAt
     await dbAdmin.collection('leads').doc(leadId).update({
       aiEnabled: false,
-      updatedAt: new Date().toISOString()
+      lastMessageAt: now,
+      updatedAt: now
     });
 
     return res.status(200).json({ success: true });

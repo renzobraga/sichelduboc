@@ -218,15 +218,21 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
         const msgDocId = messageId ? `zapi_${messageId}` : `msg_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
         
         try {
+          const now = new Date().toISOString();
           await dbAdmin.collection('messages').doc(msgDocId).create({
             leadId,
             text: messageText,
             sender: 'user',
             messageId: messageId || null,
-            createdAt: new Date().toISOString(),
+            createdAt: now,
             fileUrl: fileUrl || null,
             fileName: fileName || null,
             fileType: fileType || null
+          });
+          
+          await dbAdmin.collection('leads').doc(leadId).update({
+            lastMessageAt: now,
+            updatedAt: now
           });
         } catch (e: any) {
           // Se o documento já existe (código 6 no gRPC do Firebase Admin), ignorar
@@ -697,11 +703,17 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                   }
                   
                   // Salvar a resposta da IA no Firestore
+                  const now = new Date().toISOString();
                   await dbAdmin.collection('messages').add({
                     leadId,
                     text: aiResponseText,
                     sender: 'bot',
-                    createdAt: new Date().toISOString()
+                    createdAt: now
+                  });
+                  
+                  await dbAdmin.collection('leads').doc(leadId).update({
+                    lastMessageAt: now,
+                    updatedAt: now
                   });
                 }
               }
@@ -739,11 +751,17 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
               
               // Salvar a mensagem de fallback no Firestore
               if (leadId) {
+                const now = new Date().toISOString();
                 await dbAdmin.collection('messages').add({
                   leadId,
                   text: fallbackMessage,
                   sender: 'bot',
-                  createdAt: new Date().toISOString()
+                  createdAt: now
+                });
+                
+                await dbAdmin.collection('leads').doc(leadId).update({
+                  lastMessageAt: now,
+                  updatedAt: now
                 });
               }
             } catch (sendError) {

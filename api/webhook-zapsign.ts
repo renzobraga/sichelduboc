@@ -26,10 +26,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (!leadsSnapshot.empty) {
         const leadDoc = leadsSnapshot.docs[0];
+        const now = new Date().toISOString();
+        
         await leadDoc.ref.update({
           contractStatus: "signed",
           status: "fechado",
-          updatedAt: new Date().toISOString()
+          lastMessageAt: now,
+          updatedAt: now
         });
         
         // Log a message about the signature
@@ -37,7 +40,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           leadId: leadDoc.id,
           text: "✅ O cliente assinou o contrato digital via ZapSign!",
           sender: 'system',
-          createdAt: new Date().toISOString()
+          createdAt: now
         });
 
         console.log(`Lead ${leadDoc.id} updated to signed status.`);

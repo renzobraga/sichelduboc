@@ -1389,7 +1389,14 @@ export default function Admin() {
                 {leads.filter(l => l.nome.toLowerCase().includes(searchTerm.toLowerCase()) || l.telefone.includes(searchTerm)).length === 0 ? (
                   <div className="p-8 text-center text-slate-500 text-sm">Nenhum contato encontrado.</div>
                 ) : (
-                  leads.filter(l => l.nome.toLowerCase().includes(searchTerm.toLowerCase()) || l.telefone.includes(searchTerm)).map(lead => (
+                  leads
+                    .filter(l => l.nome.toLowerCase().includes(searchTerm.toLowerCase()) || l.telefone.includes(searchTerm))
+                    .sort((a, b) => {
+                      const timeA = new Date(a.lastMessageAt || a.updatedAt || a.createdAt).getTime();
+                      const timeB = new Date(b.lastMessageAt || b.updatedAt || b.createdAt).getTime();
+                      return timeB - timeA;
+                    })
+                    .map(lead => (
                     <div 
                       key={lead.id}
                       onClick={() => setSelectedLead(lead)}
@@ -1402,7 +1409,7 @@ export default function Admin() {
                         <div className="flex justify-between items-center mb-0.5">
                           <h3 className="font-semibold text-slate-800 truncate text-sm">{lead.nome}</h3>
                           <span className="text-[10px] text-slate-400 shrink-0">
-                            {new Date(lead.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                            {new Date(lead.lastMessageAt || lead.updatedAt || lead.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
                         <div className="text-xs text-slate-500 truncate">

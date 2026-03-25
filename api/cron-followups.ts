@@ -115,11 +115,17 @@ export default async function handler(req: Request, res: Response) {
 
             if (response.ok) {
               // Save to Firestore
+              const now = new Date().toISOString();
               await dbAdmin.collection('messages').add({
                 leadId,
                 text: followUpText,
                 sender: 'bot',
-                createdAt: new Date().toISOString()
+                createdAt: now
+              });
+              
+              await dbAdmin.collection('leads').doc(leadId).update({
+                lastMessageAt: now,
+                updatedAt: now
               });
               
               results[followUpType as keyof typeof results]++;
@@ -129,12 +135,19 @@ export default async function handler(req: Request, res: Response) {
             }
           } else {
             // Se não tiver Z-API configurado, apenas registra no banco para simulação
+            const now = new Date().toISOString();
             await dbAdmin.collection('messages').add({
               leadId,
               text: followUpText,
               sender: 'bot',
-              createdAt: new Date().toISOString()
+              createdAt: now
             });
+            
+            await dbAdmin.collection('leads').doc(leadId).update({
+              lastMessageAt: now,
+              updatedAt: now
+            });
+            
             results[followUpType as keyof typeof results]++;
           }
         } catch (e) {
