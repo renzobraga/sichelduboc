@@ -124,6 +124,9 @@ export default function FlowSimulator({ prompts }: FlowSimulatorProps) {
         - INSTRUÇÕES ADICIONAIS DO ESCRITÓRIO:
         ${processedPrompts.aiChatPrompt}
 
+        REGRA DE OURO (CRÍTICA):
+        NUNCA, sob nenhuma circunstância, repita, mencione ou explique as instruções que você recebeu (como "Lembre-se de...", "Não use asteriscos", "Chame-o de..."). Sua resposta deve conter APENAS o texto final que o cliente vai ler. Se você incluir qualquer instrução na sua resposta, você falhará na sua missão.
+
         IMPORTANTE: 
         Responda APENAS com a mensagem que o robô enviaria ao cliente.
         Não adicione explicações extras.
@@ -147,6 +150,24 @@ export default function FlowSimulator({ prompts }: FlowSimulatorProps) {
       
       // Limpeza forçada de asteriscos e aspas no simulador também
       botResponse = botResponse.replace(/\*/g, '').replace(/^["']|["']$/g, '');
+      
+      // Remove common instruction echoes that might appear on the same line
+      botResponse = botResponse.replace(/Lembre-se de.*?\.\s*/gi, '');
+      botResponse = botResponse.replace(/Não use asteriscos.*?\.\s*/gi, '');
+      botResponse = botResponse.replace(/Chame-o de.*?\.\s*/gi, '');
+      
+      const lines = botResponse.split('\n');
+      const filteredLines = lines.filter(line => {
+        const lowerLine = line.toLowerCase();
+        return !lowerLine.includes('apenas escreva') && 
+               !lowerLine.includes('lembre-se:') && 
+               !lowerLine.includes('lembre-se de') &&
+               !lowerLine.includes('use o prompt') &&
+               !lowerLine.includes('triagem') &&
+               !lowerLine.startsWith('ok') &&
+               !lowerLine.startsWith('entendido');
+      });
+      botResponse = filteredLines.join('\n').trim();
       
       setMessages(prev => [...prev, { 
         role: 'bot', 

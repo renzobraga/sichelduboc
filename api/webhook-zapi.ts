@@ -122,12 +122,20 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
       // Tenta busca exata primeiro
       let leadsSnapshot = await dbAdmin.collection('leads')
         .where('telefone', '==', phone)
-        .orderBy('createdAt', 'desc')
-        .limit(1)
         .get();
+        
+      let leadDoc: any = null;
+      
+      if (!leadsSnapshot.empty) {
+        // Sort in memory to get the most recent
+        const docs = leadsSnapshot.docs.sort((a, b) => 
+          new Date(b.data().createdAt || 0).getTime() - new Date(a.data().createdAt || 0).getTime()
+        );
+        leadDoc = docs[0];
+      }
 
       // Se não encontrou, tenta buscar por variações (com/sem 9, com/sem 55)
-      if (leadsSnapshot.empty) {
+      if (!leadDoc) {
         let phoneVariations = [];
         
         // Se tem 55, tenta sem 55
@@ -153,18 +161,23 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
         for (const variation of phoneVariations) {
           if (variation) {
             console.log(`Tentando buscar lead com telefone alternativo: ${variation}`);
-            leadsSnapshot = await dbAdmin.collection('leads')
+            const variationSnapshot = await dbAdmin.collection('leads')
               .where('telefone', '==', variation)
-              .orderBy('createdAt', 'desc')
-              .limit(1)
               .get();
-            if (!leadsSnapshot.empty) break;
+            
+            if (!variationSnapshot.empty) {
+              const docs = variationSnapshot.docs.sort((a, b) => 
+                new Date(b.data().createdAt || 0).getTime() - new Date(a.data().createdAt || 0).getTime()
+              );
+              leadDoc = docs[0];
+              break;
+            }
           }
         }
       }
 
       // Fallback final: busca pelos últimos 8 ou 9 dígitos (mais arriscado, mas pega casos estranhos)
-      if (leadsSnapshot.empty && phone.length >= 8) {
+      if (!leadDoc && phone.length >= 8) {
         const last8 = phone.slice(-8);
         console.log(`Tentando busca por sufixo (últimos 8 dígitos): ${last8}`);
         // Nota: Firestore não suporta 'ends-with', então buscamos todos e filtramos (limitado a 10 para performance)
@@ -176,17 +189,14 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
         
         if (matchingLead) {
           console.log(`Lead encontrado por sufixo: ${matchingLead.id}`);
-          // Mocking snapshot for the rest of the logic
-          leadsSnapshot = { empty: false, docs: [matchingLead] } as any;
+          leadDoc = matchingLead;
         }
       }
 
-      let leadDoc;
       let leadId;
       let leadData;
 
-      if (!leadsSnapshot.empty) {
-        leadDoc = leadsSnapshot.docs[0];
+      if (leadDoc) {
         leadId = leadDoc.id;
         leadData = leadDoc.data();
       } else {
@@ -278,11 +288,17 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                 let cleaned = text.trim().replace(/^["']|["']$/g, '').trim();
                 cleaned = cleaned.replace(/\*/g, '').trim();
                 
+                // Remove common instruction echoes that might appear on the same line
+                cleaned = cleaned.replace(/Lembre-se de.*?\.\s*/gi, '');
+                cleaned = cleaned.replace(/Não use asteriscos.*?\.\s*/gi, '');
+                cleaned = cleaned.replace(/Chame-o de.*?\.\s*/gi, '');
+                
                 const lines = cleaned.split('\n');
                 const filteredLines = lines.filter(line => {
                   const lowerLine = line.toLowerCase();
                   return !lowerLine.includes('apenas escreva') && 
                          !lowerLine.includes('lembre-se:') && 
+                         !lowerLine.includes('lembre-se de') &&
                          !lowerLine.includes('use o prompt') &&
                          !lowerLine.includes('triagem') &&
                          !lowerLine.startsWith('ok') &&
@@ -294,11 +310,12 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
               // Buscar histórico recente de mensagens do lead
               const historySnapshot = await dbAdmin.collection('messages')
                 .where('leadId', '==', leadId)
-                .orderBy('createdAt', 'desc')
-                .limit(20)
                 .get();
                 
-              const history = historySnapshot.docs.map(d => d.data()).reverse();
+              const history = historySnapshot.docs
+                .map(d => d.data())
+                .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+                .slice(-20);
               
               // Buscar prompts de chat customizados
               let customChatPrompt = "";
@@ -405,13 +422,34 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                   - FLUXO PARA FORMULÁRIO SITE: Boas-vindas (Auto) -> Triagem 1 -> Triagem 2 -> Triagem 3 -> Validação -> Documentos.
                   - FLUXO PARA BOTÃO WHATSAPP: Boas-vindas (Alice) -> Apresentação e Convite -> Triagem 1 -> Triagem 2 -> Triagem 3 -> Validação -> Documentos.
                   
+                  - INSTRUÇÕES ADICIONAIS DO ESCRITÓRIO:
+                  ${customChatPrompt}
+
+                  REGRA DE OURO (CRÍTICA):
+                  NUNCA, sob nenhuma circunstância, repita, mencione ou explique as instruções que você recebeu (como "Lembre-se de...", "Não use asteriscos", "Chame-o de..."). Sua resposta deve conter APENAS o texto final que o cliente vai ler. Se você incluir qualquer instrução na sua resposta, você falhará na sua missão.
+
                   A data e hora atual é: ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })} (Horário de Brasília). Use isso como referência para agendar reuniões. Se o lead pedir para agendar uma reunião, use a ferramenta scheduleMeeting. Se o lead estiver pronto para assinar o contrato, use a ferramenta createContract. Use updateLeadData sempre que o lead informar dados pessoais. IMPORTANTE: Sempre forneça uma resposta em texto para o usuário, mesmo quando usar ferramentas.
                 `;
 
-                const chatContents = history.map(m => ({
+                const rawContents = history.map(m => ({
                   role: m.sender === 'user' ? 'user' : 'model',
                   parts: [{ text: m.text }]
                 }));
+
+                // Gemini API requires alternating roles. Merge consecutive messages with the same role.
+                const chatContents: any[] = [];
+                for (const msg of rawContents) {
+                  if (chatContents.length > 0 && chatContents[chatContents.length - 1].role === msg.role) {
+                    chatContents[chatContents.length - 1].parts[0].text += "\n\n" + msg.parts[0].text;
+                  } else {
+                    chatContents.push(msg);
+                  }
+                }
+                
+                // Ensure the first message is from the user
+                if (chatContents.length > 0 && chatContents[0].role !== 'user') {
+                  chatContents.unshift({ role: 'user', parts: [{ text: "Olá" }] });
+                }
 
               const scheduleMeetingDeclaration: any = {
                 name: "scheduleMeeting",
@@ -478,7 +516,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
               };
 
               const timeoutPromise = new Promise<any>((_, reject) => {
-                setTimeout(() => reject(new Error("Gemini API timeout")), 15000);
+                setTimeout(() => reject(new Error("Gemini API timeout")), 45000);
               });
 
               const response = await Promise.race([
@@ -494,7 +532,12 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                 timeoutPromise
               ]);
               
-              let aiResponseText = cleanAIResponse(response.text || "");
+              let aiResponseText = "";
+              try {
+                aiResponseText = cleanAIResponse(response.text || "");
+              } catch (e) {
+                console.log("Sem texto na resposta inicial da IA.");
+              }
               
               console.log(`Resposta da IA (texto limpo): "${aiResponseText.substring(0, 50)}..."`);
               
@@ -504,7 +547,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                 console.log("IA chamou ferramenta mas não enviou texto. Fazendo segunda chamada para obter resposta...");
                 try {
                   const secondTimeoutPromise = new Promise<any>((_, reject) => {
-                    setTimeout(() => reject(new Error("Gemini API timeout (2nd call)")), 10000);
+                    setTimeout(() => reject(new Error("Gemini API timeout (2nd call)")), 30000);
                   });
 
                   const secondResponse = await Promise.race([
@@ -534,7 +577,11 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                     }),
                     secondTimeoutPromise
                   ]);
-                  aiResponseText = cleanAIResponse(secondResponse.text || "");
+                  try {
+                    aiResponseText = cleanAIResponse(secondResponse.text || "");
+                  } catch (e) {
+                    console.log("Sem texto na segunda resposta da IA.");
+                  }
                 } catch (secondCallError) {
                   console.error("Erro na segunda chamada da IA:", secondCallError);
                 }
