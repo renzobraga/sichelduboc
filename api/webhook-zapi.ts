@@ -729,6 +729,8 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                   });
                   
                   const zApiResultText = await zApiResponse.text();
+                  let messageSentSuccessfully = zApiResponse.ok;
+
                   if (!zApiResponse.ok) {
                     console.error("Erro ao enviar mensagem via Z-API:", zApiResponse.status, zApiResultText);
                     
@@ -741,27 +743,41 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                         message: aiResponseText + "\n\nResponda com:\n" + buttons.map(b => `- ${b}`).join('\n') 
                       };
                       
-                      await fetch(fallbackUrl, {
-                        method: "POST",
-                        headers: zApiHeaders,
-                        body: JSON.stringify(fallbackBody)
-                      });
+                      try {
+                        const fallbackRes = await fetch(fallbackUrl, {
+                          method: "POST",
+                          headers: zApiHeaders,
+                          body: JSON.stringify(fallbackBody)
+                        });
+                        if (fallbackRes.ok) {
+                          messageSentSuccessfully = true;
+                          console.log("Fallback para texto normal enviado com sucesso.");
+                        } else {
+                          console.error("Erro no fallback para texto normal:", fallbackRes.status, await fallbackRes.text());
+                        }
+                      } catch (fallbackErr) {
+                        console.error("Exceção no fallback para texto normal:", fallbackErr);
+                      }
                     }
                   }
                   
-                  // Salvar a resposta da IA no Firestore
-                  const now = new Date().toISOString();
-                  await dbAdmin.collection('messages').add({
-                    leadId,
-                    text: aiResponseText,
-                    sender: 'bot',
-                    createdAt: now
-                  });
-                  
-                  await dbAdmin.collection('leads').doc(leadId).update({
-                    lastMessageAt: now,
-                    updatedAt: now
-                  });
+                  if (messageSentSuccessfully) {
+                    // Salvar a resposta da IA no Firestore
+                    const now = new Date().toISOString();
+                    await dbAdmin.collection('messages').add({
+                      leadId,
+                      text: aiResponseText,
+                      sender: 'bot',
+                      createdAt: now
+                    });
+                    
+                    await dbAdmin.collection('leads').doc(leadId).update({
+                      lastMessageAt: now,
+                      updatedAt: now
+                    });
+                  } else {
+                    console.error("Mensagem não foi salva no Firestore pois falhou ao enviar via Z-API.");
+                  }
                 }
               }
             }
@@ -786,9 +802,14 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
               
               const fallbackMessage = "Recebi sua mensagem! No momento estou processando algumas informações, mas em breve te respondo com todos os detalhes. Se for algo urgente, pode me avisar! 😉";
               
-              await fetch(zApiUrl, {
+              const zApiHeaders: Record<string, string> = { "Content-Type": "application/json" };
+              if (process.env.ZAPI_CLIENT_TOKEN) {
+                zApiHeaders["Client-Token"] = process.env.ZAPI_CLIENT_TOKEN;
+              }
+              
+              const fallbackResponse = await fetch(zApiUrl, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: zApiHeaders,
                 body: JSON.stringify({
                   phone,
                   message: fallbackMessage
@@ -796,20 +817,24 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                 signal: AbortSignal.timeout(10000)
               });
               
-              // Salvar a mensagem de fallback no Firestore
-              if (leadId) {
-                const now = new Date().toISOString();
-                await dbAdmin.collection('messages').add({
-                  leadId,
-                  text: fallbackMessage,
-                  sender: 'bot',
-                  createdAt: now
-                });
-                
-                await dbAdmin.collection('leads').doc(leadId).update({
-                  lastMessageAt: now,
-                  updatedAt: now
-                });
+              if (!fallbackResponse.ok) {
+                console.error("[IA] Erro ao enviar fallback via Z-API:", fallbackResponse.status, await fallbackResponse.text());
+              } else {
+                // Salvar a mensagem de fallback no Firestore apenas se enviou com sucesso
+                if (leadId) {
+                  const now = new Date().toISOString();
+                  await dbAdmin.collection('messages').add({
+                    leadId,
+                    text: fallbackMessage,
+                    sender: 'bot',
+                    createdAt: now
+                  });
+                  
+                  await dbAdmin.collection('leads').doc(leadId).update({
+                    lastMessageAt: now,
+                    updatedAt: now
+                  });
+                }
               }
             } catch (sendError) {
               console.error("[IA] Erro ao enviar mensagem de fallback:", sendError);
