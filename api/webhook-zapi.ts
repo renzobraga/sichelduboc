@@ -2,6 +2,8 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { dbAdmin } from "./_firebase-admin.js";
 import { createGoogleEvent } from "./_google-calendar.js";
 
+export const maxDuration = 300; // 5 minutos (Vercel Pro)
+
 export default async function handler(req: VercelRequest | any, res: VercelResponse | any) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -516,7 +518,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
               };
 
               const timeoutPromise = new Promise<any>((_, reject) => {
-                setTimeout(() => reject(new Error("Gemini API timeout")), 45000);
+                setTimeout(() => reject(new Error("Gemini API timeout")), 120000); // 120 segundos
               });
 
               const response = await Promise.race([
@@ -547,7 +549,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                 console.log("IA chamou ferramenta mas não enviou texto. Fazendo segunda chamada para obter resposta...");
                 try {
                   const secondTimeoutPromise = new Promise<any>((_, reject) => {
-                    setTimeout(() => reject(new Error("Gemini API timeout (2nd call)")), 30000);
+                    setTimeout(() => reject(new Error("Gemini API timeout (2nd call)")), 60000); // 60 segundos
                   });
 
                   const secondResponse = await Promise.race([
@@ -725,7 +727,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                     method: "POST",
                     headers: zApiHeaders,
                     body: JSON.stringify(zApiBody),
-                    signal: AbortSignal.timeout(20000) // 20 segundos de timeout
+                    signal: AbortSignal.timeout(60000) // 60 segundos de timeout
                   });
                   
                   const zApiResultText = await zApiResponse.text();
@@ -814,7 +816,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                   phone,
                   message: fallbackMessage
                 }),
-                signal: AbortSignal.timeout(10000)
+                signal: AbortSignal.timeout(20000)
               });
               
               if (!fallbackResponse.ok) {
@@ -827,7 +829,8 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                     leadId,
                     text: fallbackMessage,
                     sender: 'bot',
-                    createdAt: now
+                    createdAt: now,
+                    errorLog: errorMessage // Salva o erro real para debug
                   });
                   
                   await dbAdmin.collection('leads').doc(leadId).update({
