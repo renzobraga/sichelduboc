@@ -143,6 +143,7 @@ export default function FlowSimulator({ prompts }: FlowSimulatorProps) {
         ],
         config: {
           systemInstruction: simulatorSystemInstruction,
+          maxOutputTokens: 2048,
         }
       });
 

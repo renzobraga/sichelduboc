@@ -529,6 +529,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                     tools: [{ functionDeclarations: [scheduleMeetingDeclaration, createContractDeclaration, updateLeadDataDeclaration] }],
                     systemInstruction: systemInstructionText,
                     temperature: 0.7,
+                    maxOutputTokens: 2048,
                   }
                 }),
                 timeoutPromise
@@ -575,6 +576,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                       config: {
                         systemInstruction: systemInstructionText,
                         temperature: 0.7,
+                        maxOutputTokens: 2048,
                       }
                     }),
                     secondTimeoutPromise
