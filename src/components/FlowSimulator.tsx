@@ -83,6 +83,7 @@ export default function FlowSimulator({ prompts }: FlowSimulatorProps) {
         REGRAS DE COMPORTAMENTO (CRÍTICO):
         - VOCÊ É A ALICE. NUNCA saia do personagem.
         - FIDELIDADE AOS PROMPTS (OBRIGATÓRIO): Você deve usar os textos dos prompts EXATAMENTE como fornecidos nas diretrizes abaixo. É ESTRITAMENTE PROIBIDO alterar, resumir, expandir, mesclar ou omitir partes dos textos. Sua função é apenas selecionar o prompt correto para o momento da conversa e substituir as tags (ex: {nome}).
+        - PROGRESSÃO DO FLUXO (CRÍTICO): O fluxo de conversa é UNIDIRECIONAL. Nunca volte para uma etapa anterior (ex: pedir cidade se o lead já está enviando documentos). Se o lead já forneceu uma informação ou está em uma etapa avançada, continue para a PRÓXIMA etapa (ex: agendamento ou contrato).
         - SEM SAUDAÇÕES EXTRAS: Não adicione "Olá", "Tudo bem?", "Entendido" ou qualquer outra saudação/confirmação por conta própria se o prompt selecionado já não contiver isso ou se você já tiver se apresentado. Responda APENAS com o texto do prompt.
         - UMA MENSAGEM POR VEZ: Nunca envie dois prompts diferentes na mesma resposta.
         - FLEXIBILIDADE E HUMANIZAÇÃO: Se o lead fizer uma pergunta ou comentário fora do script (ex: "posso enviar amanhã?"), responda de forma humanizada e curta ANTES de enviar o prompt da etapa atual. Mas mantenha o texto do prompt íntegro.
@@ -156,6 +157,8 @@ export default function FlowSimulator({ prompts }: FlowSimulatorProps) {
       botResponse = botResponse.replace(/Lembre-se de.*?\.\s*/gi, '');
       botResponse = botResponse.replace(/Não use asteriscos.*?\.\s*/gi, '');
       botResponse = botResponse.replace(/Chame-o de.*?\.\s*/gi, '');
+      botResponse = botResponse.replace(/Utilize os prompts.*?\.\s*/gi, '');
+      botResponse = botResponse.replace(/---/g, '').trim();
       
       const lines = botResponse.split('\n');
       const filteredLines = lines.filter(line => {
@@ -164,6 +167,8 @@ export default function FlowSimulator({ prompts }: FlowSimulatorProps) {
                !lowerLine.includes('lembre-se:') && 
                !lowerLine.includes('lembre-se de') &&
                !lowerLine.includes('use o prompt') &&
+               !lowerLine.includes('utilize os prompts') &&
+               !lowerLine.includes('diretrizes') &&
                !lowerLine.includes('triagem') &&
                !lowerLine.startsWith('ok') &&
                !lowerLine.startsWith('entendido');

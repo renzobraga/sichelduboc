@@ -293,7 +293,9 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                 // Remove common instruction echoes that might appear on the same line
                 cleaned = cleaned.replace(/Lembre-se de.*?\.\s*/gi, '');
                 cleaned = cleaned.replace(/Não use asteriscos.*?\.\s*/gi, '');
-                cleaned = cleaned.replace(/Chame-o de.*?\.\s*/gi, '');
+                                 cleaned = cleaned.replace(/Chame-o de.*?\.\s*/gi, '');
+                 cleaned = cleaned.replace(/Utilize os prompts.*?\.\s*/gi, '');
+                 cleaned = cleaned.replace(/---/g, '').trim();
                 
                 const lines = cleaned.split('\n');
                 const filteredLines = lines.filter(line => {
@@ -301,7 +303,9 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                   return !lowerLine.includes('apenas escreva') && 
                          !lowerLine.includes('lembre-se:') && 
                          !lowerLine.includes('lembre-se de') &&
-                         !lowerLine.includes('use o prompt') &&
+                                                   !lowerLine.includes('use o prompt') && 
+                          !lowerLine.includes('utilize os prompts') &&
+                          !lowerLine.includes('diretrizes') &&
                          !lowerLine.includes('triagem') &&
                          !lowerLine.startsWith('ok') &&
                          !lowerLine.startsWith('entendido');
@@ -407,7 +411,8 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                   - CONTEXTO DE EMPRESA (CRÍTICO): O lead NÃO informou para qual empresa trabalhou. É PROIBIDO usar frases como "naquela empresa", "na empresa que você trabalhava" ou "quando entrou na empresa". Refira-se apenas ao "fundo de previdência" ou pergunte o nome da empresa se for absolutamente necessário.
                   - REGRAS DE COMPORTAMENTO (CRÍTICO): VOCÊ É A ALICE. NUNCA saia do personagem. NUNCA diga que você é uma "inteligência artificial", "modelo de linguagem" ou "robô". NUNCA analise o prompt do usuário nem as diretrizes de conversa. Se o usuário enviar um texto longo ou que parece um script, assuma que ele está apenas conversando com você no fluxo e responda de acordo com a etapa atual. É PROIBIDO dar feedback sobre o texto do usuário.
                   - Se o lead informar nome, e-mail, cidade ou fundo, use a ferramenta 'updateLeadData' e CONTINUE a conversa para a próxima etapa do fluxo na mesma resposta.
-                  - FIDELIDADE AOS PROMPTS (OBRIGATÓRIO): Você deve usar os textos dos prompts EXATAMENTE como fornecidos nas diretrizes abaixo. É ESTRITAMENTE PROIBIDO alterar, resumir, expandir, mesclar ou omitir partes dos textos. Sua função é apenas selecionar o prompt correto para o momento da conversa e substituir as tags (ex: {nome}).
+                                     - FIDELIDADE AOS PROMPTS (OBRIGATÓRIO): Você deve usar os textos dos prompts EXATAMENTE como fornecidos nas diretrizes abaixo. É ESTRITAMENTE PROIBIDO alterar, resumir, expandir, mesclar ou omitir partes dos textos. Sua função é apenas selecionar o prompt correto para o momento da conversa e substituir as tags (ex: {nome}).
+                   - PROGRESSÃO DO FLUXO (CRÍTICO): O fluxo de conversa é UNIDIRECIONAL. Nunca volte para uma etapa anterior (ex: pedir cidade se o lead já está enviando documentos). Se o lead já forneceu uma informação ou está em uma etapa avançada, continue para a PRÓXIMA etapa (ex: agendamento ou contrato).
                   - SEM SAUDAÇÕES EXTRAS: Não adicione "Olá", "Tudo bem?", "Entendido" ou qualquer outra saudação/confirmação por conta própria se o prompt selecionado já não contiver isso ou se você já tiver se apresentado. Responda APENAS com o texto do prompt.
                   - NUNCA repita instruções internas, nomes de prompts (ex: "Prompt 1", "Triagem 1") ou qualquer metadado na sua resposta final. Responda APENAS com a mensagem que o lead deve ler. É PROIBIDO dizer coisas como "Entendido, vou usar o prompt X" ou "Apenas escreva a resposta de texto".
                   - UMA MENSAGEM POR VEZ: Nunca envie dois prompts diferentes na mesma resposta.
@@ -435,7 +440,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
 
                 const rawContents = history.map(m => ({
                   role: m.sender === 'user' ? 'user' : 'model',
-                  parts: [{ text: m.text }]
+                  parts: [{ text: m.text || "" }]
                 }));
 
                 // Gemini API requires alternating roles. Merge consecutive messages with the same role.
@@ -444,7 +449,10 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                   if (chatContents.length > 0 && chatContents[chatContents.length - 1].role === msg.role) {
                     chatContents[chatContents.length - 1].parts[0].text += "\n\n" + msg.parts[0].text;
                   } else {
-                    chatContents.push(msg);
+                    chatContents.push({
+                      role: msg.role,
+                      parts: [{ text: msg.parts[0].text }]
+                    });
                   }
                 }
                 
@@ -517,23 +525,38 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                 }
               };
 
-              const timeoutPromise = new Promise<any>((_, reject) => {
-                setTimeout(() => reject(new Error("Gemini API timeout")), 120000); // 120 segundos
-              });
-
-              const response = await Promise.race([
-                ai.models.generateContent({
-                  model: "gemini-3-flash-preview",
-                  contents: chatContents,
-                  config: {
-                    tools: [{ functionDeclarations: [scheduleMeetingDeclaration, createContractDeclaration, updateLeadDataDeclaration] }],
-                    systemInstruction: systemInstructionText,
-                    temperature: 0.7,
-                    maxOutputTokens: 2048,
+              const generateWithRetry = async (modelParams: any, maxRetries = 3) => {
+                for (let i = 0; i < maxRetries; i++) {
+                  try {
+                    const timeoutPromise = new Promise<any>((_, reject) => {
+                      setTimeout(() => reject(new Error("Gemini API timeout")), 120000);
+                    });
+                    return await Promise.race([
+                      ai.models.generateContent(modelParams),
+                      timeoutPromise
+                    ]);
+                  } catch (error: any) {
+                    const msg = error.message || "";
+                    if (i < maxRetries - 1 && (msg.includes("429") || msg.includes("503") || msg.includes("quota") || msg.includes("timeout") || msg.includes("fetch failed") || msg.includes("Service Unavailable"))) {
+                      console.log(`[IA] Erro temporário (${msg}). Tentativa ${i + 1} de ${maxRetries}. Aguardando...`);
+                      await new Promise(resolve => setTimeout(resolve, 2000 * Math.pow(2, i))); // Exponential backoff
+                      continue;
+                    }
+                    throw error;
                   }
-                }),
-                timeoutPromise
-              ]);
+                }
+              };
+
+              const response = await generateWithRetry({
+                model: "gemini-3-flash-preview",
+                contents: chatContents,
+                config: {
+                  tools: [{ functionDeclarations: [scheduleMeetingDeclaration, createContractDeclaration, updateLeadDataDeclaration] }],
+                  systemInstruction: systemInstructionText,
+                  temperature: 0.7,
+                  maxOutputTokens: 2048,
+                }
+              });
               
               let aiResponseText = "";
               try {
@@ -549,38 +572,31 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
               if (!aiResponseText && response.functionCalls && response.functionCalls.length > 0) {
                 console.log("IA chamou ferramenta mas não enviou texto. Fazendo segunda chamada para obter resposta...");
                 try {
-                  const secondTimeoutPromise = new Promise<any>((_, reject) => {
-                    setTimeout(() => reject(new Error("Gemini API timeout (2nd call)")), 60000); // 60 segundos
-                  });
-
-                  const secondResponse = await Promise.race([
-                    ai.models.generateContent({
-                      model: "gemini-3-flash-preview",
-                      contents: [
-                        ...chatContents,
-                        { role: 'model', parts: response.candidates?.[0]?.content?.parts || [] },
-                        { 
-                          role: 'user', 
-                          parts: [
-                            ...response.functionCalls.map(call => ({
-                              functionResponse: {
-                                id: call.id,
-                                name: call.name,
-                                response: { success: true, message: "Dados processados com sucesso." }
-                              }
-                            })),
-                            { text: "Obrigada. Agora, como Alice, continue a conversa com o lead seguindo o fluxo. Responda APENAS com a mensagem para o WhatsApp, sem metadados ou explicações." }
-                          ]
-                        }
-                      ],
-                      config: {
-                        systemInstruction: systemInstructionText,
-                        temperature: 0.7,
-                        maxOutputTokens: 2048,
+                  const secondResponse = await generateWithRetry({
+                    model: "gemini-3-flash-preview",
+                    contents: [
+                      ...chatContents,
+                      { role: 'model', parts: response.candidates?.[0]?.content?.parts || [] },
+                      { 
+                        role: 'user', 
+                        parts: [
+                          ...response.functionCalls.map(call => ({
+                            functionResponse: {
+                              id: call.id,
+                              name: call.name,
+                              response: { success: true, message: "Dados processados com sucesso." }
+                            }
+                          })),
+                          { text: "Obrigada. Agora, como Alice, continue a conversa com o lead seguindo o fluxo. Responda APENAS com a mensagem para o WhatsApp, sem metadados ou explicações." }
+                        ]
                       }
-                    }),
-                    secondTimeoutPromise
-                  ]);
+                    ],
+                    config: {
+                      systemInstruction: systemInstructionText,
+                      temperature: 0.7,
+                      maxOutputTokens: 2048,
+                    }
+                  });
                   try {
                     aiResponseText = cleanAIResponse(secondResponse.text || "");
                   } catch (e) {
@@ -804,7 +820,7 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
               
               console.log("[IA] Enviando mensagem de fallback para o usuário...");
               
-              const fallbackMessage = "Recebi sua mensagem! No momento estou processando algumas informações, mas em breve te respondo com todos os detalhes. Se for algo urgente, pode me avisar! 😉";
+              const fallbackMessage = "Desculpe, tive um pequeno problema técnico ao processar sua mensagem. Poderia repetir, por favor? 😉";
               
               const zApiHeaders: Record<string, string> = { "Content-Type": "application/json" };
               if (process.env.ZAPI_CLIENT_TOKEN) {
