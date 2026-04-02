@@ -32,6 +32,45 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
         fileUrl = data.audio.url;
         fileType = "audio";
         messageText = "[Áudio]";
+        
+        // Tentar transcrever o áudio com o Gemini
+        let apiKey = process.env.CHAVE_IA_GEMINI || process.env.GEMINI_API_KEY;
+        if (apiKey) {
+          apiKey = apiKey.replace(/['"]/g, '').trim();
+          try {
+            console.log("Baixando áudio para transcrição:", fileUrl);
+            const audioRes = await fetch(fileUrl);
+            if (audioRes.ok) {
+              const arrayBuffer = await audioRes.arrayBuffer();
+              const base64Audio = Buffer.from(arrayBuffer).toString('base64');
+              const mimeType = audioRes.headers.get('content-type') || 'audio/ogg';
+              
+              const { GoogleGenAI } = await import("@google/genai");
+              const ai = new GoogleGenAI({ apiKey });
+              
+              console.log("Transcrevendo áudio com Gemini...");
+              const result = await ai.models.generateContent({
+                model: "gemini-3-flash-preview",
+                contents: [
+                  {
+                    role: 'user',
+                    parts: [
+                      { inlineData: { mimeType, data: base64Audio } },
+                      { text: "Transcreva este áudio de WhatsApp. Responda APENAS com o texto falado, sem adicionar nenhum comentário, aspas ou formatação." }
+                    ]
+                  }
+                ]
+              });
+              
+              if (result.text) {
+                messageText = result.text.trim();
+                console.log("Áudio transcrito com sucesso:", messageText);
+              }
+            }
+          } catch (err) {
+            console.error("Erro ao transcrever áudio:", err);
+          }
+        }
       } else if (data.document && data.document.url) {
         fileUrl = data.document.url;
         fileType = "document";
@@ -415,7 +454,8 @@ export default async function handler(req: VercelRequest | any, res: VercelRespo
                    - PROGRESSÃO DO FLUXO (CRÍTICO): O fluxo de conversa é UNIDIRECIONAL. Nunca volte para uma etapa anterior (ex: pedir cidade se o lead já está enviando documentos). Se o lead já forneceu uma informação ou está em uma etapa avançada, continue para a PRÓXIMA etapa (ex: agendamento ou contrato).
                   - SEM SAUDAÇÕES EXTRAS: Não adicione "Olá", "Tudo bem?", "Entendido" ou qualquer outra saudação/confirmação por conta própria se o prompt selecionado já não contiver isso ou se você já tiver se apresentado. Responda APENAS com o texto do prompt.
                   - NUNCA repita instruções internas, nomes de prompts (ex: "Prompt 1", "Triagem 1") ou qualquer metadado na sua resposta final. Responda APENAS com a mensagem que o lead deve ler. É PROIBIDO dizer coisas como "Entendido, vou usar o prompt X" ou "Apenas escreva a resposta de texto".
-                  - UMA MENSAGEM POR VEZ: Nunca envie dois prompts diferentes na mesma resposta.
+                  - UMA MENSAGEM POR VEZ (CRÍTICO): Nunca envie dois prompts diferentes na mesma resposta. NUNCA junte a Triagem 3 com a Validação de Dados. Você DEVE enviar um prompt, PARAR, e esperar o lead responder antes de enviar o próximo.
+                  - CORTE DE MENSAGEM: NUNCA corte a mensagem no meio. Envie o texto completo do prompt correspondente à etapa atual.
                   - FLEXIBILIDADE E HUMANIZAÇÃO: Se o lead fizer uma pergunta ou comentário fora do script (ex: "posso enviar amanhã?"), responda de forma humanizada e curta ANTES de enviar o prompt da etapa atual. Mas mantenha o texto do prompt íntegro.
                   
                   - REGRA PARA FORMULÁRIO SITE:
